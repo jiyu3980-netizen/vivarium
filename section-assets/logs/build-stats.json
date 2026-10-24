@@ -1,0 +1,26 @@
+{
+ "stats": {
+  "asset_review": 215,
+  "asset_ok": 160,
+  "asset_ok-with-notes": 57
+ },
+ "byCategory": {
+  "architectural-elements": 26,
+  "bathroom": 21,
+  "plants": 48,
+  "kitchen": 59,
+  "furniture": 85,
+  "other": 17,
+  "hobby": 12,
+  "lighting": 25,
+  "decor": 32,
+  "food-drink": 10,
+  "storage-lifestyle": 27,
+  "appliances": 35,
+  "electronics": 20,
+  "animals": 6,
+  "clothing": 7,
+  "vehicle": 2
+ },
+ "files": 405
+}
