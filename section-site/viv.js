@@ -13,7 +13,8 @@ const SH=()=>window.VivShare||null;
 const shareOn=()=>!!(SH()&&SH().enabled());
 const curShare=()=>{const h=houses[activeIdx];return h&&h.shared?h.shared:null};    // 지금 보는 집이 공유 집이면 {hid,role}
 const canEdit=c=>!c||!c.remote||!!c.canEdit;                                    // 공유 집 캐릭터는 등록한 사람과 집 주인만 수정(서버도 같은 규칙으로 검증)
-const note=(m,kind)=>{const e=q('#vvNote');if(!e)return;e.textContent=m||'';e.className='vv-note2'+(kind?' '+kind:'');e.hidden=!m};
+const note=(m,kind)=>{const e=q('#vvNote');if(!e)return;e.textContent=m||'';e.className='vv-note2'+(kind?' '+kind:'');e.hidden=!m;
+  if(m){const x=document.createElement('button');x.type='button';x.className='vv-note-x';x.textContent='×';x.title='닫기';x.setAttribute('aria-label','알림 닫기');x.onclick=()=>{e.hidden=true};e.appendChild(x)}};   // 알림창 오른쪽 끝 × 로 닫기
 
 /* ---------- 저장된 도면 목록 (내 단면도 슬롯, 읽기 전용) ---------- */
 function isBlank(slot){
@@ -395,16 +396,21 @@ function mindFill(el,c){
   if(mindSel){const r=V.rels.find(x=>x.id===mindSel),ms=M.memories(s,c.id,mindSel,now),other=nm(mindSel);
     h+=`<h4>${esc(other)}에 대한 생각 <small>지금 어떻게 보는지</small></h4>
      <div class="vm-box"><b class="vm-th">${r.th?esc(r.th.name):'아직 잘 모르겠는 사람'}</b><div class="vm-cause">${r.th?esc(r.th.why):'아직 겪은 일이 많지 않아서'}</div>${r.th?`<div class="vm-sub">이 생각을 갖게 된 때: ${esc(mindTime(r.th.since))}</div>`:''}
+     <label class="vm-type">친밀도 <span class="vm-affw"><input type="range" id="vmAff" min="-100" max="100" step="5" value="${r.aff}"><output id="vmAffO">${r.aff>0?'+':''}${r.aff}</output></span></label>
+     <label class="chk vm-both"><input type="checkbox" id="vmBoth" checked> ${esc(other)}도 ${esc(c.name)}을(를) 같게 느끼도록 같이 바꾸기</label>
      <label class="vm-type">관계 유형 <select id="vmType"><option value="">자동으로 (프로필·사건에 따라)</option>${Object.keys(M.REL_TYPES).map(k=>`<option value="${k}" ${r.lock==='user'&&r.type===k?'selected':''}>${esc(M.REL_TYPES[k].n)}</option>`).join('')}</select></label>
      <div class="vm-sub">${r.lock==='profile'?'프로필에 적힌 관계라서 자동으로 바뀌지 않아요.':r.lock==='user'?'직접 정한 관계라서 자동으로 바뀌지 않아요.':'관계 유형은 친밀도 점수만으로 정하지 않고, 쌓인 사건과 기억으로 천천히 바뀌어요.'} ${r.origin?'· '+esc(r.origin):''}</div></div>
      <h4>감정적 기억 <small>지나간 일 — 지금 기분과는 별개</small></h4>
      ${ms.length?`<ul class="vm-mem">${ms.map(m=>`<li class="${m.val>0?'pos':'neg'}"><span class="vm-ms">${esc(m.sum)}${m.cnt>1?` <small>(${m.cnt}번)</small>`:''}</span><span class="vm-mt">${esc(mindTime(m.at))}</span><span class="vm-mp" title="지금 남은 영향력 ${m.pow}/100"><i style="width:${Math.max(4,m.pow)}%"></i></span><small>영향력 ${powLabel(m.pow)}${m.fading?' · 점점 희미해지는 중':''}${m.open?' · 아직 풀리지 않음':''}</small></li>`).join('')}</ul>`:'<p class="hint">아직 남아 있는 기억이 없어요. 함께한 일이 쌓이면 기억이 생기고, 시간이 지나면 희미해져요.</p>'}`}
-  else if(others.length)h+='<p class="hint">관계 목록에서 캐릭터를 누르면 그 캐릭터에 대한 생각과 기억을 볼 수 있어요.</p>';
+  else if(others.length)h+='<p class="hint">관계 목록에서 캐릭터를 누르면 그 캐릭터와의 <b>관계 유형·친밀도를 직접 정하고</b>, 생각과 기억을 볼 수 있어요. (같은 집의 사람 캐릭터만 나와요. 반려동물은 돌봄 기능으로 따로 다뤄요.)</p>';
   h+=`<p class="hint vm-foot">${c.remote?'공유 집 캐릭터의 감정·관계는 시뮬레이션이 돌고 있는 기기에서만 갱신되고, 이 기기에만 저장돼요. ':'이 기기에만 저장돼요. '}<button type="button" id="vmReset" class="vm-link">감정·관계 기록 지우기</button></p>`;
   el.innerHTML=h;
   qa('.vm-rel',el).forEach(b=>b.onclick=()=>{mindSel=mindSel===b.dataset.o?null:b.dataset.o;mindFill(el,c)});
-  const ty=q('#vmType',el);if(ty)ty.onchange=()=>{const chars=humansIn(p.house),sp=Viv.seoul(new Date()),env=M.env(chars,ch=>Sim.analyze(ch.profile||'',ch.name||'',chars),Date.now(),`${sp.year}-${sp.month}-${sp.day}`);
-    M.setRelType(s,c.id,mindSel,ty.value||null,env);M.store.save();mindFill(el,c)};
+  const mkEnv=()=>{const chars=humansIn(p.house),sp=Viv.seoul(new Date());return M.env(chars,ch=>Sim.analyze(ch.profile||'',ch.name||'',chars),Date.now(),`${sp.year}-${sp.month}-${sp.day}`)};
+  const both=()=>{const b=q('#vmBoth',el);return !b||b.checked};
+  const ty=q('#vmType',el);if(ty)ty.onchange=()=>{const env=mkEnv();M.setRelType(s,c.id,mindSel,ty.value||null,env);if(both())M.setRelType(s,mindSel,c.id,ty.value||null,env);M.store.save();mindFill(el,c)};
+  const af=q('#vmAff',el);if(af){af.oninput=()=>{const o=q('#vmAffO',el);if(o)o.textContent=(+af.value>0?'+':'')+af.value};
+    af.onchange=()=>{const env=mkEnv();M.setRelAff(s,c.id,mindSel,af.value,env);if(both())M.setRelAff(s,mindSel,c.id,af.value,env);M.store.save();mindFill(el,c)}}
   const rs=q('#vmReset',el);if(rs)rs.onclick=()=>{if(!confirm('이 기기에 저장된 모든 캐릭터의 감정·관계·기억 기록을 지울까요? 캐릭터와 도면은 그대로예요.'))return;M.store.reset();mindSel=null;mindFill(el,c)}}
 function mindRefresh(){const el=q('#vvMind'),c=selChar&&Viv.char(selChar);if(!el||!c)return;const a=document.activeElement;if(a&&el.contains(a)&&/SELECT/.test(a.tagName))return;mindFill(el,c)}
 const mindEmoTag=id=>{const M=MD();if(!M)return '';const s=M.store.get();if(!s.emo[id])return '';return ' · '+M.rep(s,id,Date.now()).name};
@@ -456,7 +462,7 @@ function renderList(){
 function selectChar(id){selChar=id;const p=Viv.getPlace(id),i=houses.findIndex(h=>h.id===p.house);
   if(i>=0&&i!==activeIdx&&p.mode==='home'){scrollTo(i)}else{const s=qa('.vv-slide')[activeIdx];s&&drawChars(s);renderList();renderDetail()}}
 const nextText=st=>{const m=st&&st.decideAt>Date.now()?Math.max(1,Math.round((st.decideAt-Date.now())/60000)):0;return m?(m>=90?Math.round(m/60)+'시간':m+'분')+' 뒤':'곧'};
-function renderDetailTimes(){updNote();const e=q('#vvNext');if(e&&selChar)e.textContent=nextText(Viv.getSim(selChar));mindRefresh()}
+function renderDetailTimes(){updNote();const e=q('#vvNextAct');if(e&&selChar)e.textContent=nextText(Viv.getSim(selChar));mindRefresh()}
 /* 입력 중이면 패널 전체를 다시 그리지 않고 문구만 갱신(입력 포커스 유지) */
 function softDetail(){const el=q('#vvDetail'),a=document.activeElement;
   if(el&&a&&el.contains(a)&&/INPUT|SELECT|TEXTAREA/.test(a.tagName)){const c=selChar&&Viv.char(selChar);if(c){const p=Viv.getPlace(c.id),h=houseOf(p.house),d=describe(c,p,h?snapOf(h.id):null,h?h.name:''),ph=q('.vv-phrase',el);if(ph)ph.textContent=d.phrase;mindRefresh()}return}
@@ -517,7 +523,7 @@ function renderDetail(){
   el.innerHTML=`<h3>${esc(c.name)}</h3>
   <div class="vv-pic">${IMG[c.id]?`<img src="${IMG[c.id]}" alt="${esc(c.name)}">`:'<span>이미지 없음</span>'}</div>
   <p class="vv-phrase">${esc(d.phrase)}</p>
-  <dl><dt>현재 위치</dt><dd>${esc(d.loc)}</dd><dt>현재 행동</dt><dd>${esc(d.act)}</dd><dt>다음 행동</dt><dd id="vvNext">${placed?esc(nextText(st)):'-'}</dd>${isRem?`<dt>등록한 사람</dt><dd>${esc(owner||'참여자')}${c.mine?' (나)':''}</dd>`:''}<dt>프로필</dt><dd class="vv-prof">${ro?(profText(c)?esc(profText(c)):'<span class="hint">프로필이 비어 있어요</span>'):`<textarea id="vdProf" rows="5" maxlength="${Viv.PROFILE_MAX}" placeholder="성격·직업·취미·생활 습관을 적어 주세요. 고치면 아래 해석이 바로 바뀌고 자동 저장돼요.">${esc(profText(c))}</textarea><span class="hint" id="vdProfSt">고치면 자동으로 저장돼요</span>`}</dd></dl>
+  <dl><dt>현재 위치</dt><dd>${esc(d.loc)}</dd><dt>현재 행동</dt><dd>${esc(d.act)}</dd><dt>다음 행동</dt><dd id="vvNextAct">${placed?esc(nextText(st)):'-'}</dd>${isRem?`<dt>등록한 사람</dt><dd>${esc(owner||'참여자')}${c.mine?' (나)':''}</dd>`:''}<dt>프로필</dt><dd class="vv-prof">${ro?(profText(c)?esc(profText(c)):'<span class="hint">프로필이 비어 있어요</span>'):`<textarea id="vdProf" rows="5" maxlength="${Viv.PROFILE_MAX}" placeholder="성격·직업·취미·생활 습관을 적어 주세요. 고치면 아래 해석이 바로 바뀌고 자동 저장돼요.">${esc(profText(c))}</textarea><span class="hint" id="vdProfSt">고치면 자동으로 저장돼요</span>`}</dd></dl>
   ${pet?'':'<div id="vvMind"></div>'}${pet?petPanel(c,pet):petCarePanel(c)}
   <h4>직접 행동 지정하기</h4>${wishHtml}
   <p class="hint">고르면 가능한 조건(가구·길·서울 시각)을 확인해 바로 반영하고, 이후 한동안 그 방향이 조금 더 자주 나와요. 고르지 않아도 자율 행동은 계속돼요.</p>
@@ -638,21 +644,37 @@ function openNb(){
   const d=dlgOf();
   const draw=(msg,bad)=>{const s=nbState();
     const rows=s.codes.map(code=>{const h=houses.find(x=>nbCodeOf(x)===code);return `<li data-c="${esc(code)}"><span><b>${h?esc(h.name):'(지금은 찾을 수 없는 집)'}</b> <small>${esc(code.slice(0,2))}····</small></span><button type="button" class="nbDel">삭제</button></li>`}).join('');
+    const mineL=houses.map(h=>({h,c:nbCodeOf(h)})).filter(x=>x.c);
+    const mine=mineL.length?`<h4>이 기기의 집 <small>(코드가 있는 집)</small></h4><ul class="nb-list">${mineL.map(x=>`<li><span><b>${esc(x.h.name)}</b> <small>${esc(x.c)}</small></span>${s.codes.includes(x.c)?'<small>등록됨</small>':`<button type="button" class="nbMine" data-c="${esc(x.c)}">등록</button>`}</li>`).join('')}</ul>`:'<p class="hint">내가 만든 집은 「집 공유하기」로 초대 코드를 만들면 여기에 나타나요.</p>';
     d.innerHTML=`<form class="vv-form" onsubmit="return false"><h3>이웃하기</h3>
-     <p class="hint">이웃은 <b>초대 코드를 등록한 집</b>이에요. 내가 만든 공유 집이든 입장한 공유 집이든, 이웃으로 삼고 싶은 집의 코드를 <b>모두 여기에 등록</b>해야 해요. 등록한 집은 「동네 보기」에서 나란히 보이고, 캐릭터의 <b>'(집 이름) 놀러가기'</b>로 놀러 갈 수 있어요. 코드를 등록하지 않은 집에는 놀러 갈 수 없어요.</p>
-     <label>초대 코드 <input id="nbCode" maxlength="9" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="예) K7M2QX" style="text-transform:uppercase;letter-spacing:.25em;font-size:1.2em;text-align:center"></label>
+     <p class="hint">이웃은 <b>초대 코드를 등록한 집</b>이에요. 내가 만든 집이든, 입장한 집이든, 아직 들어가 보지 않은 집이든 이웃으로 삼고 싶은 집의 코드를 <b>모두 여기에 등록</b>해야 해요. 등록한 집은 「동네 보기」에서 나란히 보이고, 캐릭터의 <b>'(집 이름) 놀러가기'</b>로 놀러 갈 수 있어요. 코드를 등록하지 않은 집에는 놀러 갈 수 없어요.</p>
+     <label>초대 코드 <small>(여러 개는 줄바꿈·띄어쓰기·쉼표로 구분해 한꺼번에)</small><textarea id="nbCode" rows="3" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="예) K7M2QX  P4T9HZ" style="text-transform:uppercase;letter-spacing:.2em;font-size:1.1em;text-align:center;width:100%"></textarea></label>
+     ${mine}
      <div class="${bad?'vv-err':'hint'}" id="nbMsg" role="alert">${esc(msg||'')}</div>
      ${s.codes.length?`<h4>등록한 이웃 <small>${s.codes.length}곳</small></h4><ul class="nb-list">${rows}</ul>`:'<p class="hint">아직 등록한 이웃이 없어요.</p>'}
-     <p class="hint">코드는 이 기기에만 저장돼요(서버로 보내지 않아요). 이 기기에서 집을 만들었거나 「입장하기」로 들어온 공유 집의 코드만 등록할 수 있어요. 놀러 가는 모습은 이 기기에서만 보이고, 다른 참여자의 화면에는 전해지지 않아요.</p>
+     <p class="hint">코드는 이 기기에만 저장돼요. 아직 들어가 보지 않은 집의 코드를 넣으면 「입장하기」처럼 그 집에 연결(참여자로 등록)된 뒤 이웃이 돼요. 놀러 가는 모습은 이 기기에서만 보이고, 다른 참여자의 화면에는 전해지지 않아요.</p>
      <div class="vv-btns"><button type="button" id="nbClose">닫기</button><button type="button" id="nbAdd" class="vv-primary">등록</button></div></form>`;
     q('#nbClose',d).onclick=()=>d.close();
-    const add=()=>{const code=normCode(q('#nbCode',d).value);
-      if(code.length<6)return draw('6자리 초대 코드를 입력하세요',1);
-      const h=houses.find(x=>nbCodeOf(x)===code);
-      if(!h)return draw('이 기기에 코드가 저장된 공유 집이 아니에요. 집을 만든 기기이거나 「입장하기」로 이 코드를 써서 들어온 기기에서만 등록할 수 있어요. 코드를 새로 발급받았다면 새 코드를 입력하세요.',1);
-      if(s.codes.includes(code))return draw('이미 등록한 코드예요',1);
-      nbSave({codes:[...s.codes,code]});nbChanged();draw(`'${h.name}' 집이 이웃이 됐어요`)};
-    q('#nbAdd',d).onclick=add;q('#nbCode',d).addEventListener('keydown',e=>{if(e.key==='Enter')add()});
+    const addOne=async(code,codes)=>{
+      if(code.length<6)return {bad:`'${code}' 는 6자리 코드가 아니에요`};
+      if(codes.includes(code))return {bad:`'${code}' 는 이미 등록했어요`};
+      let h=houses.find(x=>nbCodeOf(x)===code);
+      if(!h){   // 아직 들어가 보지 않은 집의 코드: 「입장하기」와 같은 방식으로 코드를 확인해 그 집과 연결한 뒤 이웃으로 등록
+        try{const r=await SH().join(code,'이웃');await enter(true);h=houses.find(x=>x.shared&&x.shared.hid===r.hid)||houses.find(x=>nbCodeOf(x)===code);
+          if(!h)return {bad:`'${code}' 집에 연결했지만 목록에서 찾지 못했어요`}}
+        catch(e){return {bad:`'${code}': ${waitMsg(e)}`}}}
+      codes.push(code);return {ok:h.name}};
+    const add=async(list)=>{
+      const raw=list||String(q('#nbCode',d).value).split(/[\s,;·]+/).map(normCode).filter(Boolean);
+      if(!raw.length)return draw('초대 코드를 입력하세요',1);
+      if(!shareOn())return notReady();
+      const btn=q('#nbAdd',d);btn.disabled=true;btn.textContent='확인 중…';
+      const codes=[...nbState().codes],okn=[],bads=[];
+      for(const c of [...new Set(raw)]){const r=await addOne(c,codes);r.ok?okn.push(r.ok):bads.push(r.bad)}
+      nbSave({codes});nbChanged();
+      draw((okn.length===1?`'${okn[0]}' 집이 이웃이 됐어요. `:okn.length?`이웃 ${okn.length}곳이 됐어요: ${okn.join(', ')}. `:'')+bads.join(' / '),!okn.length&&bads.length)};
+    qa('.nbMine',d).forEach(b=>b.onclick=()=>add([b.dataset.c]));
+    q('#nbAdd',d).onclick=()=>add();
     qa('.nbDel',d).forEach(b=>b.onclick=()=>{const c=b.closest('li').dataset.c;nbSave({codes:nbState().codes.filter(x=>x!==c)});nbChanged();draw('이웃에서 뺐어요')})};
   draw();d.showModal();setTimeout(()=>{const i=q('#nbCode',d);i&&i.focus()},30)}
 function nbChanged(){hoodUi();const sl=qa('.vv-slide')[activeIdx];if(sl){drawChars(sl)}renderDetail()}
@@ -807,7 +829,7 @@ function init(){
   window.addEventListener('hashchange',()=>go(location.hash==='#viv'?'viv':'edit'));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)simTick()});
   if(location.hash==='#viv')go('viv');
-  window.VivUI={go,isBlank,getHouses,drawDoc,describe,runSim,simTick};
+  window.VivUI={go,isBlank,getHouses,drawDoc,describe,runSim,simTick,note};
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

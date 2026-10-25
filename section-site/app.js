@@ -746,7 +746,16 @@ $('#bSave').onclick=async()=>{if(HK.save&&await HK.save())return;   // 공유 �
 const dl=(blob,name)=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
 $('#bNew').onclick=()=>{newSlot()};
 /* 도면 내보내기: 선택 표시를 빼고 건물 영역만 잘라 SVG/PNG 로 저장 (가구 선이 인라인 경로라 파일 하나로 완결) */
-function exportSvg(){const b=S.b,top=EH()+(b.roof==='gable'?b.rh:b.roof==='flat'?30:0);const dep=-lvl(0)+b.s;const BN=bounds(),x0=BN.l-110,y0=-(top+(S.title?110:60)),w=(BN.r-BN.l)+260,h=top+dep+(S.title?330:280);
+function exportSvg(){const b=S.b,top=EH()+(b.roof==='gable'?b.rh:b.roof==='flat'?30:0);const dep=-lvl(0)+b.s;const BN=bounds();
+ /* 집 밖에 둔 가구·테라스·바깥 계단·지붕 처마까지 포함해, 가장 바깥 끝점보다 여백을 더 두고 그림 범위를 잡는다(안 그러면 잘림) */
+ let mnX=BN.l,mxX=BN.r,mxY=top;{const ex=(a0,a1)=>{if(isFinite(a0))mnX=Math.min(mnX,a0);if(isFinite(a1))mxX=Math.max(mxX,a1)};
+  for(const it of S.items){ex(it.x-it.w/2,it.x+it.w/2);if(isFinite(it.e+it.h))mxY=Math.max(mxY,it.e+it.h)}
+  for(const q of S.terr)ex(q.x0,q.x1);
+  for(const a of S.stairs){let g=null;try{g=stairGeo(a)}catch(e){}if(!g)continue;
+   if(g.asset){ex(g.asset.x,g.asset.x+g.asset.w);mxY=Math.max(mxY,g.asset.e+g.asset.h)}
+   else{if(g.xs)ex(g.xs[0],g.xs[1]);for(const P of [...(g.polys||[g.poly||[]]),g.rail||[],...(g.thin||[])])for(const p of P){ex(p[0],p[0]);if(isFinite(p[1]))mxY=Math.max(mxY,p[1])};if(g.land)ex(g.land[0],g.land[1])}}
+  ex(XL(S.b.f-1)-30,XR(S.b.f-1)+30)}   // 박공·평지붕 처마
+ const x0=mnX-110,y0=-(mxY+(S.title?110:60)),w=(mxX-mnX)+260,h=mxY+dep+(S.title?330:280);
  const c=svg.cloneNode(true);c.querySelectorAll('.sel,.guide').forEach(n=>n.remove());c.classList.remove('drag');c.removeAttribute('style');c.setAttribute('xmlns',NS);c.setAttribute('viewBox',`${x0} ${y0} ${w} ${h}`);c.setAttribute('width',w);c.setAttribute('height',h);
  const bg=document.createElementNS(NS,'rect');[['x',x0],['y',y0],['width',w],['height',h],['fill','#f7f6f2']].forEach(([k,v])=>bg.setAttribute(k,v));c.insertBefore(bg,c.firstChild);
  if(S.title){const tt=document.createElementNS(NS,'text');tt.setAttribute('x',x0+w/2);tt.setAttribute('y',y0+34);tt.setAttribute('text-anchor','middle');tt.setAttribute('style',"font:italic 800 26px Arial,'Noto Sans KR',sans-serif;fill:#1c1c1c");tt.textContent=S.title;c.appendChild(tt)}

@@ -376,6 +376,9 @@ function setRelType(s,a,b,type,env){
   s=migrate(s);const R=rel(s,a,b,env);
   if(type===null||type===''){if(R.lock==='user')R.lock=null;return R}
   if(!REL_TYPES[type])return null;R.type=type;R.lock='user';R.why='직접 '+REL_TYPES[type].n+'(으)로 정함';R.whyAt=env.now;return R}
+/* v18.3: 사용자가 친밀도 점수를 직접 정함(−100~+100). 이후 사건에 따라 이 값에서 다시 천천히 변함 */
+function setRelAff(s,a,b,val,env){
+  s=migrate(s);const R=rel(s,a,b,env);const v=clamp(Math.round(+val||0),-100,100);R.aff=v;R.why='직접 친밀도를 '+(v>0?'+':'')+v+'(으)로 정함';R.whyAt=env.now;return R}
 /* 삭제된 캐릭터의 감정·관계·기억 정리 */
 function prune(s,alive){
   s=migrate(s);const ok=new Set(alive);
@@ -388,7 +391,7 @@ function prune(s,alive){
 /* 특정 캐릭터가 삭제될 때만 그 캐릭터의 감정·관계·기억을 지움(다른 기기·다른 집의 데이터는 건드리지 않음) */
 function forget(s,id){s=migrate(s);delete s.emo[id];delete s.last[id];delete s.mem[id];for(const k of Object.keys(s.mem))s.mem[k]=s.mem[k].filter(m=>m.o!==id);for(const k of Object.keys(s.rel)){const [a,b]=k.split('>');if(a===id||b===id){delete s.rel[k];delete s.th[k]}}return s}
 const envOf=(chars,A,now,day)=>makeEnv(null,{chars,A,now,day,hour:0});
-const api={forget,env:envOf,EMOTIONS,REL_TYPES,THOUGHTS,MEM_TYPES,EVENTS,LIMITS,LEVELS,create,migrate,update,applyEvent,hooks,view,memories,setRelType,prune,rep,effPow,agg,updateThought,reclassify,ensureEmo,addEmo,rel,initRel,profileRel,tickChar,targets,pk,pairKey,hash,mulberry};
+const api={forget,env:envOf,EMOTIONS,REL_TYPES,THOUGHTS,MEM_TYPES,EVENTS,LIMITS,LEVELS,create,migrate,update,applyEvent,hooks,view,memories,setRelType,setRelAff,prune,rep,effPow,agg,updateThought,reclassify,ensureEmo,addEmo,rel,initRel,profileRel,tickChar,targets,pk,pairKey,hash,mulberry};
 
 /* ---------- 브라우저 저장(도면·캐릭터·시뮬레이션 키와 별도) ---------- */
 if(typeof localStorage!=='undefined'){
