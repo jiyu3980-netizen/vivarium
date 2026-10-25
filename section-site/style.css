@@ -29,8 +29,6 @@ h4{margin:12px 0 4px;font-style:italic;text-transform:uppercase;letter-spacing:.
 #svg{width:100%;height:100%;display:block;touch-action:none;cursor:default;position:relative}
 #hud{position:absolute;left:10px;bottom:34px;font-size:12px;color:var(--ink2);pointer-events:none}
 /* 제목 블록(레퍼런스 3 의 회색 이중 룰 + 이탤릭 볼드 제목) */
-#titleBar{position:absolute;left:18px;right:18px;top:10px;pointer-events:none}
-#titleBar .rule{height:3px;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);background:rgba(255,255,255,.55);opacity:.85}
 #docTitle{pointer-events:auto;width:100%;margin:5px 0;border:0;background:transparent;text-align:center;font:italic 800 19px/1.2 'Sheet','Arial Narrow','Helvetica Neue',Arial,sans-serif;text-transform:uppercase;letter-spacing:.01em;padding:2px}
 #docTitle:focus{outline:1px dashed var(--ink)}
 #capBar{position:absolute;left:18px;right:18px;bottom:8px;pointer-events:none;font:italic 700 13px 'Sheet','Arial Narrow',Arial,sans-serif}
@@ -40,7 +38,7 @@ h4{margin:12px 0 4px;font-style:italic;text-transform:uppercase;letter-spacing:.
 #inspBody .btns{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}.seg{display:flex}.seg button{border-radius:0}.seg button+button{border-left:0}.seg .on{background:var(--ink);color:#fff}
 .warn{color:#7a5a12;font-size:12px;margin-top:6px}
 dialog{border:1px solid var(--ink);border-radius:2px;background:var(--paper);color:var(--ink);max-width:420px;width:92vw}dialog .it{display:flex;gap:6px;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px dotted var(--rule)}
-.itm{cursor:move}.sel-box{fill:none;stroke:var(--ink);stroke-dasharray:6 4;vector-effect:non-scaling-stroke;pointer-events:none}.hnd{fill:#fff;stroke:var(--ink);stroke-width:1.5;cursor:nwse-resize;vector-effect:non-scaling-stroke}
+.itm{cursor:move}.sel-box{fill:none;stroke:var(--ink);stroke-dasharray:6 4;vector-effect:non-scaling-stroke;pointer-events:none}.hnd{fill:#fff;stroke:var(--ink);stroke-width:1.5;cursor:nwse-resize;vector-effect:non-scaling-stroke;pointer-events:none}.hnd-hit{fill:transparent;stroke:none;cursor:nwse-resize}
 .guide{stroke:var(--ink);stroke-dasharray:2 5;vector-effect:non-scaling-stroke;opacity:.55;pointer-events:none}
 #err{margin:8px 0;padding:8px;border:1px solid var(--ink);background:#fff;font-size:12.5px}
 #tDraw label,#tHouse label.sub{display:flex;justify-content:space-between;align-items:center;gap:6px;margin:6px 0}#tDraw input[type=number],#tDraw select{width:120px}#tHouse label.sub input{width:90px}

@@ -32124,8 +32124,8 @@
    "assetId": "workstation-computer",
    "nameKo": "컴퓨터 워크스테이션",
    "nameEn": "Workstation Computer",
-   "categoryId": "furniture",
-   "subcategoryId": "desk",
+   "categoryId": "electronics",
+   "subcategoryId": "it-network",
    "tags": [
     "책상",
     "컴퓨터",

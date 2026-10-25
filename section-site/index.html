@@ -17,6 +17,7 @@
   <section id="tHouse" hidden>
    <h4>건물 크기</h4>
    <label>폭(cm) <input type="number" id="bw" min="300" max="3000" step="10"></label>
+   <label>1층 바닥이 지면보다 높은 정도(cm, 현관 계단용) <input type="number" id="brz" min="0" max="150" step="5"></label>
    <label>지상 층수 <input type="number" id="bf" min="1" max="6"></label>
    <label>지하 층수 <input type="number" id="bb" min="0" max="3"></label>
    <label>층고 일괄(cm) <input type="number" id="bh" min="220" max="500" step="5"></label>
@@ -31,11 +32,23 @@
    <div id="pList"></div>
    <div id="rmList"></div>
    <p class="hint">벽을 추가하면 층마다 벽 사이가 방으로 나뉩니다. 방 이름·폭은 아래에서 고치고, 벽은 도면에서 끌어 옮길 수 있어요.</p>
+   <h4>층별 폭 · 방 붙이기</h4>
+   <div class="row2"><select id="wxFloor"></select><span id="wxInfo" class="hint"></span></div>
+   <label>새 폭(cm) <input type="number" id="wxW" min="100" max="4000" step="10"></label>
+   <label>기준 <select id="wxAnchor"><option value="L">왼쪽 고정 (오른쪽이 늘고 줄어요)</option><option value="R">오른쪽 고정 (왼쪽이 늘고 줄어요)</option><option value="C">가운데 기준 (양쪽 균등)</option></select></label>
+   <button id="wxApply" class="wide">이 층 폭 바꾸기</button>
+   <div class="row2"><select id="raFloor"></select><select id="raSide"><option value="R">오른쪽 바깥</option><option value="L">왼쪽 바깥</option></select><input type="number" id="raW" value="300" step="10" style="width:70px" title="새 방 폭(cm)"><button id="raAdd">방 붙이기</button></div>
+   <p class="hint">'방 붙이기'는 사각형 방을 외벽 바깥에 붙여요. 기존 외벽은 내벽이 되고(문·창 유지), 새 방의 바깥 둘레가 외벽이 됩니다. 건물 안쪽 방은 위 '내벽'으로 나눠 만들어요.</p>
+   <h4>테라스 (바닥 + 난간)</h4>
+   <div class="row2"><select id="tfFloor"></select><select id="tfSide"><option value="R">오른쪽 바깥</option><option value="L">왼쪽 바깥</option></select><input type="number" id="tfW" value="250" step="10" style="width:70px" title="폭(cm)"></div>
+   <div class="row2"><select id="tfRail"><option value="iron">철제 난간</option><option value="vict">빅토리안 대리석 난간</option><option value="brick">벽돌 난간</option></select><button id="tfAdd">테라스 추가</button></div>
+   <div id="tList"></div>
    <h4>문 · 창문</h4>
    <div class="row2"><select id="oKind"><option value="door">문</option><option value="window">창문</option></select><select id="oFloor"></select><select id="oOn"></select><button id="oAdd">추가</button></div>
    <div id="oList"></div>
    <h4>계단</h4>
    <div class="row2"><select id="sType"><option value="straight">직선</option><option value="L">ㄱ자</option><option value="U">U자</option><option value="spiral">그랜드 나선형</option><option value="glass">유리 난간 (U자형)</option></select><select id="sFloor"></select><button id="sAdd">추가</button></div>
+   <div class="row2"><select id="oxFloor"></select><select id="oxSide"><option value="R">오른쪽 바깥</option><option value="L">왼쪽 바깥</option></select><button id="oxAdd">건물 밖 계단 추가</button></div>
    <div id="sList"></div>
    <label class="chk"><input type="checkbox" id="optVoid"> 계단 위 바닥에 개구부 뚫기 (끄면 바닥이 이어지고 계단은 바닥 뒤에 그려져요)</label>
    <p class="hint">계단은 선택한 층에서 위층으로 이어지고, 위층 슬래브에 계단실 개구부가 자동으로 뚫립니다. 가구는 가까운 층 바닥에 자동으로 붙습니다(Alt 누르면 해제).</p>
@@ -58,13 +71,13 @@
    <label>해칭 각도(°) <input type="number" id="hang" min="-90" max="90" step="5"></label>
    <label>해칭 선 굵기 배율 <input type="number" id="hw" min="0.2" max="4" step="0.1"></label>
    <p class="hint">개별 내벽·계단 재질은 도면에서 선택하면 오른쪽에서 바꿀 수 있어요.</p>
-   <h4>'벽 뒤' 가구 표현</h4>
+   <h4>'원경' 가구 표현 (멀리 있어 연하게 보이는 가구)</h4>
    <label>불투명도 <input type="number" id="bOp" min="0.1" max="1" step="0.05"></label>
    <label class="chk"><input type="checkbox" id="bDash"> 점선으로 표시</label>
    <h4>레이어 (보기 켜기/끄기)</h4>
    <div id="layList"></div>
   </section></aside>
- <div id="stage"><button id="tgL" class="tg tgL" title="왼쪽 도구창 접기">◀</button><button id="tgR" class="tg tgR" title="오른쪽 속성창 접기">▶</button><div id="titleBar"><div class="rule"></div><input id="docTitle" aria-label="도면 제목" maxlength="60" placeholder="도면 제목 (선택)"><div class="rule"></div></div><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg><div id="hud"></div><div id="capBar"><div class="rule"></div><div class="t"><span id="capL"></span><span id="capR"></span></div></div></div>
+ <div id="stage"><button id="tgL" class="tg tgL" title="왼쪽 도구창 접기">◀</button><button id="tgR" class="tg tgR" title="오른쪽 속성창 접기">▶</button><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg><div id="hud"></div><div id="capBar"><div class="rule"></div><div class="t"><span id="capL"></span><span id="capR"></span></div></div></div>
  <aside id="insp"><h4>선택한 객체</h4><div id="inspBody" class="hint">가구·벽·문·창문·계단을 클릭하거나 왼쪽에서 추가하세요.</div></aside>
 </main>
 <dialog id="dlg"></dialog>
