@@ -93,7 +93,8 @@ function drawDoc(doc){
     const S=B.S,ex=exportSvg(),b=S.b,top=EH()+(b.roof==='gable'?b.rh:b.roof==='flat'?30:0),dep=-lvl(0)+b.s;
     const x0=ex.x0,y0=ex.y0,w=ex.w,h=ex.h;
     const geo=buildGeo(S,b);
-    return {text:ex.text,x0,y0,w,h,geo,gy:b.rz||0}
+    const text=ex.text.replace(/<rect x="[^"]*" y="[^"]*" width="[^"]*" height="[^"]*" fill="#f7f6f2"\/>/,'');   // 도면 바깥 종이색 사각형(집 둘레의 테두리처럼 보이던 것)은 관찰 화면에서 뺌
+    return {text,x0,y0,w,h,geo,gy:b.rz||0}
   }finally{B.S=keepS;B.sel=keepSel;render()}}   // 편집기 문서 원상 복구
 
 /* ---------- 위치·행동 문구 ---------- */
@@ -265,7 +266,17 @@ function drawChars(slide){
   const list=Viv.chars().filter(c=>{const p=Viv.getPlace(c.id);return p.house===hid&&(p.mode==='home'||ANIM[c.id])});
   list.sort((a,b)=>(a.id===selChar)-(b.id===selChar));
   list.forEach(c=>makeChar(c,Viv.getPlace(c.id),geo,ov,slide,L1,L2));
-  if(slide===qa('.vv-slide')[activeIdx]){renderOuts(slide);renderHood(slide)}}
+  if(slide===qa('.vv-slide')[activeIdx]){renderOuts(slide);renderHood(slide);updNote(slide)}}
+/* v18.1: 다음 행동 갱신까지 남은 시간 — 도면 화면 오른쪽 아래에 작은 글씨로 */
+function updNote(slide){slide=slide||qa('.vv-slide')[activeIdx];if(!slide)return;const wrap=q('.vv-stagewrap',slide);if(!wrap||!slide._snap)return;
+  let el=q('.vv-upd',wrap);const hid=slide.dataset.house;
+  const ids=Viv.chars().filter(c=>{const p=Viv.getPlace(c.id);return p.house===hid&&p.mode==='home'}).map(c=>c.id);
+  const now=Date.now(),ts=(selChar&&ids.includes(selChar)?[selChar]:ids).map(id=>{const st=Viv.getSim(id);return st&&st.decideAt>now?st.decideAt:0}).filter(Boolean);
+  if(!ids.length){if(el)el.remove();return}
+  if(!el){el=document.createElement('div');el.className='vv-upd';wrap.appendChild(el)}
+  const m=ts.length?Math.max(1,Math.round((Math.min(...ts)-now)/60000)):0;
+  el.textContent=m?`${m>=90?Math.round(m/60)+'시간':m+'분'} 뒤 행동이 갱신됩니다.`:'곧 행동이 갱신됩니다.'}
+setInterval(()=>{if(typeof mode!=='undefined'&&mode==='viv'&&!document.hidden)updNote()},15000);
 function renderOuts(slide){const el=q('#vvOuts');if(el){el.hidden=true;el.innerHTML=''}
   const wrap=q('.vv-stagewrap',slide);if(!wrap)return;renderGuests(slide,wrap);let box=q('.vv-outtop',wrap);
   const hid=slide.dataset.house;const outs=Viv.chars().filter(c=>{const p=Viv.getPlace(c.id);return p.house===hid&&p.mode==='out'&&!ANIM[c.id]});
@@ -445,7 +456,7 @@ function renderList(){
 function selectChar(id){selChar=id;const p=Viv.getPlace(id),i=houses.findIndex(h=>h.id===p.house);
   if(i>=0&&i!==activeIdx&&p.mode==='home'){scrollTo(i)}else{const s=qa('.vv-slide')[activeIdx];s&&drawChars(s);renderList();renderDetail()}}
 const nextText=st=>{const m=st&&st.decideAt>Date.now()?Math.max(1,Math.round((st.decideAt-Date.now())/60000)):0;return m?(m>=90?Math.round(m/60)+'시간':m+'분')+' 뒤':'곧'};
-function renderDetailTimes(){const e=q('#vvNext');if(e&&selChar)e.textContent=nextText(Viv.getSim(selChar));mindRefresh()}
+function renderDetailTimes(){updNote();const e=q('#vvNext');if(e&&selChar)e.textContent=nextText(Viv.getSim(selChar));mindRefresh()}
 /* 입력 중이면 패널 전체를 다시 그리지 않고 문구만 갱신(입력 포커스 유지) */
 function softDetail(){const el=q('#vvDetail'),a=document.activeElement;
   if(el&&a&&el.contains(a)&&/INPUT|SELECT|TEXTAREA/.test(a.tagName)){const c=selChar&&Viv.char(selChar);if(c){const p=Viv.getPlace(c.id),h=houseOf(p.house),d=describe(c,p,h?snapOf(h.id):null,h?h.name:''),ph=q('.vv-phrase',el);if(ph)ph.textContent=d.phrase;mindRefresh()}return}
