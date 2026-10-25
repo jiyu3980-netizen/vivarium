@@ -1,0 +1,60 @@
+/* 비바리움 관찰 탭 (기존 style.css 의 변수·버튼 스타일을 그대로 사용) */
+.vnav{display:flex;margin-right:6px}.vnav button{border-radius:0;font-weight:600}.vnav button+button{border-left:0}.vnav .on{background:var(--ink);color:#fff}
+#viv{display:none;flex:1;min-height:0;margin-top:6px}
+body.mode-viv #viv{display:block}body.mode-viv main{display:none}body.mode-viv #top .grp{display:none}
+.vv-wrap{display:grid;grid-template-columns:240px 1fr 280px;height:100%;min-height:0}
+.vv-side,.vv-detail{background:var(--paper);overflow:auto;padding:10px 12px;border-right:1px solid var(--rule)}.vv-detail{border-right:0;border-left:1px solid var(--rule)}
+.vv-side h3,.vv-detail h3{margin:2px 0 8px;font-style:italic;text-transform:uppercase;letter-spacing:.04em;font-size:13px;border-bottom:1px solid var(--ink);padding-bottom:3px}.vv-side small{color:var(--mut);font-weight:400}
+#vvChars{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.vv-chip{display:flex;gap:8px;align-items:center;text-align:left;padding:5px 7px;border:1px solid var(--rule);background:#fff;border-radius:2px}.vv-chip.on{border-color:var(--ink);box-shadow:inset 3px 0 0 var(--ink)}
+.vv-chip img,.vv-ini{width:38px;height:38px;object-fit:contain;flex:none;background:repeating-conic-gradient(#e9e9e6 0 25%,#fff 0 50%) 0 0/10px 10px}.vv-ini{display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--ink2);background:#ececea}
+.vv-chip span:last-child{min-width:0}.vv-chip b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.vv-chip small{display:block;color:var(--mut);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-primary{background:var(--ink);color:#fff}.vv-primary:hover{background:#333}.vv-danger{color:#a02020;border-color:#a02020}
+#vvAdd{width:100%}.vv-note{color:var(--mut);font-size:11.5px;line-height:1.5;margin-top:12px}
+.vv-main{display:flex;flex-direction:column;min-width:0;min-height:0;padding:6px 10px;background:var(--paper2)}
+.vv-bar{display:flex;gap:8px;align-items:center;padding:2px 2px 6px}.vv-sp{flex:1}#vvClock{color:var(--mut);font-size:12.5px}
+.vv-car{position:relative;flex:1;min-height:0;display:flex;align-items:stretch}
+.vv-track{flex:1;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;min-width:0}.vv-track::-webkit-scrollbar{display:none}
+.vv-slide{flex:0 0 100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;min-width:0}
+.vv-stagewrap{width:100%;display:flex;align-items:center;justify-content:center}
+.vv-stage{position:relative;width:min(100%,calc((100vh - 170px)*var(--ar)));background:var(--paper);border:1px solid var(--rule)}
+.vv-bg{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none}
+.vv-ov{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.vv-ch{pointer-events:auto;cursor:grab;touch-action:none}.vv-ch:active{cursor:grabbing}
+.vv-out,.vv-handle{display:none}.vv-ch.sel .vv-out{display:block;stroke:#d0382c}.vv-ch.sel .vv-handle{display:block;fill:#fff;stroke:#d0382c;stroke-width:2;cursor:nesw-resize}
+.vv-lb{display:none;fill:#1c1c1c;stroke:#fff;paint-order:stroke;font-weight:700;pointer-events:none}.vv-ch.sel .vv-lb,.vv-ch:hover .vv-lb{display:block}
+.vv-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:34px;height:54px;font-size:26px;line-height:1;padding:0;background:rgba(255,255,255,.9)}#vvPrev{left:0}#vvNext{right:0}.vv-arrow[hidden]{display:none}
+.vv-dots{display:flex;gap:7px;justify-content:center;padding:6px}.vv-dots button{width:11px;height:11px;padding:0;border-radius:50%;background:#fff}.vv-dots button.on{background:var(--ink)}
+.vv-wait{color:var(--mut);padding:40px}
+.vv-empty{margin:auto;text-align:center;max-width:460px;padding:40px 20px}.vv-empty h2{margin:0 0 10px}.vv-empty p{color:var(--ink2);line-height:1.7}
+.vv-pic{height:150px;display:flex;align-items:center;justify-content:center;border:1px solid var(--rule);background:repeating-conic-gradient(#e9e9e6 0 25%,#fff 0 50%) 0 0/14px 14px;margin-bottom:8px}.vv-pic img{max-width:100%;max-height:100%;object-fit:contain}.vv-pic span{color:var(--mut)}
+.vv-phrase{font-weight:600;margin:4px 0 8px}.vv-detail dl{margin:0 0 4px}.vv-detail dt{font-size:11.5px;color:var(--mut);margin-top:6px}.vv-detail dd{margin:0;white-space:pre-wrap;word-break:break-word}.vv-prof{max-height:150px;overflow:auto}
+.vv-detail label{display:flex;justify-content:space-between;align-items:center;gap:6px;margin:6px 0;font-size:13px}.vv-detail select{max-width:150px}.vv-detail .row input[type=number]{width:62px}.vv-detail .row input[type=range]{width:80px;padding:0}
+.vv-btns{display:flex;gap:6px;justify-content:flex-end;margin-top:10px}
+#vvDlg{border:1px solid var(--ink);padding:0;max-width:min(520px,94vw);width:100%;background:var(--paper)}#vvDlg::backdrop{background:rgba(0,0,0,.35)}
+.vv-form{padding:16px 18px}.vv-form h3{margin:0 0 10px}.vv-form label{display:block;margin:8px 0 3px;font-size:13px}.vv-form input[type=text],.vv-form input:not([type]),.vv-form textarea{width:100%;display:block;margin-top:3px}.vv-form textarea{font:inherit;padding:6px;resize:vertical;border:1px solid var(--ink)}
+.vv-prev{display:flex;gap:10px;align-items:center;margin:6px 0}.vv-chk{width:96px;height:96px;flex:none;display:flex;align-items:center;justify-content:center;border:1px solid var(--rule);background:repeating-conic-gradient(#e9e9e6 0 25%,#fff 0 50%) 0 0/12px 12px}.vv-chk img{max-width:100%;max-height:100%;object-fit:contain}
+.vv-err{color:#a02020;min-height:1.2em;margin-top:6px;font-size:13px}
+@media (max-width:900px){.vv-wrap{grid-template-columns:1fr;height:auto}.vv-side,.vv-detail{border:0;border-bottom:1px solid var(--rule)}#viv{overflow:auto}.vv-stage{width:100%}}
+#viv [hidden]{display:none!important}
+
+/* ---- 생활 시뮬레이션 ---- */
+.vv-bub rect{fill:#fff;stroke:#1c1c1c;stroke-width:1.1;vector-effect:non-scaling-stroke}.vv-bub path{fill:#fff;stroke:#1c1c1c;stroke-width:1.1;vector-effect:non-scaling-stroke}.vv-bub text{fill:#1c1c1c;font-family:'Noto Sans KR',Arial,sans-serif;pointer-events:none}.vv-bub .nm{font-weight:700}
+.vv-bub{pointer-events:none}.vv-ch.sel~*{}.vv-bub.sel rect,.vv-bub.sel path{stroke:#d0382c}
+.vv-outs{margin:0 2px 6px;padding:6px 10px;border:1px dashed var(--rule);background:#fff;font-size:12.5px;color:#333}.vv-outs b{font-weight:700}.vv-outs span{display:block}
+.vv-wishes{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0 2px}.vv-wishes button{padding:4px 8px;border:1px solid var(--ink);background:#fff;font-size:12.5px;border-radius:2px;cursor:pointer}.vv-wishes button:hover:not(:disabled){background:#1c1c1c;color:#fff}.vv-wishes button:disabled{opacity:.45;cursor:not-allowed;border-color:var(--rule)}
+.vv-wmsg{font-size:12px;min-height:16px;color:#333;margin:2px 0}.vv-wmsg.err{color:#b3261e}
+.vv-why{font-size:11px;color:var(--mut);margin:1px 0 0}
+.vv-an{display:flex;flex-wrap:wrap;gap:4px;margin:3px 0 6px}.vv-tag{font-size:11.5px;padding:2px 6px;border:1px solid var(--rule);background:#fff;border-radius:10px}.vv-tag.fact{border-color:#1c1c1c;background:#f1efe9}.vv-tag.neg{color:var(--mut);border-style:dashed}.vv-tag small{color:var(--mut)}
+
+/* ---------- 집 공유 ---------- */
+.vnav .vjoin{margin-left:10px;border:1px solid #1c1c1c;background:#1c1c1c;color:#fff;border-radius:6px;padding:4px 12px;font-weight:600;cursor:pointer}
+.vnav .vjoin:hover{background:#333}
+.vv-note2{margin:6px 0;padding:6px 10px;border-radius:6px;background:#eef3f8;color:#234;font-size:13px}
+.vv-note2.warn{background:#fff3e0;color:#7a4300}.vv-note2.ok{background:#e8f5ec;color:#165c2f}
+.vv-code{font:700 34px/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.32em;text-align:center;padding:14px 8px 14px 18px;margin:10px 0;border:2px dashed #1c1c1c;border-radius:10px;background:#fafaf7;user-select:all}
+.vv-members{display:flex;flex-direction:column;gap:4px;margin:6px 0 10px}
+.vv-members>div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 8px;border:1px solid #ddd;border-radius:6px}
+.vv-rec{margin:10px 0;font-size:13px}.vv-rec input{width:100%;margin:4px 0}
+#vvDlg .row{display:flex;gap:6px}#vvDlg .row input{flex:1}
+#vvDlg h4{margin:14px 0 4px}

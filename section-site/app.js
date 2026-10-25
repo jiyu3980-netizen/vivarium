@@ -426,7 +426,9 @@ function slotsMigrate(){ // 예전 버전의 자동 저장/이름 저장이 있�
  SL.cur=Object.keys(SL.slots)[0]||'1'}
 const slotName=id=>{const x=SL.slots[id];return x?(x.name||(x.doc&&x.doc.title)||('단면도 '+id)):''};
 let pT=0,warned=false;
-function persistNow(){clearTimeout(pT);pT=0;try{const old=SL.slots[SL.cur]||{};SL.slots[SL.cur]={name:old.name||'',t:Date.now(),doc:S};localStorage.setItem(SK,JSON.stringify(SL));slotBtn()}catch(e){if(!warned){warned=true;msg('저장 공간이 부족하거나 브라우저가 저장을 막고 있어요. 자동 저장이 되지 않을 수 있어요')}}}
+const HK={change:[],save:null};   // 공동 편집 연결부(viv-collab.js): 문서가 바뀔 때 알림, 저장 버튼 가로채기
+let READY=false;   // 저장된 칸을 다 읽기 전에는 빈 화면 상태로 저장 칸을 덮어쓰지 않는다(시작 중에 비바리움 탭이 먼저 저장을 부르는 경우 방지)
+function persistNow(){clearTimeout(pT);pT=0;if(!READY)return;try{const old=SL.slots[SL.cur]||{};SL.slots[SL.cur]={name:old.name||'',t:Date.now(),doc:S};localStorage.setItem(SK,JSON.stringify(SL));slotBtn();HK.change.forEach(f=>{try{f()}catch(e2){}})}catch(e){if(!warned){warned=true;msg('저장 공간이 부족하거나 브라우저가 저장을 막고 있어요. 자동 저장이 되지 않을 수 있어요')}}}
 function persist(){clearTimeout(pT);pT=setTimeout(persistNow,350)}
 addEventListener('pagehide',()=>{if(pT)persistNow()});document.addEventListener('visibilitychange',()=>{if(document.hidden&&pT)persistNow()});
 const slotCount=()=>Object.keys(SL.slots).length;
@@ -452,7 +454,8 @@ function openSlots(){persistNow();const rows=[1,2,3,4,5].map(String).map(id=>{co
    if(id===SL.cur){const nx=Object.keys(SL.slots)[0];if(nx){SL.cur=nx;load(SL.slots[nx].doc)}else{SL.cur=id;SL.slots[id]={name:'',t:Date.now(),doc:blankDoc()};load(blankDoc())}}
    persistNow();openSlots()})}
 $('#bSlots').onclick=openSlots;
-$('#bSave').onclick=async()=>{const n=await askName('이 단면도의 이름 (이 브라우저에 저장)',slotName(SL.cur),'');if(!n)return;SL.slots[SL.cur]=SL.slots[SL.cur]||{};SL.slots[SL.cur].name=n;persistNow();msg('저장했어요: '+n)};
+$('#bSave').onclick=async()=>{if(HK.save&&await HK.save())return;   // 공유 집과 연결된 단면도면 서버 저장
+  const n=await askName('이 단면도의 이름 (이 브라우저에 저장)',slotName(SL.cur),'');if(!n)return;SL.slots[SL.cur]=SL.slots[SL.cur]||{};SL.slots[SL.cur].name=n;persistNow();msg('저장했어요: '+n)};
 const dl=(blob,name)=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
 $('#bNew').onclick=()=>{newSlot()};
 /* 도면 내보내기: 선택 표시를 빼고 건물 영역만 잘라 SVG/PNG 로 저장 (가구 선이 인라인 경로라 파일 하나로 완결) */
@@ -483,6 +486,10 @@ window.__sec={get S(){return S},load,render,sync,weights:()=>weights(),stairGeo,
    const cc=await (await fetch(LIB+'catalog/category-config.json')).json();CATS=cc.categories;CATS.forEach(k=>$('#fcat').insertAdjacentHTML('beforeend',`<option value="${k.id}">${esc(k.nameKo)}</option>`));ok=true;break}catch(e){tried.push(new URL(c+'catalog/assets.json',location.href).href+' → '+e.message)}}
  if(!ok){const er=$('#err');er.hidden=false;er.innerHTML='<b>에셋 목록을 불러오지 못했어요.</b><br>'+(location.protocol==='file:'?'파일을 더블클릭으로 열면 브라우저가 데이터 읽기를 막습니다. 웹서버(또는 GitHub Pages)로 여세요.<br>':'<code>section-assets</code> 폴더가 <code>section-site</code> 폴더와 같은 위치에 올라가 있는지 확인하세요.<br>')+'<small>시도한 주소:<br>'+tried.map(esc).join('<br>')+'</small>';$('#count').textContent='가구 0개'}
  try{if(!slotsRead())slotsMigrate();const cs=SL.slots[SL.cur];if(cs&&cs.doc&&cs.doc.b&&cs.doc.items)S=norm(cs.doc);else{SL.cur=SL.cur||'1';SL.slots[SL.cur]=SL.slots[SL.cur]||{name:'',t:Date.now(),doc:S}}}catch(e){}
+ READY=true;
  S.items=S.items.filter(i=>AM[i.assetId]||!Object.keys(AM).length);hist=[JSON.stringify(S)];curF=BB();sync();renderLib();render();fit();btns();applyUI(false);persistNow();
 })();
+/* 비바리움 관찰 탭(viv.js)용 읽기 전용 연결부: 편집기 내부 함수·상태를 그대로 재사용하기 위해 필요한 항목만 노출 */
+function slotCreate(doc,name){const id=[1,2,3,4,5].map(String).find(i=>!SL.slots[i]);if(!id)return null;persistNow();SL.cur=id;SL.slots[id]={name:name||'',t:Date.now(),doc:clone(doc)};load(doc);return id}
+window.SectionBridge={get ready(){return READY},HK,slotCreate,slotOpen:openSlot,loadDoc:load,msg,get SLOT_MAX(){return SLOT_MAX},get S(){return S},set S(v){S=v},get sel(){return sel},set sel(v){sel=v},get SL(){return SL},get AM(){return AM},norm,render,exportSvg,EH,lvl,sl,fnameKo,OPT,STAIR_ASSET,art,ART,applyVP,persistNow,slotName,esc,roomsOf,stairGeo,fh,BB};
 })();
