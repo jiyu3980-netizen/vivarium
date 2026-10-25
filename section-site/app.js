@@ -17,10 +17,12 @@ function norm(o){o.v=2;o.b={...DEF_B,...(o.b||{})};const b=o.b;
  const sk=Array.isArray(b.sk)?b.sk:[];b.sk=Array.from({length:b.f+1},(_,k)=>+sk[k]||b.s);const wp=Array.isArray(b.wp)?b.wp:[];b.wp=Array.from({length:b.f},(_,k)=>wp[k]||'plain');if(!b.wpv){b.wp=b.wp.map(w=>w==='grain'?'plain':w);b.wpv=2}
  const hs=Array.isArray(b.hs)?b.hs:[];b.hs=Array.from({length:b.f},(_,k)=>+hs[k]||b.h);
  o.lw={...DEF_LW,...(o.lw||{})};o.layers={ground:1,back:1,roof:1,struct:1,open:1,stairs:1,items:1,terr:1,labels:1,levels:0,...(o.layers||{})};
- b.rz=Math.max(0,Math.min(150,+b.rz||0));
+ b.rz=Math.max(0,Math.min(300,+b.rz||0));b.fnd=b.fnd==='posts'?'posts':'wall';b.go=b.go!==false;
  const ex=Array.isArray(b.ext)?b.ext:[];b.ext=Array.from({length:b.f},(_,k)=>{const e=ex[k];return e&&isFinite(+e.l)&&isFinite(+e.r)&&+e.r-+e.l>=100?{l:+e.l,r:+e.r}:{l:0,r:b.w}});
  o.terr=(Array.isArray(o.terr)?o.terr:[]).filter(t=>t&&isFinite(+t.x0)&&isFinite(+t.x1)&&+t.x1-+t.x0>=20).map(t=>({id:t.id||('t'+Math.random().toString(36).slice(2,8)),f:Math.max(0,Math.min(b.f,Math.round(+t.f)||0)),x0:+t.x0,x1:+t.x1,rail:['iron','vict','brick'].includes(t.rail)?t.rail:'iron',slab:t.slab!==false}));
- o.parts=(o.parts||[]).map(p=>({t:12,mat:'line',...p}));o.ops=o.ops||[];o.stairs=o.stairs||[];o.rooms=o.rooms||{};
+ o.parts=(o.parts||[]).map(p=>({t:12,mat:'line',...p}));o.ops=o.ops||[];o.stairs=o.stairs||[];o.rooms=o.rooms||{};o.wpr=(o.wpr&&typeof o.wpr==='object'&&!Array.isArray(o.wpr))?o.wpr:{};o.ua=(o.ua&&typeof o.ua==='object'&&!Array.isArray(o.ua))?o.ua:{};uaFromDoc(o);
+ {const wu={};if(o.wpu&&typeof o.wpu==='object'&&!Array.isArray(o.wpu))for(const [id,u] of Object.entries(o.wpu).slice(0,4))if(u&&typeof u.d==='string'&&u.d.startsWith('data:image/')&&u.d.length<260000&&isFinite(+u.w)&&isFinite(+u.h)&&+u.w>0&&+u.h>0)wu[id.replace(/[^A-Za-z0-9]/g,'')||'x']={n:String(u.n||'벽지').slice(0,20),d:u.d,w:+u.w,h:+u.h,tw:Math.max(10,Math.min(400,+u.tw||80))};
+  o.wpu=wu;const okW=w=>!(typeof w==='string'&&w.startsWith('u_'))||wu[w.slice(2)];b.wp=b.wp.map(w=>okW(w)?w:'plain');for(const k of Object.keys(o.wpr||{}))if(!okW(o.wpr[k]))delete o.wpr[k]}
  o.items=(o.items||[]).map(i=>({cs:'proj',...i}));if(o.title===undefined||o.title==='SECTION A — 우리 집 단면도')o.title='';return o}
 S=norm(S);
 const XL=k=>{const e=S.b.ext&&S.b.ext[k];return e?e.l:0};
@@ -53,6 +55,71 @@ function parseArt(t){const m=/viewBox="([^"]+)"/.exec(t);const vb=m?m[1].trim().
  return {w:vb[2],h:vb[3],d,fd,od}}
 function art(url,quiet){const a=ART[url];if(a){if(!a.ready&&!quiet)a.pend=true;return a.ready?a:null}const ent=ART[url]={ready:false,pend:!quiet};
  fetch(LIB+url).then(r=>{if(!r.ok)throw new Error(r.status);return r.text()}).then(t=>{const pend=ent.pend;ART[url]={ready:true,...parseArt(t)};if(pend)schedule()}).catch(()=>{const pend=ent.pend;ART[url]={ready:true,w:1000,h:1000,d:'',fd:'',od:'',err:true};if(pend)schedule()});return null}
+
+/* ---------- 내 에셋: 사용자가 직접 올린 SVG/PNG (이 브라우저에 저장, 도면에 쓰이면 도면 안에도 사본이 들어가 공유 집에서도 보임) ---------- */
+const UA_KEY='sectionSite.userAssets',UA_MAX=30,UA_BYTES=120*1024;let UA={};
+function uaLoad(){try{UA=JSON.parse(localStorage.getItem(UA_KEY)||'{}')||{}}catch(e){UA={}}}
+function uaSave(){try{localStorage.setItem(UA_KEY,JSON.stringify(UA));return true}catch(e){return false}}
+const UA_NS='http://www.w3.org/2000/svg';
+function shapeD(el){const g=n=>+el.getAttribute(n)||0,tn=el.tagName.toLowerCase();
+ if(tn==='path')return el.getAttribute('d')||'';
+ if(tn==='rect'){const x=g('x'),y=g('y'),w=g('width'),h=g('height');return `M${x} ${y}H${x+w}V${y+h}H${x}Z`}
+ if(tn==='circle'){const cx=g('cx'),cy=g('cy'),r=g('r');return `M${cx-r} ${cy}a${r} ${r} 0 1 0 ${2*r} 0a${r} ${r} 0 1 0 ${-2*r} 0Z`}
+ if(tn==='ellipse'){const cx=g('cx'),cy=g('cy'),rx=g('rx'),ry=g('ry');return `M${cx-rx} ${cy}a${rx} ${ry} 0 1 0 ${2*rx} 0a${rx} ${ry} 0 1 0 ${-2*rx} 0Z`}
+ if(tn==='line')return `M${g('x1')} ${g('y1')}L${g('x2')} ${g('y2')}`;
+ if(tn==='polyline'||tn==='polygon'){const n=(el.getAttribute('points')||'').trim().split(/[\s,]+/).map(Number);if(n.length<4)return '';let d='M'+n[0]+' '+n[1];for(let i=2;i+1<n.length;i+=2)d+='L'+n[i]+' '+n[i+1];return d+(tn==='polygon'?'Z':'')}
+ return ''}
+/* SVG 글자 → {w,h,d,fd} (단순 도형만 벡터로 읽고, transform 이 있으면 null → PNG 로 변환해 등록) */
+function svgToArt(text){
+ const doc=new DOMParser().parseFromString(text,'image/svg+xml');const root=doc.documentElement;if(!root||root.nodeName.toLowerCase()!=='svg'||doc.querySelector('parsererror'))return {err:'SVG 파일을 읽을 수 없어요'};
+ if(doc.querySelector('script,foreignObject'))return {err:'스크립트나 foreignObject 가 들어 있는 SVG 는 쓸 수 없어요'};
+ let vb=(root.getAttribute('viewBox')||'').trim().split(/[\s,]+/).map(Number);if(vb.length!==4||vb.some(isNaN)){const w=parseFloat(root.getAttribute('width')),h=parseFloat(root.getAttribute('height'));if(!(w>0&&h>0))return {err:'SVG 에 크기(viewBox 또는 width·height)가 없어요'};vb=[0,0,w,h]}
+ if(!(vb[2]>0&&vb[3]>0))return {err:'SVG 크기가 올바르지 않아요'};
+ if(root.querySelector('[transform]')||root.querySelector('use,image,text'))return {raster:true,w:vb[2],h:vb[3]};
+ let d='';root.querySelectorAll('path,rect,circle,ellipse,line,polyline,polygon').forEach(el=>{if(el.closest('defs,clipPath,mask,symbol'))return;d+=shapeD(el)});
+ if(!d)return {raster:true,w:vb[2],h:vb[3]};
+ if(vb[0]||vb[1])return {raster:true,w:vb[2],h:vb[3]};   // viewBox 원점이 0이 아니면 PNG 로 변환해 등록
+ return {w:vb[2],h:vb[3],d,fd:d}}
+function loadImg(src){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error('이미지를 읽을 수 없어요'));im.src=src})}
+/* 래스터 → 흰색 실루엣(가로 줄 단위 사각형 합) 만들기 */
+function silhouette(canvas){const W=canvas.width,H=canvas.height,cx=canvas.getContext('2d'),px=cx.getImageData(0,0,W,H).data;
+ const sc=Math.min(1,160/Math.max(W,H)),w=Math.max(1,Math.round(W*sc)),h=Math.max(1,Math.round(H*sc));
+ const m=new Uint8Array(w*h);for(let y=0;y<h;y++)for(let x=0;x<w;x++){const sx=Math.min(W-1,Math.floor(x/sc)),sy=Math.min(H-1,Math.floor(y/sc));const i=(sy*W+sx)*4;const a=px[i+3];if(a>40&&(px[i]+px[i+1]+px[i+2])/3<235)m[y*w+x]=1}
+ /* 2칸 팽창(선 사이 틈 메우기) → 바깥에서 flood fill → 안쪽 전부를 실루엣으로 */
+ const dil=new Uint8Array(w*h);const R=2;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(m[y*w+x])for(let dy=-R;dy<=R;dy++)for(let dx=-R;dx<=R;dx++){const X=x+dx,Y=y+dy;if(X>=0&&Y>=0&&X<w&&Y<h)dil[Y*w+X]=1}
+ const out=new Uint8Array(w*h);const st=[];const push=(x,y)=>{if(x<0||y<0||x>=w||y>=h)return;const k=y*w+x;if(dil[k]||out[k])return;out[k]=1;st.push(k)};
+ for(let x=0;x<w;x++){push(x,0);push(x,h-1)}for(let y=0;y<h;y++){push(0,y);push(w-1,y)}
+ while(st.length){const k=st.pop(),x=k%w,y=(k-x)/w;push(x+1,y);push(x-1,y);push(x,y+1);push(x,y-1)}
+ const kx=W/w,ky=H/h;let d='';for(let y=0;y<h;y++){let x=0;while(x<w){if(out[y*w+x]){x++;continue}let x0=x;while(x<w&&!out[y*w+x])x++;d+=`M${(x0*kx).toFixed(1)} ${(y*ky).toFixed(1)}h${((x-x0)*kx).toFixed(1)}v${(ky*1.03).toFixed(1)}h${(-(x-x0)*kx).toFixed(1)}Z`}}
+ return d}
+async function rasterRec(srcUrl,wAspect,hAspect){const im=await loadImg(srcUrl);let iw=im.naturalWidth||wAspect||300,ih=im.naturalHeight||hAspect||300;if(!(iw>0&&ih>0)){iw=wAspect||300;ih=hAspect||300}
+ for(const mx of [520,400,300,220]){const k=Math.min(1,mx/Math.max(iw,ih)),cw=Math.max(1,Math.round(iw*k)),ch=Math.max(1,Math.round(ih*k));const cv=document.createElement('canvas');cv.width=cw;cv.height=ch;cv.getContext('2d').drawImage(im,0,0,cw,ch);
+  const data=cv.toDataURL('image/png');if(data.length<=UA_BYTES*1.37||mx===220)return {kind:'png',data,aw:cw,ah:ch,fd:silhouette(cv)}}}
+async function uaMake(file,name,cat,hcm){
+ if(Object.keys(UA).length>=UA_MAX)throw new Error(`내 에셋은 최대 ${UA_MAX}개까지 등록할 수 있어요. 안 쓰는 것을 지워 주세요`);
+ const isSvg=/svg/i.test(file.type)||/\.svg$/i.test(file.name),isPng=/png/i.test(file.type)||/\.png$/i.test(file.name);
+ if(!isSvg&&!isPng)throw new Error('SVG 또는 PNG 파일만 등록할 수 있어요');
+ if(file.size>(isSvg?400:4000)*1024)throw new Error(isSvg?'SVG 는 400KB 이하만 등록할 수 있어요':'PNG 는 4MB 이하만 등록할 수 있어요');
+ let rec;
+ if(isSvg){const text=await file.text(),a=svgToArt(text);if(a.err)throw new Error(a.err);
+  if(a.raster||a.shift){const url='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(text);const r=await rasterRec(url,a.w,a.h);rec={kind:'png',data:r.data,aw:r.aw,ah:r.ah,fd:r.fd,fromSvg:true}}
+  else{if(text.length>UA_BYTES*2)throw new Error('SVG 가 너무 커요(도형이 너무 많아요)');rec={kind:'svg',aw:a.w,ah:a.h,d:a.d,fd:a.fd}}}
+ else{const url=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(new Error('파일을 읽을 수 없어요'));fr.readAsDataURL(file)});const r=await rasterRec(url);rec={kind:'png',data:r.data,aw:r.aw,ah:r.ah,fd:r.fd}}
+ const id='ua-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+ rec={id,nameKo:(name||file.name.replace(/\.[^.]+$/,'')||'내 에셋').slice(0,30),cat:cat||'custom',hcm:Math.min(600,Math.max(5,+hcm||100)),t:Date.now(),...rec};
+ if(JSON.stringify(rec).length>UA_BYTES*1.6)throw new Error('파일이 너무 복잡해서 등록할 수 없어요. 더 단순한 이미지를 써 주세요');
+ return rec}
+function uaRegister(rec,inLib){
+ const id=rec.id,aspect=rec.aw/rec.ah,K=`ua/${id}`;
+ ART[K+'.svg']={ready:true,w:rec.aw,h:rec.ah,d:rec.d||'',fd:'',od:'',img:rec.kind==='png'?rec.data:''};
+ ART[K+'.fill.svg']={ready:true,w:rec.aw,h:rec.ah,d:'',fd:rec.fd||'',od:''};
+ const thumb=rec.kind==='png'?rec.data:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="${UA_NS}" viewBox="0 0 ${rec.aw} ${rec.ah}"><path d="${rec.d}" fill="none" stroke="#222" stroke-width="${Math.max(rec.aw,rec.ah)/160}"/></svg>`);
+ const a={assetId:id,nameKo:rec.nameKo,nameEn:'',categoryId:rec.cat||'custom',subcategoryId:'user',tags:['내 에셋'],status:'ok',user:true,thumbUrl:thumb,
+  views:{front:{svg:K+'.svg',fill:K+'.fill.svg',aspect}},defaultSizeCm:{width:rec.hcm*aspect,height:rec.hcm}};
+ AM[id]=a;if(inLib&&!A.some(x=>x.assetId===id))A.unshift(a);return a}
+/* 도면 안에 들어 있는 내 에셋 사본을 등록(다른 사람이 올린 도면에서도 그림이 보이도록) */
+function uaFromDoc(o){if(!o||!o.ua)return;for(const id in o.ua){const r=o.ua[id];if(!r||!r.id||AM[id])continue;try{uaRegister(r,false)}catch(e){}}}
+function uaEmbed(o){const used=new Set((o.items||[]).map(i=>i.assetId).filter(id=>UA[id]||(o.ua&&o.ua[id])));const ua={};used.forEach(id=>{ua[id]=UA[id]||o.ua[id]});o.ua=ua}
 /* ---------- 선 굵기: 외곽 ≤ 크기의 4%, 내부 ≤ 외곽의 절반, 자동 통일 ---------- */
 function weights(){const L=S.lw,res={};const sz=i=>Math.max(i.w,i.h);
  let Wo0=L.out;
@@ -87,6 +154,22 @@ function outerGeo(a){const b=S.b,f=a.f;if(!(f>=0&&f<b.f))return null;
  const rail=[[edge+out*run,eB+(eT-eB)/n+90],[edge,eT+90]];
  const xa=Math.min(edge,edge+out*run),xb=Math.max(edge,edge+out*run);
  return {poly:poly2,rail,land:null,thin:[],voidX:null,xs:[xa,xb],outer:true}}
+/* 계단 앞면·뒷면(정면에서 본 모양): 직선·ㄱ자·U자. 옆면(단면)은 기존 stairGeo 그대로 */
+function flightPoly(xa,xb,ea,eb,n,D){const rs=(eb-ea)/n,tr=(xb-xa)/(n-1),p=[[xa,ea]];for(let i=0;i<n;i++){p.push([xa+i*tr,ea+(i+1)*rs]);if(i<n-1)p.push([xa+(i+1)*tr,ea+(i+1)*rs])}p.push([xb,eb-D]);if(D>=rs){const u=Math.min(1,(D-rs)/((eb-ea)-rs));p.push([xa+(xb-xa)*u,ea])}else p.push([xa,ea+rs-D]);return p}
+function frontGeo(a,type,sv,s){const b=S.b,f=a.f,e0=lvl(f),rise=fh(f),dir=a.dir>=0?1:-1,x0=a.x,W=Math.max(60,a.w>0?a.w:110),riseF=type==='straight'?rise:rise/2,et=e0+riseF;
+ const n=a.n>=3?Math.min(40,Math.round(a.n)):Math.max(3,Math.round(riseF/17.5)),rs=riseF/n,Ld=Math.max(60,a.land||100),D=22;const bands=(xa,xb,ea,eb,k)=>{const o=[];for(let i=1;i<k;i++){const y=ea+(eb-ea)*i/k;o.push([[xa,y],[xb,y]])}return o};
+ const g={poly:[],polys:[],rail:[],land:null,thin:[],voidX:null,rs};const front=sv==='front';
+ const block=(xa,xb,ea,eb,k,riser)=>{g.polys.push([[xa,ea],[xb,ea],[xb,eb],[xa,eb]]);if(riser)bands(xa,xb,ea,eb,k).forEach(l=>g.thin.push(l));else{g.thin.push([[xa+8,ea],[xa+8,eb]],[[xb-8,ea],[xb-8,eb]])}};
+ if(type==='straight'){block(x0,x0+W,e0,e0+rise,n*1,front);g.rail=[[x0,e0+rise+90],[x0+W,e0+rise+90]];g.thin.push([[x0+4,e0+rise],[x0+4,e0+rise+90]],[[x0+W-4,e0+rise],[x0+W-4,e0+rise+90]]);g.voidX=[x0,x0+W]}
+ else if(type==='L'){const sd=front?dir:-dir;                      // 앞면: 위 구간이 dir 쪽 옆면, 뒷면: 반대쪽
+  block(x0,x0+W,e0,et,n,front);g.land=[x0,x0+W,et-15,et];
+  const xa=sd>0?x0+W:x0,xb=sd>0?x0+W+Math.max(60,a.run||240):x0-Math.max(60,a.run||240);g.polys.push(flightPoly(xa,xb,et,e0+rise,n,D));
+  g.rail=[[xa,et+rs+90],[xb,e0+rise+90]];g.voidX=[Math.min(x0,xb),Math.max(x0+W,xb)]}
+ else{const gap=6;const xl=x0,xr=x0+W+gap;                           // U자: 두 구간을 정면(끝)에서 본 모양
+  block(xl,xl+W,e0,et,n,front);block(xr,xr+W,e0,e0+rise,n,!front);
+  if(!front){g.thin.push([[xl+W+gap/2,e0],[xl+W+gap/2,e0+rise]])}
+  g.land=[xl,xr+W,et-15,et];g.rail=[[xl,e0+rise+90],[xr+W,e0+rise+90]];g.voidX=[xl,xr+W]}
+ g.poly=g.polys[0];return g}
 function stairGeo(a){if(a.type==='outer')return outerGeo(a);const b=S.b,f=a.f;if(!(f>=0&&f<b.f-1))return null;const s=sl(f+1);const e0=lvl(f),rise=fh(f),dir=a.dir>=0?1:-1,x0=a.x,type=a.type||'straight';
  const sa=STAIR_ASSET[type];
  if(sa){const as=AM[sa.id];const sv=a.sv||'auto';const vkey=type==='glass'&&sv==='auto'?(dir>0?'rightSide':'leftSide'):'front';const v=as&&as.views[vkey];if(!v)return null;
@@ -97,6 +180,7 @@ function stairGeo(a){if(a.type==='outer')return outerGeo(a);const b=S.b,f=a.f;if
  const xt=x0+dir*run,et=e0+riseF;const poly=[[x0,e0]];
  for(let i=0;i<n;i++){poly.push([x0+dir*i*tr,e0+(i+1)*rs]);if(i<n-1)poly.push([x0+dir*(i+1)*tr,e0+(i+1)*rs])}
  poly.push([xt,et-D]);if(D>=rs){const u=Math.min(1,(D-rs)/(riseF-rs));poly.push([x0+(xt-x0)*u,e0])}else poly.push([x0,e0+rs-D]);
+ if(a.sv==='front'||a.sv==='back')return frontGeo(a,type,a.sv,s);
  const g={poly,rail:[[x0,e0+rs+90],[xt,et+90]],land:null,thin:[],voidX:null,xt,et,rs};
  const Ld=Math.max(60,a.land||100);
  if(type==='straight'){const u=(et-s-210-e0-rs)/(riseF-rs);if(u<1){const xa=x0+(xt-x0)*Math.max(0,u);g.voidX=[Math.min(xa,xt),Math.max(xa,xt)]}}
@@ -117,11 +201,13 @@ function renderItem(it,gp,WT,pseudo){const gg=mk('g',{...(pseudo?{'data-id':it.u
  const A0=art(v.svg),F0=(OPT.fill&&v.fill)?art(v.fill):null;
  if(!A0||(OPT.fill&&v.fill&&!F0)){mk('rect',{width:it.w,height:it.h,fill:'rgba(0,0,0,.04)',stroke:'#999','stroke-dasharray':'4 4','stroke-width':1},gg);return}
  const sx=it.w/A0.w,sy=it.h/A0.h,k=(sx+sy)/2,w=WT[it.uid]||(()=>{const wo=Math.min(S.lw.out,.04*Math.max(it.w,it.h));return {wo,wi:Math.min(S.lw.inn,wo/2)}})();const col=it.cs==='behind'?'#555':'#1c1c1c';const dsh=(it.cs==='behind'&&S.lw.bDash)?{'stroke-dasharray':`${(9/k).toFixed(2)} ${(6/k).toFixed(2)}`}:{};
- const sc=mk('g',{transform:`scale(${sx} ${sy})`,...(it.cs==='behind'?{opacity:S.lw.bOp}:{})},gg);
+ const sc=mk('g',{transform:`scale(${sx} ${sy})`},gg);   // 원경: 면(흰 채움)은 그대로 불투명 — 선만 반투명(아래 lg)
  if(F0&&F0.fd){mk('path',{d:F0.fd,fill:'#fff','fill-rule':'evenodd','pointer-events':'all'},sc)}
  else mk('rect',{width:A0.w,height:A0.h,fill:'#fff','fill-opacity':0,'pointer-events':'all'},sc);
+ if(A0.img)mk('image',{href:A0.img,x:0,y:0,width:A0.w,height:A0.h,preserveAspectRatio:'none','pointer-events':'none'},sc);   // 내 에셋(PNG)
  const L={fill:'none',stroke:col,'stroke-linecap':'round','stroke-linejoin':'round',...dsh};
- if(A0.d)mk('path',{d:A0.d,...L,'stroke-width':(w.wi/k).toFixed(3),'pointer-events':'none'},sc);
+ const lg=it.cs==='behind'?mk('g',{opacity:S.lw.bOp},sc):sc;
+ if(A0.d)mk('path',{d:A0.d,...L,'stroke-width':(w.wi/k).toFixed(3),'pointer-events':'none'},lg);
  /* 바깥 윤곽의 굵은 선: 흰 채움 파일의 윤곽(래스터에서 근사한 선)을 그대로 긋지 않는다 — 그러면 곡선 안쪽을 가로지르는 새 직선이 생긴다.
     대신 원본 선(곡선 포함)을 굵게 다시 그리되, 윤곽 근처에 있는 부분만 보이도록 마스크로 자른다. */
  if(F0&&F0.od&&A0.d){const mid='mk_'+String(it.uid).replace(/[^A-Za-z0-9_]/g,'')+'_'+(++MASKN);const df=svg.querySelector('defs');
@@ -131,8 +217,8 @@ function renderItem(it,gp,WT,pseudo){const gg=mk('g',{...(pseudo?{'data-id':it.u
      흰 바탕 → 채움 안쪽은 검게(숨김) → 윤곽 근처 띠는 다시 흰색(보임) */
   if(F0.fd){mk('rect',{x:-pad,y:-pad,width:A0.w+2*pad,height:A0.h+2*pad,fill:'#fff'},m);for(const sp of F0.fd.split(/(?=M)/))if(sp.trim())mk('path',{d:sp,fill:'#000'},m)}  // 서브패스마다 따로 채움 = 구멍도 윤곽 안쪽으로 취급(안쪽 장식선이 굵어지지 않게)
   mk('path',{d:F0.od,fill:'none',stroke:'#fff','stroke-width':band.toFixed(3),'stroke-linejoin':'round'},m);
-  mk('path',{d:A0.d,...L,'stroke-width':(w.wo/k).toFixed(3),mask:`url(#${mid})`,'pointer-events':'none'},sc)}
- else if(A0.d)mk('path',{d:A0.d,...L,'stroke-width':(w.wo/k).toFixed(3),'pointer-events':'none'},sc)}
+  mk('path',{d:A0.d,...L,'stroke-width':(w.wo/k).toFixed(3),mask:`url(#${mid})`,'pointer-events':'none'},lg)}
+ else if(A0.d)mk('path',{d:A0.d,...L,'stroke-width':(w.wo/k).toFixed(3),'pointer-events':'none'},lg)}
 function drawRailing(par,t,Wp,Wi,INK){
  const x0=t.x0,x1=t.x1,e=lvl(t.f),Wd=x1-x0,Y=v=>-(e+v);
  const g=mk('g',{'data-id':t.id,fill:'none',stroke:INK,'stroke-linejoin':'round','stroke-linecap':'round'},par);
@@ -164,42 +250,47 @@ function drawRailing(par,t,Wp,Wi,INK){
 function paperDefs(defs){
  const P=(id,w,h)=>mk('pattern',{id,width:w,height:h,patternUnits:'userSpaceOnUse'},defs);let p;
  // 나무 벽: 세로 널판 3장 + 결 + 옹이
- p=P('wp_wood',90,200);[['#d6bd95',0],['#ccb089',30],['#dbc4a0',60]].forEach(([c,x])=>mk('rect',{x,y:0,width:30,height:200,fill:c},p));
- mk('path',{d:'M0 0V200M30 0V200M60 0V200',stroke:'#7f6038','stroke-width':1,fill:'none'},p);
- mk('path',{d:'M8 0q3 50 0 100t0 100M20 0q-3 40 0 90t0 110M38 0q3 60 0 100t0 100M52 0q-3 50 0 100t0 100M68 0q3 40 0 90t0 110M80 0q-3 60 0 100t0 100',stroke:'rgba(90,60,30,.28)','stroke-width':.8,fill:'none'},p);
- mk('path',{d:'M0 70h30M30 130h30M60 40h30M0 180h30',stroke:'#7f6038','stroke-width':.8},p);
- mk('ellipse',{cx:16,cy:110,rx:3,ry:5,fill:'none',stroke:'rgba(90,60,30,.5)','stroke-width':.8},p);mk('ellipse',{cx:74,cy:150,rx:3,ry:4.5,fill:'none',stroke:'rgba(90,60,30,.5)','stroke-width':.8},p);
+ p=P('wp_wood',90,200);[['#d2d2d2',0],['#c4c4c4',30],['#dadada',60]].forEach(([c,x])=>mk('rect',{x,y:0,width:30,height:200,fill:c},p));
+ mk('path',{d:'M0 0V200M30 0V200M60 0V200',stroke:'#767676','stroke-width':1,fill:'none'},p);
+ mk('path',{d:'M8 0q3 50 0 100t0 100M20 0q-3 40 0 90t0 110M38 0q3 60 0 100t0 100M52 0q-3 50 0 100t0 100M68 0q3 40 0 90t0 110M80 0q-3 60 0 100t0 100',stroke:'rgba(60,60,60,.28)','stroke-width':.8,fill:'none'},p);
+ mk('path',{d:'M0 70h30M30 130h30M60 40h30M0 180h30',stroke:'#767676','stroke-width':.8},p);
+ mk('ellipse',{cx:16,cy:110,rx:3,ry:5,fill:'none',stroke:'rgba(60,60,60,.5)','stroke-width':.8},p);mk('ellipse',{cx:74,cy:150,rx:3,ry:4.5,fill:'none',stroke:'rgba(60,60,60,.5)','stroke-width':.8},p);
  // 꽃무늬 벽지
- p=P('wp_floral',90,90);mk('rect',{width:90,height:90,fill:'#f1e9e1'},p);
- const flower=(cx,cy,c)=>{for(let k=0;k<5;k++){const a=k*Math.PI*2/5-Math.PI/2;mk('circle',{cx:(cx+Math.cos(a)*7).toFixed(1),cy:(cy+Math.sin(a)*7).toFixed(1),r:5.2,fill:c,stroke:'rgba(120,60,70,.35)','stroke-width':.6},p)}mk('circle',{cx,cy,r:3.4,fill:'#f0cf70',stroke:'rgba(120,90,20,.4)','stroke-width':.6},p)};
- [[22,22,'#e3a3ae'],[68,56,'#c9b3d6'],[-0,60,'#e3a3ae'],[90,60,'#e3a3ae']].forEach(([x,y,c])=>flower(x,y,c));
- [[45,40,30],[10,80,-40],[78,16,50],[45,84,-20]].forEach(([x,y,r])=>mk('ellipse',{cx:x,cy:y,rx:7,ry:3,fill:'#a9be98',transform:`rotate(${r} ${x} ${y})`,opacity:.9},p));
- [[40,10],[8,40],[60,80],[84,30]].forEach(([x,y])=>mk('circle',{cx:x,cy:y,r:1.6,fill:'#d9c3b4'},p));
+ p=P('wp_floral',90,90);mk('rect',{width:90,height:90,fill:'#eeeeee'},p);
+ const flower=(cx,cy,c)=>{for(let k=0;k<5;k++){const a=k*Math.PI*2/5-Math.PI/2;mk('circle',{cx:(cx+Math.cos(a)*7).toFixed(1),cy:(cy+Math.sin(a)*7).toFixed(1),r:5.2,fill:c,stroke:'rgba(70,70,70,.35)','stroke-width':.6},p)}mk('circle',{cx,cy,r:3.4,fill:'#8c8c8c',stroke:'rgba(70,70,70,.4)','stroke-width':.6},p)};
+ [[22,22,'#c2c2c2'],[68,56,'#aeaeae'],[-0,60,'#c2c2c2'],[90,60,'#c2c2c2']].forEach(([x,y,c])=>flower(x,y,c));
+ [[45,40,30],[10,80,-40],[78,16,50],[45,84,-20]].forEach(([x,y,r])=>mk('ellipse',{cx:x,cy:y,rx:7,ry:3,fill:'#9a9a9a',transform:`rotate(${r} ${x} ${y})`,opacity:.9},p));
+ [[40,10],[8,40],[60,80],[84,30]].forEach(([x,y])=>mk('circle',{cx:x,cy:y,r:1.6,fill:'#cecece'},p));
  // 철제 패널(리벳)
- p=P('wp_metal',120,120);mk('rect',{width:120,height:120,fill:'#c3c8cc'},p);
+ p=P('wp_metal',120,120);mk('rect',{width:120,height:120,fill:'#c6c6c6'},p);
  for(let y=6;y<120;y+=9)mk('line',{x1:0,y1:y,x2:120,y2:y,stroke:'rgba(255,255,255,.35)','stroke-width':.8},p);
- mk('rect',{x:3,y:3,width:114,height:114,fill:'none',stroke:'#80878c','stroke-width':1.4},p);
- [[10,10],[110,10],[10,110],[110,110],[60,10],[60,110]].forEach(([x,y])=>mk('circle',{cx:x,cy:y,r:2.4,fill:'#a2a9ae',stroke:'#656b70','stroke-width':.8},p));
+ mk('rect',{x:3,y:3,width:114,height:114,fill:'none',stroke:'#808080','stroke-width':1.4},p);
+ [[10,10],[110,10],[10,110],[110,110],[60,10],[60,110]].forEach(([x,y])=>mk('circle',{cx:x,cy:y,r:2.4,fill:'#a5a5a5',stroke:'#686868','stroke-width':.8},p));
  // 네모 타일
- p=P('wp_tile',36,36);mk('rect',{width:36,height:36,fill:'#f6f6f3'},p);mk('path',{d:'M1.5 1.5H34.5V34.5',fill:'none',stroke:'rgba(255,255,255,.9)','stroke-width':1.2},p);
- mk('path',{d:'M0 0.7H36M0.7 0V36',stroke:'#b4b4ad','stroke-width':1.4,fill:'none'},p)}
-const WP=[['plain','흰색 (기본)'],['grain','회색 입자'],['wood','나무 벽'],['floral','꽃무늬'],['metal','철제'],['tile','네모 타일']];
-const wpFill=k=>k==='grain'?'url(#wallg)':k==='plain'?'#ffffff':`url(#wp_${k})`;
+ p=P('wp_tile',36,36);mk('rect',{width:36,height:36,fill:'#f4f4f4'},p);mk('path',{d:'M1.5 1.5H34.5V34.5',fill:'none',stroke:'rgba(255,255,255,.9)','stroke-width':1.2},p);
+ mk('path',{d:'M0 0.7H36M0.7 0V36',stroke:'#b2b2b2','stroke-width':1.4,fill:'none'},p);
+ for(const [id,u] of Object.entries(S.wpu||{})){const tw=u.tw||80,th=+(tw*(u.h/u.w||1)).toFixed(2);const q=P('wpu_'+id,tw,th);mk('image',{href:u.d,x:0,y:0,width:tw,height:th,preserveAspectRatio:'none'},q)}}
+const WP0=[['plain','흰색 (기본)'],['grain','회색 입자'],['wood','나무 벽'],['floral','꽃무늬'],['metal','철제'],['tile','네모 타일']];
+const WPL=()=>WP0.concat(Object.entries(S.wpu||{}).map(([id,u])=>['u_'+id,'내 벽지 · '+u.n]));
+const wpFill=k=>k==='grain'?'url(#wallg)':k==='plain'?'#ffffff':(typeof k==='string'&&k.startsWith('u_'))?((S.wpu||{})[k.slice(2)]?`url(#wpu_${k.slice(2)})`:'#ffffff'):`url(#wp_${k})`;
 function render(){const b=S.b,N=b.f,E=EH(),t=b.t,s=b.s,W=b.w,INK='#1c1c1c',L=S.lw,LY=S.layers,B=BB();svg.innerHTML='';
  const BN=bounds();const WT=weights();LASTW=WT;const Wp=Math.min(L.out,Math.max(WT._o,.3)),Wi=WT._i;
  const defs=mk('defs',{},svg);hatchDefs(defs,b.hsc||1,INK,b.hang||0,b.hw||1);paperDefs(defs);
- grainPattern(defs,'wallg','#e6e6e3',45,7);grainPattern(defs,'groundg','#8d8d89',90,11);
+ grainPattern(defs,'wallg','#e6e6e6',45,7);grainPattern(defs,'groundg','#8d8d89',90,11);
  const pen=mk('filter',{id:'pen',x:'-2%',y:'-2%',width:'104%',height:'104%'},defs);mk('feTurbulence',{type:'fractalNoise',baseFrequency:'.035',numOctaves:2,seed:3,result:'n'},pen);mk('feDisplacementMap',{in:'SourceGraphic',in2:'n',scale:3.2,xChannelSelector:'R',yChannelSelector:'G'},pen);
  const lay=(id,a)=>{const g=mk('g',a||{},svg);g.setAttribute('data-layer',id);if(!LY[id])g.style.display='none';return g};
  if(OPT.grid){const gr=mk('g',{stroke:'rgba(0,0,0,.09)','stroke-width':1},svg);for(let x=-1000;x<=W+1000;x+=100)mk('line',{x1:x,y1:-E-700,x2:x,y2:-lvl(0)+700,'vector-effect':'non-scaling-stroke'},gr);for(let y=lvl(0)-700;y<=E+700;y+=100)mk('line',{x1:-1000,y1:-y,x2:W+1000,y2:-y,'vector-effect':'non-scaling-stroke'},gr)}
  // 지면·기초 (실내 벽면보다 먼저 그려서 지하층 실내가 흙에 가려지지 않게 함)
  const gG=lay('ground');mk('rect',{x:-6000,y:-gE(),width:14000,height:3000+(-lvl(0))+gE(),fill:'url(#groundg)'},gG);
  const fo=mk('g',{fill:'#fff',stroke:INK,'stroke-width':1.4,'vector-effect':'non-scaling-stroke'},gG);
- {const l0=XL(0),w0=XR(0)-XL(0);[l0+w0*0.12,l0+w0*0.88-160].forEach(x=>mk('rect',{x:Math.round(x),y:-(lvl(0)-sl(0)),width:160,height:90,'vector-effect':'non-scaling-stroke'},fo))}
+ if(b.fnd!=='posts'){const l0=XL(0),w0=XR(0)-XL(0);[l0+w0*0.12,l0+w0*0.88-160].forEach(x=>mk('rect',{x:Math.round(x),y:-(lvl(0)-sl(0)),width:160,height:90,'vector-effect':'non-scaling-stroke'},fo))}
  mk('line',{x1:-6000,y1:-gE(),x2:8000,y2:-gE(),stroke:INK,'stroke-width':2,'vector-effect':'non-scaling-stroke'},gG);
  // 실내 뒷벽면(벽지): 층마다 다르게 고를 수 있음
  const wallBg=mk('g',{},svg);
- for(let k=0;k<N;k++){const y0=lvl(k),y1=lvl(k+1)-sl(k+1);mk('rect',{x:XL(k)+t,y:-y1,width:XR(k)-XL(k)-2*t,height:Math.max(1,y1-y0),fill:wpFill(b.wp[k])},wallBg)}
+ for(let k=0;k<N;k++){const y0=lvl(k),y1=lvl(k+1)-sl(k+1);mk('rect',{x:XL(k)+t,y:-y1,width:XR(k)-XL(k)-2*t,height:Math.max(1,y1-y0),fill:wpFill(b.wp[k])},wallBg);
+  for(const r of roomsOf(k)){const v=S.wpr[r.key];if(v&&v!==b.wp[k]&&r.right>r.left)mk('rect',{x:r.left,y:-y1,width:r.right-r.left,height:Math.max(1,y1-y0),fill:wpFill(v)},wallBg)}}   // 방(벽 사이 칸)마다 따로 고른 벽지
+ if(b.roof==='gable'&&b.go!==false&&N>0){const y1=lvl(N)-sl(N),xa=XL(N-1)+t,xb=XR(N-1)-t,um=(XL(N-1)+XR(N-1))/2,dd=18,hf=(XR(N-1)-XL(N-1)+60)/2,u=x=>E-dd+b.rh*Math.min(1,Math.max(0,(x<=um?x-(XL(N-1)-30):(XR(N-1)+30)-x)/hf));
+  mk('polygon',{points:`${xa},${-y1} ${xb},${-y1} ${xb},${-u(xb)} ${um},${-u(um)} ${xa},${-u(xa)}`,fill:wpFill(b.wp[N-1])},wallBg)}
  // 뒷벽(단면 뒤쪽 벽면)의 문·창문: 입면으로 보이는 가는 선
  const gBk=lay('back');
  for(const o of S.ops){if(o.on!=='back'||o.f<0||o.f>=N)continue;const e0=lvl(o.f)+o.sill,x0=o.x-o.w/2,gB=mk('g',{'data-id':o.id,stroke:INK,'stroke-width':Wp,'stroke-linejoin':'round'},gBk);
@@ -208,6 +299,8 @@ function render(){const b=S.b,N=b.f,E=EH(),t=b.t,s=b.s,W=b.w,INK='#1c1c1c',L=S.l
   else{mk('rect',{x:x0+7,y:-(e0+o.h-7),width:o.w-14,height:o.h-7,fill:'none','stroke-width':Wi},gB);mk('circle',{cx:x0+o.w-16,cy:-(e0+o.h*.48),r:2.6,fill:INK,stroke:'none'},gB)}}
  const rf=lay('roof',{filter:'url(#pen)'}),d=18;
  const tl=XL(N-1),tr=XR(N-1);
+ const GO=b.roof==='gable'&&b.go!==false;   // 박공 지붕: 천장 슬래브 없이 벽이 지붕 안쪽 면까지 올라감
+ const half=(tr-tl+60)/2,umid=(tl+tr)/2,ut=x=>E-d+b.rh*Math.min(1,Math.max(0,(x<=umid?x-(tl-30):(tr+30)-x)/half));   // 지붕 안쪽 면의 높이(cm)
  if(b.roof==='gable'){const A_=[tl-30,-E],C=[(tl+tr)/2,-E-b.rh],B_=[tr+30,-E];mk('path',{d:`M${A_} L${C} L${B_} L${B_[0]} ${B_[1]+d} L${C[0]} ${C[1]+d} L${A_[0]} ${A_[1]+d} Z`,fill:matFill(b.mat.roof),stroke:INK,'stroke-width':L.cut*.7,'stroke-linejoin':'round'},rf)}
  else if(b.roof==='flat'){mk('rect',{x:tl-30,y:-E-22,width:tr-tl+60,height:22,fill:matFill(b.mat.roof),stroke:INK,'stroke-width':L.cut*.7},rf)}
  // 계단: 바닥(슬래브) 뒤에 그려서, 계단이 있어도 바닥이 끊기지 않고 이어져 보이게 함
@@ -215,7 +308,7 @@ function render(){const b=S.b,N=b.f,E=EH(),t=b.t,s=b.s,W=b.w,INK='#1c1c1c',L=S.l
  const dtS=mk('g',{fill:'none',stroke:INK,'stroke-width':Wp,'stroke-linejoin':'round','stroke-linecap':'round'},stp);
  for(const a of S.stairs){const g=stairGeo(a);if(!g)continue;
   if(g.asset){const q=g.asset;renderItem({uid:a.id,assetId:q.id,view:q.view,x:q.x+q.w/2,e:q.e,w:q.w,h:q.h,flip:q.flip,cs:'proj'},stp,WT,true);continue}
-  mk('polygon',{points:pts2(g.poly),fill:matFill(a.mat||'concrete'),'data-id':a.id},stc);
+  for(const P of (g.polys||[g.poly]))mk('polygon',{points:pts2(P),fill:matFill(a.mat||'concrete'),'data-id':a.id},stc);
   if(g.land)mk('rect',{x:g.land[0],y:-g.land[3],width:g.land[1]-g.land[0],height:g.land[3]-g.land[2],fill:matFill(a.mat||'concrete'),'data-id':a.id},stc);
   const gs=mk('g',{'data-id':a.id},dtS);mk('polyline',{points:pts2(g.rail),'stroke-width':Wi},gs);
   g.thin.forEach(pl=>mk('polyline',{points:pts2(pl),'stroke-width':Wi,stroke:'#444'},gs))}
@@ -227,13 +320,20 @@ function render(){const b=S.b,N=b.f,E=EH(),t=b.t,s=b.s,W=b.w,INK='#1c1c1c',L=S.l
  {const wy0=Math.min(lvl(0)-sl(0),gE());
   for(const on of ['L','R']){const xo=k=>on==='L'?XL(k):XR(k)-t;let k=0;
    while(k<N){let j=k;while(j+1<N&&xo(j+1)===xo(k))j++;const ya=k===0?wy0:lvl(k)-sl(k),yb=j===N-1?E:lvl(j+1)-sl(j+1);
-    for(const [a0,a1] of subIv(ya,yb,opsOn(on)))R(xo(k),a0,t,a1-a0,wallFill,'wall');k=j+1}}
-  if(gE()<lvl(0)-sl(0)-0.5)R(XL(0),gE(),XR(0)-XL(0),lvl(0)-sl(0)-gE(),wallFill,'wall')} // 지면보다 높은 1층 바닥 밑 기초 벽체
+    for(const [a0,a1] of subIv(ya,yb,opsOn(on))){if(GO&&j===N-1&&Math.abs(a1-E)<.01&&ut(xo(k))>E){const x0=xo(k),x1=x0+t;mk('polygon',{points:`${x0},${-a0} ${x1},${-a0} ${x1},${-Math.max(E,ut(x1))} ${x0},${-Math.max(E,ut(x0))}`,fill:wallFill,'data-id':'wall'},st)}else R(xo(k),a0,t,a1-a0,wallFill,'wall')}k=j+1}}
+  if(gE()<lvl(0)-sl(0)-0.5){
+   if(b.fnd==='posts'){   // 고상식(한옥·일본 목조): 주춧돌 위에 기둥만 세우고 바닥 밑은 열어 둠
+    const x0=XL(0),x1=XR(0),pw=Math.max(18,t*.9),n=Math.max(1,Math.round((x1-x0)/220)),st0=gE(),sh=Math.min(22,(lvl(0)-sl(0)-st0)/3);
+    for(let i=0;i<=n;i++){const cx=x0+pw/2+(x1-x0-pw)*i/n;R(cx-pw*.9,st0,pw*1.8,sh,matFill('concrete'),'wall');R(cx-pw/2,st0+sh,pw,lvl(0)-sl(0)-st0-sh,matFill('wood'),'wall')}}
+   else R(XL(0),gE(),XR(0)-XL(0),lvl(0)-sl(0)-gE(),wallFill,'wall')}} // 지면보다 높은 1층 바닥 밑 기초 벽체(또는 기둥)
  for(let k=0;k<=N;k++){const voids=(b.void&&k>=1)?S.stairs.filter(a=>a.f===k-1).map(a=>stairGeo(a)).filter(g=>g&&g.voidX).map(g=>g.voidX):[];
   const sp=k===0?[XL(0),XR(0)]:k===N?[XL(N-1),XR(N-1)]:[Math.min(XL(k-1),XL(k)),Math.max(XR(k-1),XR(k))];
+  if(GO&&k===N)continue;
   for(const [x0,x1] of subIv(sp[0],sp[1],voids)){R(x0,lvl(k)-sl(k),x1-x0,sl(k),matFill(b.mat.slab),'wall');if(b.mat.slab==='none')mk('line',{x1:x0+2,y1:-(lvl(k)-sl(k)/2),x2:x1-2,y2:-(lvl(k)-sl(k)/2),stroke:'#555','stroke-width':L.cut*.4,'stroke-dasharray':'7 5'},st)}}
  for(const q of S.terr){if(q.slab!==false&&q.f>=0&&q.f<=N)R(q.x0,lvl(q.f)-sl(q.f),q.x1-q.x0,sl(q.f),matFill(b.mat.slab),q.id)}
- for(const p of S.parts){const k=p.f;if(k<0||k>=N)continue;for(const [a0,a1] of subIv(lvl(k),lvl(k+1)-sl(k+1),opsOn(p.id)))R(p.x-p.t/2,a0,p.t,a1-a0,matFill(p.mat),p.id)}
+ for(const p of S.parts){const k=p.f;if(k<0||k>=N)continue;const top=lvl(k+1)-sl(k+1);for(const [a0,a1] of subIv(lvl(k),top,opsOn(p.id))){
+  if(GO&&k===N-1&&Math.abs(a1-top)<.01){const x0=p.x-p.t/2,x1=p.x+p.t/2;mk('polygon',{points:`${x0},${-a0} ${x1},${-a0} ${x1},${-Math.max(top,ut(x1))} ${x0},${-Math.max(top,ut(x0))}`,fill:matFill(p.mat),'data-id':p.id},st)}
+  else R(p.x-p.t/2,a0,p.t,a1-a0,matFill(p.mat),p.id)}}
  // 문·창문(벽에 뚫린 곳): 창 유리 = 한 줄, 창틀·문틀 = 작은 단면
  const dt=lay('open',{fill:'none',stroke:INK,'stroke-width':Wp,'stroke-linejoin':'round','stroke-linecap':'round'});
  const hostX=o=>o.on==='L'?[XL(o.f),XL(o.f)+t]:o.on==='R'?[XR(o.f)-t,XR(o.f)]:(()=>{const p=S.parts.find(q=>q.id===o.on);return p?[p.x-p.t/2,p.x+p.t/2]:null})();
@@ -252,7 +352,7 @@ function render(){const b=S.b,N=b.f,E=EH(),t=b.t,s=b.s,W=b.w,INK='#1c1c1c',L=S.l
  for(let k=0;k<=N;k++){const e=lvl(k),x=BN.r+36;mk('path',{d:`M${BN.r+4} ${-e}H${x+70}M${x} ${-e}l-9 -14h18z`,stroke:INK,'stroke-width':1.2,fill:k===B?INK:'#fff'},lv);const tx=mk('text',{x:x+16,y:-e-8},lv);tx.textContent=(k===B?'±0.00':(e>0?'+':'-')+(Math.abs(e)/100).toFixed(2))+(k===N?' (상단)':' ('+fname(k)+')')}
  // 가구
  const g=lay('items',{id:'items'});
- [...S.items].sort((a,b2)=>((b2.cs==='behind')-(a.cs==='behind'))||(a.z-b2.z)).forEach(it=>renderItem(it,g,WT));   // 원경(연하게)은 가려지지 않고, 다른 가구 뒤쪽에 연한 선으로 그림
+ [...S.items].sort((a,b2)=>(a.z-b2.z)).forEach(it=>renderItem(it,g,WT));   // 원경(연하게)은 가려지지 않고, 다른 가구 뒤쪽에 연한 선으로 그림
  drawSel();applyVP();inspector();caption();lwInfo();
 }
 function lwInfo(){const el=$('#lwInfo');if(!el)return;const W=LASTW;const n=S.items.length;el.textContent=n?`적용값 — 외곽 ${(+W._o).toFixed(2)}cm · 내부 ${(+W._i).toFixed(2)}cm (가구 ${n}개)`:`가구를 놓으면 적용값이 표시됩니다 (설정: 외곽 ${S.lw.out} · 내부 ${S.lw.inn})`}
@@ -269,7 +369,7 @@ function drawSel(){svg.querySelectorAll('.sel,.guide').forEach(n=>n.remove());co
  els.forEach(e=>{try{const bb=e.getBBox();x0=Math.min(x0,bb.x);y0=Math.min(y0,bb.y);x1=Math.max(x1,bb.x+bb.width);y1=Math.max(y1,bb.y+bb.height)}catch(x){}});
  if(x1>x0)mk('rect',{class:'sel sel-box',x:x0-4,y:y0-4,width:x1-x0+8,height:y1-y0+8},svg)}
 /* ---------- 상태/이력 ---------- */
-function commit(label){hist.push(JSON.stringify(S));if(hist.length>120)hist.shift();fut=[];persist();btns()}
+function commit(label){uaEmbed(S);hist.push(JSON.stringify(S));if(hist.length>120)hist.shift();fut=[];persist();btns()}
 function restore(js){S=norm(JSON.parse(js));if(!findObj(sel))sel=null;sync();render()}
 function undo(){if(hist.length<2)return;fut.push(hist.pop());restore(hist[hist.length-1]);persist();btns()}
 function redo(){if(!fut.length)return;const j=fut.pop();hist.push(j);restore(j);persist();btns()}
@@ -322,8 +422,8 @@ function inspector(){const ob=findObj(sel),body=$('#inspBody'),H=$('#insp h4');
   body.innerHTML=`${opt('바닥 높이(층)','tf',terrFloorOpts(),o.f)}${fld('왼쪽 끝 x(cm)','tx0',o.x0,undefined,5)}${fld('오른쪽 끝 x(cm)','tx1',o.x1,undefined,5)}${opt('난간','tr',RAIL_TYPES,o.rail)}${opt('구성','ts',[['1','바닥 + 난간'],['0','난간만 (이미 바닥이 있는 곳)']],o.slab===false?'0':'1')}${stdBtns}<div class="hint" style="margin-top:6px">도면에서 좌우로 끌어 옮길 수 있어요. 난간은 왼쪽·오른쪽 끝 사이 전체에 그려져요.</div>`;
   bind('#tf',v=>o.f=clamp(+v,0,S.b.f));bind('#tx0',v=>o.x0=Math.min(v,o.x1-20));bind('#tx1',v=>o.x1=Math.max(v,o.x0+20));bind('#tr',v=>o.rail=v);bind('#ts',v=>o.slab=v==='1')}
  else if(ob.k==='stair'){H.textContent='계단';const as=!!STAIR_ASSET[o.type];
-  body.innerHTML=`${opt('모양','st',STAIR_TYPES,o.type)}${opt('시작 층','sf',stairFloorOpts(),o.f)}${fld(as?'왼쪽 끝 x(cm)':'시작 x(cm)','sx',o.x,0,5)}${as?fld('폭(cm, 0=자동)','sw',o.w||0,0,10):fld('수평 길이(cm)','sr',o.run,60,10)}${opt(as?'방향(그림 반전)':'오르는 방향','sd',[[1,'오른쪽 →'],[-1,'← 왼쪽']],o.dir)}${as?opt('그림 면','sv',[['auto',o.type==='glass'?'옆면 (방향 따라)':'앞면'],['front','앞면(정면)'],['back','뒷면 (정면 그림 반대로)']],o.sv||'auto'):''}${as?'':fld(o.type==='straight'?'단 수 (0=자동)':'한 구간 단 수 (0=자동)','sn',o.n||0,0,1)+(o.type!=='straight'?fld('참(랜딩) 깊이(cm)','sl',o.land||100,60,10):'')+opt('재질','sm',MATS,o.mat||'concrete')}${stdBtns}<div class="hint" style="margin-top:6px">${as?'에셋 그림을 층고에 맞춰 늘려 쓰는 계단이에요. 폭을 바꾸면 그림 비율이 달라질 수 있어요.':'위층 바닥과 자동으로 이어져요.'} 계단은 바닥 뒤에 그려져 바닥이 끊기지 않습니다.</div>`;
-  bind('#st',v=>o.type=v);bind('#sf',v=>o.f=+v);bind('#sx',v=>o.x=v);bind('#sr',v=>o.run=Math.max(60,v));bind('#sw',v=>o.w=v>=40?v:0);bind('#sd',v=>o.dir=+v);bind('#sv',v=>o.sv=v);bind('#sl',v=>o.land=Math.max(60,v));bind('#sn',v=>o.n=v>=3?Math.min(40,Math.round(v)):0);bind('#sm',v=>o.mat=v)}
+  body.innerHTML=`${opt('모양','st',STAIR_TYPES,o.type)}${opt('시작 층','sf',stairFloorOpts(),o.f)}${fld(as?'왼쪽 끝 x(cm)':'시작 x(cm)','sx',o.x,0,5)}${as?fld('폭(cm, 0=자동)','sw',o.w||0,0,10):fld('수평 길이(cm)','sr',o.run,60,10)}${(!as&&(o.sv==='front'||o.sv==='back'))?fld('계단 폭(cm, 0=자동)','sw',o.w||0,0,10):''}${opt(as?'방향(그림 반전)':'오르는 방향','sd',[[1,'오른쪽 →'],[-1,'← 왼쪽']],o.dir)}${as?opt('그림 면','sv',[['auto',o.type==='glass'?'옆면 (방향 따라)':'앞면'],['front','앞면(정면)'],['back','뒷면 (정면 그림 반대로)']],o.sv||'auto'):opt('보는 면','sv',[['side','옆면 (단면)'],['front','앞면'],['back','뒷면']],(o.sv==='front'||o.sv==='back')?o.sv:'side')}${as?'':fld(o.type==='straight'?'단 수 (0=자동)':'한 구간 단 수 (0=자동)','sn',o.n||0,0,1)+(o.type!=='straight'?fld('참(랜딩) 깊이(cm)','sl',o.land||100,60,10):'')+opt('재질','sm',MATS,o.mat||'concrete')}${stdBtns}<div class="hint" style="margin-top:6px">${as?'에셋 그림을 층고에 맞춰 늘려 쓰는 계단이에요. 폭을 바꾸면 그림 비율이 달라질 수 있어요.':'위층 바닥과 자동으로 이어져요.'} 계단은 바닥 뒤에 그려져 바닥이 끊기지 않습니다.</div>`;
+  bind('#st',v=>{o.type=v;o.sv=STAIR_ASSET[v]?'auto':(o.sv==='front'||o.sv==='back'?o.sv:'side')});bind('#sf',v=>o.f=+v);bind('#sx',v=>o.x=v);bind('#sr',v=>o.run=Math.max(60,v));bind('#sw',v=>o.w=v>=40?v:0);bind('#sd',v=>o.dir=+v);bind('#sv',v=>o.sv=v);bind('#sl',v=>o.land=Math.max(60,v));bind('#sn',v=>o.n=v>=3?Math.min(40,Math.round(v)):0);bind('#sm',v=>o.mat=v)}
  else if(ob.k==='wall'){H.textContent='외벽 · 슬래브';body.innerHTML=`${fld('외벽 두께(cm)','wt',S.b.t,10,5)}${fld('슬래브 두께(cm)','wsl',S.b.s,10,5)}${opt('벽 재질','wm',MATS,S.b.mat.wall)}${opt('슬래브 재질','wsm',MATS,S.b.mat.slab)}<div class="hint" style="margin-top:6px">절단된 벽과 슬래브는 굵은 절단선으로 그려집니다.</div>`;
   bind('#wt',v=>S.b.t=clamp(v,10,60));bind('#wsl',v=>{S.b.s=clamp(v,10,60);S.b.sk=Array.from({length:S.b.f+1},()=>S.b.s)});bind('#wm',v=>S.b.mat.wall=v);bind('#wsm',v=>S.b.mat.slab=v)}
  $('#idup')&&($('#idup').onclick=dup);$('#idel')&&($('#idel').onclick=del)}
@@ -336,7 +436,7 @@ function inspItem(it,body,H){H.textContent='선택한 가구';
  <label>폭(cm)<input type="number" id="iw" value="${it.w}" step="1" min="5"></label><label>높이(cm)<input type="number" id="ih" value="${it.h}" step="1" min="5"></label>
  <label>x 위치(cm)<input type="number" id="ix" value="${Math.round(it.x)}" step="5"></label><label>바닥 높이(cm)<input type="number" id="ie" value="${Math.round(it.e)}" step="5"></label>
  ${opt('단면 상태','ics',[['proj','투영 (절단 안 됨)'],['cut','절단됨 (굵은 선)'],['behind','원경 (연하게)']],it.cs||'proj')}
- <div class="btns"><button id="iflip">좌우 반전</button><button id="idup">복제</button><button id="idel">삭제</button><button id="ifwd">앞으로</button><button id="ibk">뒤로</button><button id="irs">기본 크기</button></div>
+ <div class="btns"><button id="iflip">좌우 반전</button><button id="idup">복제</button><button id="idel">삭제</button><button id="ifwd" title="겹친 것 중 맨 앞으로">맨 앞</button><button id="ifw1" title="한 칸 앞으로">앞으로</button><button id="ibk1" title="한 칸 뒤로">뒤로</button><button id="ibk" title="겹친 것 중 맨 뒤로">맨 뒤</button><button id="irs">기본 크기</button></div>
  ${w?`<div class="hint" style="margin-top:6px">이 가구 선: 외곽 ${w.wo.toFixed(2)}cm · 내부 ${w.wi.toFixed(2)}cm</div>`:''}
  ${warns.length?`<div class="warn">⚠ 원본 도면 검수 메모: ${esc(warns.join(', '))}</div>`:''}<div class="hint" style="margin-top:6px">폭·높이는 비율 고정입니다. 방향은 '좌우 반전'으로 바꿔요. '원경 (연하게)'는 멀리 있어서 선이 연하게 보이는 가구예요(원근 표현). 벽 뒤로 숨는 것이 아니라 선만 연해져요.</div>`;
  body.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>setView(b.dataset.v));
@@ -346,7 +446,12 @@ function inspItem(it,body,H){H.textContent='선택한 가구';
  $('#ix').onchange=e=>{it.x=+e.target.value||0;commit();render()};$('#ie').onchange=e=>{it.e=Math.max(lvl(0),+e.target.value||0);commit();render()};
  $('#ics').onchange=e=>{it.cs=e.target.value;commit();render()};
  $('#iflip').onclick=()=>{it.flip=!it.flip;commit();render()};$('#idup').onclick=dup;$('#idel').onclick=del;
- $('#ifwd').onclick=()=>{it.z=Math.max(...S.items.map(i=>i.z))+1;commit();render()};$('#ibk').onclick=()=>{it.z=Math.min(...S.items.map(i=>i.z))-1;commit();render()};
+ const zn=()=>{const o=[...S.items].sort((a,b)=>a.z-b.z);o.forEach((i,n)=>i.z=n);return o};   // z를 0..n-1로 정리(같은 값·소수 방지)
+ const zset=o=>{o.forEach((i,n)=>i.z=n);commit();render()};
+ $('#ifwd').onclick=()=>{const o=zn().filter(i=>i!==it);o.push(it);zset(o)};$('#ibk').onclick=()=>{const o=zn().filter(i=>i!==it);o.unshift(it);zset(o)};
+ const ov=(p,q)=>Math.abs(p.x-q.x)<(p.w+q.w)/2&&(p.e<q.e+q.h&&q.e<p.e+p.h);   // 서로 겹치는 가구만 '한 칸' 단위로 건너뜀
+ $('#ifw1').onclick=()=>{const o=zn(),n=o.indexOf(it);let j=-1;for(let k=n+1;k<o.length;k++)if(ov(it,o[k])){j=k;break}if(j>=0){o.splice(n,1);o.splice(j,0,it)}zset(o)};
+ $('#ibk1').onclick=()=>{const o=zn(),n=o.indexOf(it);let j=-1;for(let k=n-1;k>=0;k--)if(ov(it,o[k])){j=k;break}if(j>=0){o.splice(n,1);o.splice(j,0,it)}zset(o)};
  $('#irs').onclick=()=>{const v=a.views[it.view],h0=Math.min(Math.max((a.defaultSizeCm&&a.defaultSizeCm.height)||100,5),600);it.h=h0;it.w=+(h0*(v.aspect||1)).toFixed(1);commit();render()}}
 /* ---------- 포인터 ---------- */
 let drag=null,tool=null;
@@ -420,7 +525,7 @@ function sync(){const b=S.b,B=BB();$('#bw').value=b.w;$('#bf').value=b.f-B;$('#b
  {const fo=floorOpts().map(([k,t])=>`<option value="${k}">${t}</option>`).join('');const to=terrFloorOpts().map(([k,t])=>`<option value="${k}">${t}</option>`).join('');
   const keep=id=>{const v=$(id).value;return v};const set=(id,html,def)=>{const v=keep(id);$(id).innerHTML=html;$(id).value=(v!==''&&$(id).querySelector(`option[value="${v}"]`))?v:def};
   set('#wxFloor',fo,B);set('#raFloor',fo,B);set('#tfFloor',to,Math.min(B+1,b.f));set('#oxFloor',fo,B);
-  const f0=+$('#wxFloor').value;$('#wxInfo').textContent=`현재 ${Math.round(XR(f0)-XL(f0))}cm (x ${Math.round(XL(f0))} ~ ${Math.round(XR(f0))})`;if(document.activeElement!==$('#wxW'))$('#wxW').value=Math.round(XR(f0)-XL(f0));$('#brz').value=b.rz||0;
+  const f0=+$('#wxFloor').value;$('#wxInfo').textContent=`현재 ${Math.round(XR(f0)-XL(f0))}cm (x ${Math.round(XL(f0))} ~ ${Math.round(XR(f0))})`;if(document.activeElement!==$('#wxW'))$('#wxW').value=Math.round(XR(f0)-XL(f0));$('#brz').value=b.rz||0;$('#bfnd').value=b.fnd||'wall';$('#bgo').checked=b.go!==false;
   $('#tList').innerHTML=S.terr.length?S.terr.map(q=>`<div class="li ${sel===q.id?'on':''}" data-pick="${q.id}"><span>${(RAIL_TYPES.find(r=>r[0]===q.rail)||[0,''])[1]} · ${q.f<b.f?fnameKo(q.f)+' 바닥':'옥상'} · x ${Math.round(q.x0)}~${Math.round(q.x1)}</span><button data-rm="${q.id}">삭제</button></div>`).join(''):'<div class="hint">테라스 없음</div>'}
  $('#sFloor').innerHTML=stairFloorOpts().map(([k,t])=>`<option value="${k}">${t}</option>`).join('');
  const oo=$('#oOn'),pf2=+$('#oFloor').value||0;oo.innerHTML=onOpts(pf2).map(([v,t])=>`<option value="${esc(v)}">${esc(t)}</option>`).join('');
@@ -435,7 +540,10 @@ function sync(){const b=S.b,B=BB();$('#bw').value=b.w;$('#bf').value=b.f-B;$('#b
   r.rightPart.x=Math.round(clamp(r.left+(+e.target.value||60)+r.rightPart.t/2,r.left+60+r.rightPart.t/2,nextL));commit();sync();render()});
  const L=S.lw;$('#lwOut').value=L.out;$('#lwInn').value=L.inn;$('#lwCut').value=L.cut;$('#lwAuto').checked=!!L.auto;$('#hsc').value=b.hsc;$('#hang').value=b.hang;$('#hw').value=b.hw;$('#bOp').value=L.bOp;$('#bDash').checked=!!L.bDash;$('#optVoid').checked=!!b.void;
  $('#layList').innerHTML=LAYERS.map(([k,t])=>`<label class="chk"><input type="checkbox" data-ly="${k}" ${S.layers[k]?'checked':''}> ${t}</label>`).join('');
- $('#wpList').innerHTML=`<label>모든 층<select data-wpall><option value="">고르면 전체 적용</option>${WP.map(([v,t])=>`<option value="${v}">${t}</option>`).join('')}</select></label>`+b.wp.map((w,k)=>({k,w})).reverse().map(({k,w})=>`<label>${fnameKo(k)}<select data-wp="${k}">${WP.map(([v,t])=>`<option value="${v}" ${v===w?'selected':''}>${t}</option>`).join('')}</select></label>`).join('');
+ $('#wpList').innerHTML=`<label>모든 층<select data-wpall><option value="">고르면 전체 적용</option>${WPL().map(([v,t])=>`<option value="${v}">${t}</option>`).join('')}</select></label>`+b.wp.map((w,k)=>({k,w})).reverse().map(({k,w})=>`<label>${fnameKo(k)}<select data-wp="${k}">${WPL().map(([v,t])=>`<option value="${v}" ${v===w?'selected':''}>${t}</option>`).join('')}</select></label>`).join('')
+ {let h2='';for(let k=b.f-1;k>=0;k--){const rs=roomsOf(k);if(rs.length<2)continue;h2+=`<div class="rmh">${fnameKo(k)}</div>`;rs.forEach((r,i)=>{const v=S.wpr[r.key]||'';h2+=`<label>${esc(S.rooms[r.key]||('방 '+(i+1)))}<select data-wpr="${esc(r.key)}"><option value="" ${v?'':'selected'}>층 기본</option>${WPL().map(([id,t])=>`<option value="${id}" ${id===v?'selected':''}>${t}</option>`).join('')}</select></label>`})}
+  $('#wpList').insertAdjacentHTML('beforeend',`<h4>방(벽 사이 칸)별 벽지</h4>`+(h2||'<div class="hint">내벽으로 방을 나누면 방마다 벽지를 따로 고를 수 있어요.</div>'))}
+ $('#wpuList').innerHTML=Object.entries(S.wpu||{}).map(([id,u])=>`<div class="li"><span>${esc(u.n)}</span><label class="two" style="margin:0">타일 폭(cm)<input type="number" data-wpuw="${id}" value="${u.tw}" min="10" max="400" step="5"></label><button data-wpud="${id}">삭제</button></div>`).join('');
  for(const [id,key] of [['#mWall','wall'],['#mSlab','slab'],['#mRoof','roof']]){const sel_=$(id);sel_.innerHTML=MATS.map(([v,t])=>`<option value="${v}">${t}</option>`).join('');if(key==='roof')sel_.insertAdjacentHTML('afterbegin','<option value="roof">지붕 사선</option>');sel_.value=b.mat[key]}
  const lst=(arr,fn)=>arr.length?arr.map(fn).join(''):'<div class="hint">없음</div>';
  $('#oList').innerHTML=lst(S.ops,o=>`<div class="li ${sel===o.id?'on':''}" data-pick="${o.id}"><span>${o.kind==='door'?'문':'창'} · ${fnameKo(o.f)} · ${({L:'왼쪽 외벽',R:'오른쪽 외벽',back:'뒷벽'})[o.on]||'내벽'}</span><button data-rm="${o.id}">삭제</button></div>`);
@@ -457,7 +565,7 @@ const num=(id,key,min,max)=>$(id).addEventListener('change',e=>{let v=+e.target.
  if(key==='w'){const ow=ow0;S.b.ext.forEach(e=>{if(e.l===0&&e.r===ow)e.r=v}); // 기본 폭을 따르던 층만 같이 바뀜(층별로 따로 고친 층은 그대로)
   S.items.forEach(i=>{i.x=Math.min(Math.max(i.x,bounds().l),bounds().r)});S.parts=S.parts.filter(p=>p.x>XL(p.f)&&p.x<XR(p.f));S.ops.forEach(o=>{if(o.on==='back')o.x=Math.min(o.x,bounds().r-20)})}
  reflow();commit();sync();render();fit()});
-num('#bw','w',300,3000);num('#brz','rz',0,150);num('#bh','h',220,500);num('#bs','s',10,60);num('#bt','t',10,60);num('#brh','rh',30,400);
+num('#bw','w',300,3000);num('#brz','rz',0,300);$('#bfnd').onchange=e=>{S.b.fnd=e.target.value==='posts'?'posts':'wall';if(S.b.fnd==='posts'&&!S.b.rz){S.b.rz=90}commit();sync();render()};$('#bgo').onchange=e=>{S.b.go=e.target.checked;commit();render()};num('#bh','h',220,500);num('#bs','s',10,60);num('#bt','t',10,60);num('#brh','rh',30,400);
 $('#bf').onchange=e=>{setFloors(+e.target.value,BB());commit();sync();render();fit()};
 $('#bb').onchange=e=>{setFloors(S.b.f-BB(),+e.target.value);commit();sync();render();fit()};
 $('#br').onchange=e=>{S.b.roof=e.target.value;commit();render()};
@@ -509,15 +617,70 @@ $('#hw').onchange=e=>{S.b.hw=clamp(+e.target.value||1,.2,4);commit();render()};
 $('#bOp').onchange=e=>{S.lw.bOp=clamp(+e.target.value||.75,.1,1);commit();render()};
 $('#bDash').onchange=e=>{S.lw.bDash=e.target.checked;commit();render()};
 $('#layList').addEventListener('change',e=>{const k=e.target.dataset.ly;if(!k)return;S.layers[k]=e.target.checked?1:0;if(!S.layers[k]&&sel&&!svg.querySelector(`[data-id="${sel}"]`))sel=null;commit();render()});
-$('#wpList').addEventListener('change',e=>{const t=e.target;if(t.dataset.wpall!==undefined){if(!t.value)return;S.b.wp=S.b.wp.map(()=>t.value)}else if(t.dataset.wp!==undefined)S.b.wp[+t.dataset.wp]=t.value;else return;commit();sync();render()});
+$('#wpList').addEventListener('change',e=>{const t=e.target;if(t.dataset.wpall!==undefined){if(!t.value)return;S.b.wp=S.b.wp.map(()=>t.value)}else if(t.dataset.wp!==undefined)S.b.wp[+t.dataset.wp]=t.value;else if(t.dataset.wpr!==undefined){if(t.value)S.wpr[t.dataset.wpr]=t.value;else delete S.wpr[t.dataset.wpr]}else return;commit();sync();render()});
+
+/* 내 벽지(SVG·PNG) 등록 — 문서 안에 data URI로 넣어 저장·공유되게 함(문서 용량 한도 때문에 개수·크기 제한) */
+{const MAXB=150000;
+ const fail=m=>{let t=$('#wpuToast');if(!t){t=document.createElement('div');t.id='wpuToast';t.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:9px 14px;border-radius:8px;font-size:13px;z-index:99;max-width:90vw';document.body.appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>{t.hidden=true},4500)};
+ const fin=(name,d,w,h)=>{if(Object.keys(S.wpu).length>=4)return fail('내 벽지는 4개까지 등록할 수 있어요. 하나를 지우고 다시 올려 주세요.');if(d.length>MAXB*1.4)return fail('파일이 너무 커요(약 150KB 이하). 더 작은 무늬로 올려 주세요.');
+  const id='w'+Math.random().toString(36).slice(2,7);S.wpu[id]={n:name.replace(/\.[^.]+$/,'').slice(0,20)||'벽지',d,w,h,tw:80};commit();sync();render()};
+ $('#wpuAdd').onclick=()=>$('#wpuFile').click();
+ $('#wpuFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;S.wpu=S.wpu||{};
+  try{
+   if(/svg/i.test(f.type)||/\.svg$/i.test(f.name)){const t=await f.text();if(t.length>MAXB)return fail('SVG가 너무 커요(약 150KB 이하).');
+    if(/<script|<foreignObject|\son\w+\s*=|javascript:/i.test(t))return fail('스크립트가 들어 있는 SVG는 쓸 수 없어요.');
+    const doc=new DOMParser().parseFromString(t,'image/svg+xml'),r=doc.documentElement;if(!r||r.nodeName.toLowerCase()!=='svg'||doc.querySelector('parsererror'))return fail('SVG를 읽지 못했어요.');
+    let w=parseFloat(r.getAttribute('width')),h=parseFloat(r.getAttribute('height'));const vb=(r.getAttribute('viewBox')||'').split(/[\s,]+/).map(Number);
+    if(!(w>0&&h>0)){if(vb.length===4&&vb[2]>0&&vb[3]>0){w=vb[2];h=vb[3]}else{w=100;h=100}}
+    if(!r.getAttribute('viewBox'))r.setAttribute('viewBox',`0 0 ${w} ${h}`);r.setAttribute('width',w);r.setAttribute('height',h);
+    const out=new XMLSerializer().serializeToString(r);fin(f.name,'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(out))),w,h)}
+   else{const url=URL.createObjectURL(f);const im=new Image();im.onload=()=>{URL.revokeObjectURL(url);const k=Math.min(1,256/Math.max(im.naturalWidth,im.naturalHeight)),w=Math.max(1,Math.round(im.naturalWidth*k)),h=Math.max(1,Math.round(im.naturalHeight*k));
+     const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,0,0,w,h);let d=c.toDataURL('image/png');if(d.length>MAXB*1.4)d=c.toDataURL('image/jpeg',.8);fin(f.name,d,w,h)};im.onerror=()=>{URL.revokeObjectURL(url);fail('이미지를 읽지 못했어요.')};im.src=url}
+  }catch(er){fail('벽지를 등록하지 못했어요: '+er.message)}};
+ $('#wpuList').addEventListener('click',e=>{const id=e.target.dataset.wpud;if(!id)return;delete S.wpu[id];S.b.wp=S.b.wp.map(w=>w==='u_'+id?'plain':w);for(const k of Object.keys(S.wpr))if(S.wpr[k]==='u_'+id)delete S.wpr[k];commit();sync();render()});
+ $('#wpuList').addEventListener('change',e=>{const id=e.target.dataset.wpuw;if(!id||!S.wpu[id])return;S.wpu[id].tw=Math.max(10,Math.min(400,+e.target.value||80));commit();render()})}
+
+/* v18: 건물 탭의 구역(건물 크기·내벽·층별 폭·테라스·문창문·계단)을 처음에 접어 두고, 제목 옆 ▼ 를 눌러 펼침 */
+{const T=$('#tHouse'),names=['건물 크기','내벽','층별 폭','테라스','문 · 창문','계단'];let open={};try{open=JSON.parse(localStorage.getItem('sectionSite.fold')||'{}')}catch(e){}
+ const hs=[...T.querySelectorAll(':scope>h4')].filter(h=>names.some(n=>h.textContent.trim().startsWith(n)));
+ hs.forEach((h,i)=>{const body=document.createElement('div');body.className='fold-b';let n=h.nextSibling;while(n&&!(n.nodeType===1&&n.tagName==='H4')){const nx=n.nextSibling;body.appendChild(n);n=nx}h.after(body);
+  const key=h.textContent.trim();const car=document.createElement('i');car.className='car';h.appendChild(car);h.classList.add('fold-h');h.setAttribute('role','button');h.tabIndex=0;
+  const set=o=>{body.hidden=!o;car.textContent=o?'▲':'▼';h.setAttribute('aria-expanded',o)};set(!!open[key]);
+  const tg=()=>{const o=body.hidden;set(o);open[key]=o;try{localStorage.setItem('sectionSite.fold',JSON.stringify(open))}catch(e){}};
+  h.onclick=tg;h.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg()}}})}
 /* ---------- 라이브러리 ---------- */
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));$('#tLib').hidden=b.dataset.t!=='lib';$('#tHouse').hidden=b.dataset.t!=='house';$('#tDraw').hidden=b.dataset.t!=='draw';if(b.dataset.t!=='house')setTool(null)});
 function filtered(){const q=$('#q').value.trim().toLowerCase(),c=$('#fcat').value,os=$('#onlySide').checked;
  return A.filter(a=>(!c||a.categoryId===c)&&(!os||a.views.leftSide||a.views.rightSide)&&(!q||(a.nameKo+' '+a.nameEn+' '+a.assetId+' '+(a.tags||[]).join(' ')).toLowerCase().includes(q)))}
 function prefetch(a){const k=avail(a)[0];const v=a.views[k];if(!v)return;art(v.svg,true);if(v.fill)art(v.fill,true)}
+
+function uaDelete(id){const a=AM[id];if(!a||!UA[id])return;if(!confirm(`'${a.nameKo}' 에셋을 삭제할까요?\n이미 도면에 놓은 가구는 그대로 남아요(도면 안에 사본이 있어요).`))return;
+ delete UA[id];uaSave();const i=A.findIndex(x=>x.assetId===id);if(i>=0)A.splice(i,1);
+ if(!S.items.some(it=>it.assetId===id))delete AM[id];renderLib();msg('내 에셋을 삭제했어요')}
+function openUaDialog(){
+ const d=$('#dlg');const cats=[['custom','내 에셋(기타)'],...CATS.map(k=>[k.id,k.nameKo])];
+ d.innerHTML=`<h3>내 에셋 등록 (SVG·PNG)</h3><div class="ua-form">
+  <label>이름 <input id="uaName" maxlength="30" placeholder="예) 우리집 소파"></label>
+  <label>분류 <select id="uaCat">${cats.map(([v,t])=>`<option value="${esc(v)}">${esc(t)}</option>`).join('')}</select></label>
+  <label>기본 높이(cm) <input type="number" id="uaH" value="100" min="5" max="600" step="5"></label>
+  <label>파일 <input type="file" id="uaFile" accept=".svg,.png,image/svg+xml,image/png"></label>
+  <div id="uaPrev" class="hint"></div><div id="uaErr" class="hint" style="color:#b00020"></div>
+  <p class="hint" style="font-size:11px">PNG는 선이 뚜렷한 단색의 이미지를 추천해요. 내 에셋은 이 브라우저에 저장되고, 도면에 쓰면 도면 안에도 사본이 들어가요(공유 집 용량 한도 때문에 에셋 하나는 약 120KB 이하로 줄여 저장해요).</p></div>
+  <div class="row" style="margin-top:10px"><button id="uaGo" class="wide" disabled>등록</button></div>
+  <form method="dialog" style="margin-top:8px"><button>닫기</button></form>`;
+ let rec=null;const err=m=>{$('#uaErr').textContent=m||''};
+ $('#uaFile').onchange=async e=>{rec=null;$('#uaGo').disabled=true;err('');$('#uaPrev').textContent='';const f=e.target.files[0];if(!f)return;
+  try{const nm=$('#uaName').value.trim();rec=await uaMake(f,nm,$('#uaCat').value,$('#uaH').value);if(!nm)$('#uaName').value=rec.nameKo;
+   const th=rec.kind==='png'?rec.data:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="${UA_NS}" viewBox="0 0 ${rec.aw} ${rec.ah}"><path d="${rec.d}" fill="none" stroke="#222" stroke-width="${Math.max(rec.aw,rec.ah)/160}"/></svg>`);
+   $('#uaPrev').innerHTML=`<img src="${th}" alt="" style="max-width:100%;max-height:120px;background:#fff;border:1px solid #ddd"><br>${rec.kind==='png'?(rec.fromSvg?'복잡한 SVG라 이미지(PNG)로 변환해 등록해요':'이미지(PNG)로 등록해요'):'벡터(SVG) 선으로 등록해요'}`;$('#uaGo').disabled=false}catch(ex){err(ex.message||String(ex))}};
+ $('#uaGo').onclick=()=>{if(!rec)return;rec.nameKo=($('#uaName').value.trim()||rec.nameKo).slice(0,30);rec.cat=$('#uaCat').value;rec.hcm=Math.min(600,Math.max(5,+$('#uaH').value||100));
+  UA[rec.id]=rec;if(!uaSave()){delete UA[rec.id];err('브라우저 저장 공간이 부족해서 등록할 수 없어요. 안 쓰는 내 에셋을 지워 주세요');return}
+  uaRegister(rec,true);d.close();renderLib();msg('내 에셋으로 등록했어요: '+rec.nameKo)};
+ d.showModal()}
 function renderLib(){const L=filtered();$('#count').textContent=`${L.length}개`;const g=$('#grid');const fr=document.createDocumentFragment();
  L.slice(0,shown).forEach(a=>{const v=a.views.front||a.views.rightSide||a.views.leftSide;const d=document.createElement('div');d.className='tile';d.draggable=true;d.title=a.nameKo+'\n'+a.assetId;
-  d.innerHTML=`<div class="im"><img loading="lazy" decoding="async" width="130" height="72" src="${LIB}${a.thumb||v.svg}" alt=""></div><b>${esc(a.nameKo)}</b><i>${[a.views.front&&'front',(a.views.leftSide||a.views.rightSide)&&'side'].filter(Boolean).join('·')}${a.status==='review'?' ⚠':''}</i>`;
+  d.innerHTML=`<div class="im"><img loading="lazy" decoding="async" width="130" height="72" src="${a.user?a.thumbUrl:LIB+(a.thumb||v.svg)}" alt=""></div><b>${esc(a.nameKo)}</b><i>${[a.views.front&&'front',(a.views.leftSide||a.views.rightSide)&&'side'].filter(Boolean).join('·')}${a.status==='review'?' ⚠':''}</i>`;
+  if(a.user){const x=document.createElement('button');x.className='ua-x';x.textContent='×';x.title='이 내 에셋 삭제 (이미 도면에 놓은 것은 그대로 남아요)';x.onclick=ev=>{ev.stopPropagation();uaDelete(a.assetId)};d.appendChild(x)}
   d.onclick=()=>addAsset(a.assetId);d.addEventListener('pointerenter',()=>prefetch(a),{once:true});d.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain','asset:'+a.assetId);prefetch(a)});fr.appendChild(d)});
  g.replaceChildren(fr);$('#more').hidden=L.length<=shown}
 let qT=0;
@@ -534,13 +697,16 @@ function slotsMigrate(){ // 예전 버전의 자동 저장/이름 저장이 있�
  SL.cur=Object.keys(SL.slots)[0]||'1'}
 const slotName=id=>{const x=SL.slots[id];return x?(x.name||(x.doc&&x.doc.title)||('단면도 '+id)):''};
 let pT=0,warned=false;
-const HK={change:[],save:null};   // 공동 편집 연결부(viv-collab.js): 문서가 바뀔 때 알림, 저장 버튼 가로채기
+const HK={change:[],save:null,slotKind:()=>'own',joined:()=>[],openHouse:null};   // 공동 편집 연결부(viv-collab.js): 문서가 바뀔 때 알림, 저장 버튼 가로채기
 let READY=false;   // 저장된 칸을 다 읽기 전에는 빈 화면 상태로 저장 칸을 덮어쓰지 않는다(시작 중에 비바리움 탭이 먼저 저장을 부르는 경우 방지)
-function persistNow(){clearTimeout(pT);pT=0;if(!READY)return;try{const old=SL.slots[SL.cur]||{};SL.slots[SL.cur]={name:old.name||'',t:Date.now(),doc:S};localStorage.setItem(SK,JSON.stringify(SL));slotBtn();HK.change.forEach(f=>{try{f()}catch(e2){}})}catch(e){if(!warned){warned=true;msg('저장 공간이 부족하거나 브라우저가 저장을 막고 있어요. 자동 저장이 되지 않을 수 있어요')}}}
+function persistNow(){clearTimeout(pT);pT=0;if(!READY)return;try{uaEmbed(S);const old=SL.slots[SL.cur]||{};SL.slots[SL.cur]={name:old.name||'',t:Date.now(),doc:S};localStorage.setItem(SK,JSON.stringify(SL));slotBtn();HK.change.forEach(f=>{try{f()}catch(e2){}})}catch(e){if(!warned){warned=true;msg('저장 공간이 부족하거나 브라우저가 저장을 막고 있어요. 자동 저장이 되지 않을 수 있어요')}}}
 function persist(){clearTimeout(pT);pT=setTimeout(persistNow,350)}
 addEventListener('pagehide',()=>{if(pT)persistNow()});document.addEventListener('visibilitychange',()=>{if(document.hidden&&pT)persistNow()});
 const slotCount=()=>Object.keys(SL.slots).length;
-function slotBtn(){const b=$('#bSlots');if(b)b.textContent=`내 단면도 (${slotCount()}/${SLOT_MAX})`}
+const slotKind=id=>{try{return HK.slotKind(id)||'own'}catch(e){return 'own'}};
+function slotBtn(){const b=$('#bSlots'),j=$('#bSlotsJ');const ids=Object.keys(SL.slots),nj=ids.filter(i=>slotKind(i)==='joined').length;let pend=0;try{pend=HK.joined().filter(h=>h.linkSlot==null||!SL.slots[h.linkSlot]).length}catch(e){}
+ if(b){b.textContent=`내 집 (${ids.length-nj})`;b.classList.toggle('on',slotKind(SL.cur)!=='joined')}
+ if(j){j.textContent=`더부살이 집 (${nj+pend})`;j.classList.toggle('on',slotKind(SL.cur)==='joined')}}
 function dlg(html){const d=$('#dlg');d.innerHTML=html+'<form method="dialog" style="margin-top:10px"><button>닫기</button></form>';d.showModal();return d}
 const cleanName=n=>String(n||'').replace(/[\\/:*?"<>|\u0000-\u001f]/g,'').trim().slice(0,80);
 function askName(title,def,ext){return new Promise(res=>{const d=$('#dlg');d.innerHTML=`<h3>${esc(title)}</h3><div class="row" style="align-items:center"><input id="fnIn" style="flex:1;width:auto" value="${esc(def)}">${ext?`<span>.${ext}</span>`:''}</div><form method="dialog" style="margin-top:10px;display:flex;gap:6px"><button value="ok">저장</button><button value="cancel">취소</button></form>`;
@@ -550,18 +716,31 @@ function load(data){S=norm(clone(data));hist=[JSON.stringify(S)];fut=[];sel=null
 function openSlot(id){if(!SL.slots[id]||id===SL.cur)return;persistNow();SL.cur=id;load(SL.slots[id].doc);msg('열었어요: '+slotName(id))}
 function newSlot(){const id=[1,2,3,4,5].map(String).find(i=>!SL.slots[i]);if(!id){msg(`단면도는 최대 ${SLOT_MAX}개까지 만들 수 있어요. 하나를 지우고 다시 시도하세요`);openSlots();return false}
  persistNow();SL.cur=id;SL.slots[id]={name:'',t:Date.now(),doc:blankDoc()};load(blankDoc());msg('새 단면도를 만들었어요');return true}
-function openSlots(){persistNow();const rows=[1,2,3,4,5].map(String).map(id=>{const x=SL.slots[id];
-  if(!x)return `<div class="it"><span style="color:#8a8493">슬롯 ${id} · 비어 있음</span><span><button data-n="${id}">새로 만들기</button></span></div>`;
-  const when=new Date(x.t||0).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
-  return `<div class="it"><span><b>${esc(slotName(id))}</b>${id===SL.cur?' <em style="color:#2e8b57;font-style:normal">· 작업 중</em>':''}<br><small style="color:#8a8493">슬롯 ${id} · ${esc(when)} · 가구 ${(x.doc.items||[]).length}개</small></span><span><button data-o="${id}" ${id===SL.cur?'disabled':''}>열기</button> <button data-r="${id}">이름</button> <button data-d="${id}">삭제</button></span></div>`}).join('');
- const d=dlg(`<h3>내 단면도 (${slotCount()}/${SLOT_MAX})</h3>${rows}<p class="hint">작업 내용은 이 기기·이 브라우저에 <b>자동 저장</b>돼요. 새로고침하거나 컴퓨터를 껐다 켜도 그대로 이어서 작업할 수 있어요. (다른 기기·다른 브라우저, 시크릿 창, 사이트 데이터 삭제 시에는 보이지 않아요)</p>`);
+function openSlots(kind){kind=kind==='joined'?'joined':'own';persistNow();
+ const when=x=>new Date(x.t||0).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+ const ids=[1,2,3,4,5].map(String);
+ const row=id=>{const x=SL.slots[id];return `<div class="it"><span><b>${esc(slotName(id))}</b>${id===SL.cur?' <em style="color:#2e8b57;font-style:normal">· 작업 중</em>':''}<br><small style="color:#8a8493">칸 ${id} · ${esc(when(x))} · 가구 ${(x.doc.items||[]).length}개</small></span><span><button data-o="${id}" ${id===SL.cur?'disabled':''}>열기</button> <button data-r="${id}">이름</button> <button data-d="${id}">${kind==='joined'?'내 사본 삭제':'삭제'}</button></span></div>`};
+ let rows='',title,note;
+ if(kind==='own'){
+  rows=ids.filter(id=>SL.slots[id]&&slotKind(id)!=='joined').map(row).join('');
+  const emptyId=ids.find(id=>!SL.slots[id]);
+  rows+=emptyId?`<div class="it"><span style="color:#8a8493">빈 칸이 ${ids.filter(id=>!SL.slots[id]).length}개 남았어요</span><span><button data-n="${emptyId}">새로 만들기</button></span></div>`:'<div class="hint">칸이 가득 찼어요(내 집과 더부살이 집을 합쳐 최대 '+SLOT_MAX+'칸). 하나를 지우면 새로 만들 수 있어요.</div>';
+  title='내 집';note='내가 만든 단면도예요. 작업 내용은 이 기기·이 브라우저에 <b>자동 저장</b>돼요. (다른 기기·다른 브라우저, 시크릿 창, 사이트 데이터 삭제 시에는 보이지 않아요)'}
+ else{
+  rows=ids.filter(id=>SL.slots[id]&&slotKind(id)==='joined').map(row).join('');
+  let pend=[];try{pend=HK.joined().filter(h=>h.linkSlot==null||!SL.slots[h.linkSlot])}catch(e){}
+  rows+=pend.map(h=>`<div class="it"><span><b>${esc(h.name)}</b><br><small style="color:#8a8493">아직 편집기에 열지 않은 공유 집</small></span><span><button data-h="${esc(h.hid)}">편집기에서 열기</button></span></div>`).join('');
+  if(!rows)rows='<div class="hint">초대 코드로 입장한 집이 아직 없어요. 비바리움 관찰 탭의 「입장하기」로 들어오면 여기에 나타나요.</div>';
+  title='더부살이 집';note='초대 코드로 입장한 집이에요. 여기서 고친 내용은 <b>「저장 (공유)」</b>을 눌러야 이 집의 모든 참여자에게 반영돼요. 저장 전의 변경은 나만 볼 수 있어요.'}
+ const d=dlg(`<h3>${title}</h3>${rows}<p class="hint">${note}</p>`);
  d.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{d.close();openSlot(b.dataset.o)});
+ d.querySelectorAll('[data-h]').forEach(b=>b.onclick=async()=>{d.close();if(HK.openHouse)await HK.openHouse(b.dataset.h);slotBtn()});
  d.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{d.close();persistNow();const id=b.dataset.n;SL.cur=id;SL.slots[id]={name:'',t:Date.now(),doc:blankDoc()};load(blankDoc());msg('새 단면도를 만들었어요')});
- d.querySelectorAll('[data-r]').forEach(b=>b.onclick=async()=>{d.close();const id=b.dataset.r;const n=await askName('단면도 이름',slotName(id),'');if(n){SL.slots[id].name=n;persistNow()}openSlots()});
- d.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{const id=b.dataset.d;if(!confirm(`'${slotName(id)}' 을(를) 지울까요? 되돌릴 수 없어요.`))return;d.close();delete SL.slots[id];
+ d.querySelectorAll('[data-r]').forEach(b=>b.onclick=async()=>{d.close();const id=b.dataset.r;const n=await askName('단면도 이름',slotName(id),'');if(n){SL.slots[id].name=n;persistNow()}openSlots(kind)});
+ d.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{const id=b.dataset.d;if(!confirm(kind==='joined'?`'${slotName(id)}' 의 내 작업 사본을 지울까요? 공유 집의 도면은 그대로 남아요.`:`'${slotName(id)}' 을(를) 지울까요? 되돌릴 수 없어요.`))return;d.close();delete SL.slots[id];
    if(id===SL.cur){const nx=Object.keys(SL.slots)[0];if(nx){SL.cur=nx;load(SL.slots[nx].doc)}else{SL.cur=id;SL.slots[id]={name:'',t:Date.now(),doc:blankDoc()};load(blankDoc())}}
-   persistNow();openSlots()})}
-$('#bSlots').onclick=openSlots;
+   persistNow();openSlots(kind)})}
+$('#bSlots').onclick=()=>openSlots('own');$('#bSlotsJ').onclick=()=>openSlots('joined');$('#uaAdd').onclick=openUaDialog;
 $('#bSave').onclick=async()=>{if(HK.save&&await HK.save())return;   // 공유 집과 연결된 단면도면 서버 저장
   const n=await askName('이 단면도의 이름 (이 브라우저에 저장)',slotName(SL.cur),'');if(!n)return;SL.slots[SL.cur]=SL.slots[SL.cur]||{};SL.slots[SL.cur].name=n;persistNow();msg('저장했어요: '+n)};
 const dl=(blob,name)=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
@@ -582,7 +761,19 @@ $('#optGrid').onchange=e=>{OPT.grid=e.target.checked;saveOpt();render()};$('#opt
 const UI={L:true,R:true};try{Object.assign(UI,JSON.parse(localStorage.getItem('sectionSite.ui')||'{}'))}catch(e){}
 function applyUI(keep){const st=$('#stage'),w0=st.getBoundingClientRect().width,c=VP.x+VP.w/2;const m=$('main');m.classList.toggle('hideL',!UI.L);m.classList.toggle('hideR',!UI.R);
  $('#tgL').textContent=UI.L?'◀':'▶';$('#tgR').textContent=UI.R?'▶':'◀';$('#tgL').title=UI.L?'왼쪽 도구창 접기':'왼쪽 도구창 펼치기';$('#tgR').title=UI.R?'오른쪽 속성창 접기':'오른쪽 속성창 펼치기';
- if(keep){const w1=st.getBoundingClientRect().width;if(w0&&w1){VP.w*=w1/w0;VP.x=c-VP.w/2}}applyVP()}
+ if(window.__rzPlace)setTimeout(window.__rzPlace,200);if(keep){const w1=st.getBoundingClientRect().width;if(w0&&w1){VP.w*=w1/w0;VP.x=c-VP.w/2}}applyVP()}
+/* v18: 도구창 너비를 마우스로 조절(저장) */
+{const m=$('main'),LIM={L:[200,520],R:[190,480]};UI.wl=UI.wl||292;UI.wr=UI.wr||252;
+ const setW=()=>{m.style.setProperty('--wl',UI.wl+'px');m.style.setProperty('--wr',UI.wr+'px');place()};
+ const place=()=>{hl.style.left=(UI.L?UI.wl:0)+'px';hr.style.left=(m.clientWidth-(UI.R?UI.wr:0))+'px';hl.hidden=!UI.L;hr.hidden=!UI.R};
+ const mk2=k=>{const d=document.createElement('div');d.className='rz';d.title='끌어서 도구창 너비 조절 (더블클릭: 기본 너비)';m.appendChild(d);
+  d.addEventListener('pointerdown',e=>{e.preventDefault();d.setPointerCapture(e.pointerId);d.classList.add('on');m.classList.add('noanim');const x0=e.clientX,w0=k==='L'?UI.wl:UI.wr;
+   const mv=ev=>{const dx=ev.clientX-x0;const w=Math.round(Math.max(LIM[k][0],Math.min(LIM[k][1],w0+(k==='L'?dx:-dx))));if(k==='L')UI.wl=w;else UI.wr=w;setW()};
+   const up=()=>{d.classList.remove('on');m.classList.remove('noanim');d.removeEventListener('pointermove',mv);d.removeEventListener('pointerup',up);d.removeEventListener('pointercancel',up);
+    try{localStorage.setItem('sectionSite.ui',JSON.stringify(UI))}catch(e){}applyVP()};
+   d.addEventListener('pointermove',mv);d.addEventListener('pointerup',up);d.addEventListener('pointercancel',up)});
+  d.addEventListener('dblclick',()=>{if(k==='L')UI.wl=292;else UI.wr=252;setW();try{localStorage.setItem('sectionSite.ui',JSON.stringify(UI))}catch(e){}applyVP()});return d};
+ const hl=mk2('L'),hr=mk2('R');setW();window.addEventListener('resize',place);new ResizeObserver(()=>{place();applyVP()}).observe(m);window.__rzPlace=place}
 const togUI=k=>{UI[k]=!UI[k];try{localStorage.setItem('sectionSite.ui',JSON.stringify(UI))}catch(e){}applyUI(true)};
 $('#tgL').onclick=()=>togUI('L');$('#tgR').onclick=()=>togUI('R');
 window.__sec={get S(){return S},load,render,sync,weights:()=>weights(),stairGeo,findObj,setFloors,select:id=>{sel=id;drawSel();inspector();sync()}}; // 점검용
@@ -593,10 +784,11 @@ window.__sec={get S(){return S},load,render,sync,weights:()=>weights(),stairGeo,
    const cc=await (await fetch(LIB+'catalog/category-config.json')).json();CATS=cc.categories;CATS.forEach(k=>$('#fcat').insertAdjacentHTML('beforeend',`<option value="${k.id}">${esc(k.nameKo)}</option>`));ok=true;break}catch(e){tried.push(new URL(c+'catalog/assets.json',location.href).href+' → '+e.message)}}
  if(!ok){const er=$('#err');er.hidden=false;er.innerHTML='<b>에셋 목록을 불러오지 못했어요.</b><br>'+(location.protocol==='file:'?'파일을 더블클릭으로 열면 브라우저가 데이터 읽기를 막습니다. 웹서버(또는 GitHub Pages)로 여세요.<br>':'<code>section-assets</code> 폴더가 <code>section-site</code> 폴더와 같은 위치에 올라가 있는지 확인하세요.<br>')+'<small>시도한 주소:<br>'+tried.map(esc).join('<br>')+'</small>';$('#count').textContent='가구 0개'}
  try{if(!slotsRead())slotsMigrate();const cs=SL.slots[SL.cur];if(cs&&cs.doc&&cs.doc.b&&cs.doc.items)S=norm(cs.doc);else{SL.cur=SL.cur||'1';SL.slots[SL.cur]=SL.slots[SL.cur]||{name:'',t:Date.now(),doc:S}}}catch(e){}
+ uaLoad();Object.values(UA).forEach(r=>{try{uaRegister(r,true)}catch(e){}});if(Object.values(UA).length&&!CATS.some(k=>k.id==='custom')&&!document.querySelector('#fcat option[value=custom]'))$('#fcat').insertAdjacentHTML('beforeend','<option value="custom">내 에셋(기타)</option>');
  READY=true;
  S.items=S.items.filter(i=>AM[i.assetId]||!Object.keys(AM).length);hist=[JSON.stringify(S)];curF=BB();sync();renderLib();render();fit();btns();applyUI(false);persistNow();
 })();
 /* 비바리움 관찰 탭(viv.js)용 읽기 전용 연결부: 편집기 내부 함수·상태를 그대로 재사용하기 위해 필요한 항목만 노출 */
 function slotCreate(doc,name){const id=[1,2,3,4,5].map(String).find(i=>!SL.slots[i]);if(!id)return null;persistNow();SL.cur=id;SL.slots[id]={name:name||'',t:Date.now(),doc:clone(doc)};load(doc);return id}
-window.SectionBridge={get ready(){return READY},HK,slotCreate,slotOpen:openSlot,loadDoc:load,msg,get SLOT_MAX(){return SLOT_MAX},get S(){return S},set S(v){S=v},get sel(){return sel},set sel(v){sel=v},get SL(){return SL},get AM(){return AM},norm,render,exportSvg,EH,lvl,sl,fnameKo,OPT,STAIR_ASSET,art,ART,applyVP,persistNow,slotName,esc,roomsOf,stairGeo,fh,BB};
+window.SectionBridge={get ready(){return READY},HK,slotBtn,slotCreate,slotOpen:openSlot,loadDoc:load,msg,get SLOT_MAX(){return SLOT_MAX},get S(){return S},set S(v){S=v},get sel(){return sel},set sel(v){sel=v},get SL(){return SL},get AM(){return AM},norm,render,exportSvg,EH,lvl,sl,fnameKo,OPT,STAIR_ASSET,art,ART,applyVP,persistNow,slotName,esc,roomsOf,stairGeo,fh,BB};
 })();

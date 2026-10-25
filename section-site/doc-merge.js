@@ -9,7 +9,7 @@ const isObj=v=>v&&typeof v==='object'&&!Array.isArray(v);
 const keyOf=o=>isObj(o)?(o.uid!=null?'u:'+o.uid:(o.id!=null?'i:'+o.id:null)):null;
 const keyed=a=>Array.isArray(a)&&a.length>0&&a.every(x=>keyOf(x)!==null);
 const clone=v=>v===undefined?undefined:JSON.parse(JSON.stringify(v));
-const LABEL={items:'가구',parts:'내벽',ops:'문·창문',stairs:'계단',terr:'테라스',rooms:'방 이름',b:'건물 설정',lw:'선 굵기',layers:'레이어',title:'제목'};
+const LABEL={items:'가구',parts:'내벽',ops:'문·창문',stairs:'계단',terr:'테라스',rooms:'방 이름',wpr:'방별 벽지',wpu:'내 벽지',b:'건물 설정',lw:'선 굵기',layers:'레이어',title:'제목'};
 
 function merge3(base,mine,theirs,opts){
   opts=opts||{};const prefer=opts.prefer==='theirs'?'theirs':'mine',nameOf=opts.nameOf||null,conflicts=[];

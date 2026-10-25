@@ -117,7 +117,7 @@ async function createHouse({name,doc,nick,slot,savedHash}){
 async function join(code,nick){
   const tokens=Object.values(reg.houses).map(h=>h.token).filter(Boolean);   // 이미 입장한 집이면 서버가 알아보고 중복 참여자를 만들지 않음
   const r=await api('POST','/api/join',{body:{code,nick,tokens}});
-  remember(r.houseId,r);await refresh(r.houseId,true);return {hid:r.houseId,name:r.name,rejoined:!!r.rejoined}}
+  remember(r.houseId,r,r.rejoined?null:{code:String(code).toUpperCase().replace(/[^A-Z0-9]/g,''),codeFrom:'join'});await refresh(r.houseId,true);return {hid:r.houseId,name:r.name,rejoined:!!r.rejoined}}
 const recoveryKey=hid=>{const h=reg.houses[hid];return h?btoa(hid+':'+h.token).replace(/=+$/,''):''};
 async function joinRecovery(key){
   let s='';try{s=atob(String(key).trim())}catch(e){}const m=/^(h_[0-9a-f]{24}):([A-Za-z0-9_-]{30,64})$/.exec(s);

@@ -32,7 +32,7 @@ function ensureUi(){
   toast=document.createElement('div');toast.id='shToast';toast.hidden=true;document.body.appendChild(toast);
   addEventListener('beforeunload',e=>{const S=SH();if(!S)return;for(const hid of Object.keys(S.reg().houses))if(regOf(hid).linkSlot!=null&&['dirty','failed','saving'].includes(status(hid))){e.preventDefault();e.returnValue='';return ''}})}
 function paint(){
-  ensureUi();const hid=curLink(),btn=$('#bSave');
+  ensureUi();try{B.slotBtn&&B.slotBtn()}catch(e){}const hid=curLink(),btn=$('#bSave');
   if(!hid){bar.hidden=true;toast.hidden=true;btn.textContent='저장';btn.disabled=false;btn.title='이름을 정해 저장';return}
   const st=status(hid),r=regOf(hid);
   bar.hidden=false;bar.className='sh-'+st;
@@ -159,6 +159,10 @@ function onEnterEdit(){paint();const hid=curLink();if(hid)pullLatest(hid,false).
 function cleanup(){const S=SH();if(!S)return;for(const [hid,h] of Object.entries(S.reg().houses))if(h.linkSlot!=null&&!B.SL.slots[h.linkSlot])S.setLink(hid,{linkSlot:null})}
 
 B.HK.save=save;
+/* 편집기 상단의 「내 집 / 더부살이 집」 탭 구분: 내가 주인인 공유 집은 '내 집', 초대 코드로 입장한 집은 '더부살이 집' */
+B.HK.slotKind=id=>{const S=SH();if(!S||!S.enabled())return 'own';for(const [hid,h] of Object.entries(S.reg().houses))if(h.linkSlot!=null&&String(h.linkSlot)===String(id))return h.role==='owner'?'own':'joined';return 'own'};
+B.HK.joined=()=>{const S=SH();if(!S||!S.enabled())return [];return Object.entries(S.reg().houses).filter(([hid,h])=>h.role!=='owner').map(([hid,h])=>({hid,name:h.name||'공유 집',linkSlot:h.linkSlot==null?null:h.linkSlot}))};
+B.HK.openHouse=async hid=>{await openForEdit(hid)};
 B.HK.change.push(()=>{cleanup();paint()});
 if(SH())SH().onChange(onShareEvent);
 addEventListener('DOMContentLoaded',paint);setTimeout(paint,600);
