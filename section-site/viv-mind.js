@@ -11,6 +11,8 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const hash=s=>{let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0};
 const mulberry=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
 const tvOf=(A,k)=>(A&&A.traits&&A.traits[k])||0;
+const ga=n=>{n=String(n||'');const c=n.charCodeAt(n.length-1);return c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28?`${n}이`:`${n}가`};
+const eun=n=>{n=String(n||'');const c=n.charCodeAt(n.length-1);return c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28?`${n}은`:`${n}는`};
 const wa=n=>{n=String(n||'');const c=n.charCodeAt(n.length-1);return c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28?`${n}과`:`${n}와`};
 const fill=(t,o)=>String(t||'').replace(/\{o\}와\(과\)/g,wa(o)).replace(/\{o\}/g,o||'상대');
 
@@ -34,7 +36,7 @@ const LEVELS=[[70,'강함'],[40,'보통'],[0,'약함']];       // 강도 구간(
 const SHOW_MIN=22;                                          // 이 수치보다 낮은 감정은 대표 감정으로 보이지 않음(없으면 '평온함 · 약함')
 /* 관계 유형: lock=true 이면 자동으로 바뀌지 않는 유형(가족·연인) */
 const REL_TYPES={
-  family:{n:'가족',lock:true,aff:35},friend:{n:'친구',aff:40},lover:{n:'연인',lock:true,aff:55},
+  family:{n:'가족',lock:true,aff:35},friend:{n:'친구',aff:40},lover:{n:'연인',lock:true,aff:55},spouse:{n:'부부',lock:true,aff:70},
   roommate:{n:'룸메이트',aff:8},acquaint:{n:'아는 사이',aff:12},awkward:{n:'어색한 사이',aff:0},
   rival:{n:'경쟁자',aff:-8},uneasy:{n:'불편한 사이',aff:-25},hostile:{n:'적대적인 사이',aff:-55}};
 /* 상대방에 대한 현재 생각 */
@@ -49,7 +51,12 @@ const MEM_TYPES={
   helped:{n:'힘들 때 도움받은 기억',val:1,half:240,win:6},
   apology:{n:'다툰 뒤 진심 어린 사과를 받은 기억',val:1,half:168,win:6},
   quarrel:{n:'다퉈서 마음이 상한 기억',val:-1,half:168,win:4},
-  ignored:{n:'무시당해 서운했던 기억',val:-1,half:96,win:4}};
+  ignored:{n:'무시당해 서운했던 기억',val:-1,half:96,win:4},
+  love_ok:{n:'마음을 전해 받아들여진 기억',val:1,half:480,win:24},
+  love_no:{n:'고백이 거절되어 마음이 아팠던 기억',val:-1,half:336,win:24},
+  love_fail:{n:'마음을 전하려다 말지 못한 기억',val:-1,half:96,win:12},
+  propose_ok:{n:'프로포즈가 받아들여진 기억',val:1,half:720,win:48},
+  propose_no:{n:'프로포즈에 답을 미룬 기억',val:-1,half:240,win:48}};
 /* 사건 효과. A=먼저 행동한 쪽, B=상대. aff=친밀도 변화량, emo=감정 충격량(음수는 줄어듦), mem=기억 생성(t=유형, p=영향력 0~100)
    같은 사건이라도 받는 쪽의 성격·기존 관계에 따라 개별 계산된다(applyEvent). */
 const EVENTS={
@@ -71,7 +78,22 @@ const EVENTS={
   apology:{label:'사과·화해',
     A:{aff:1.2,emo:{irritated:-15},why:'{o}에게 사과해서'},
     B:{aff:4.5,emo:{irritated:-30,sad:-14},why:'{o}의 사과를 받아 마음이 풀려서',mem:{t:'apology',p:42,sum:'다툰 뒤 {o}에게 진심 어린 사과를 받은 기억'}},
-    after:'closeQuarrel'}};
+    after:'closeQuarrel'},
+  /* v19 고백·프로포즈 (연애 상태 자체는 사용자 동의 없이 바꾸지 않고, 제안으로만 남긴다 — romResolve) */
+  confess_ok:{label:'고백이 받아들여짐',
+    A:{aff:6,emo:{happy:26,excited:26},why:'{o}에게 고백해 마음이 받아들여져서',mem:{t:'love_ok',p:62,sum:'{o}에게 마음을 고백해 받아들여진 기억'}},
+    B:{aff:6,emo:{happy:20,excited:24},why:'{o}의 고백을 받아들여서',mem:{t:'love_ok',p:55,sum:'{o}의 고백을 받아들인 기억'}}},
+  confess_no:{label:'고백이 거절됨',
+    A:{aff:-1.5,emo:{sad:32,anxious:10},why:'{o}에게 고백했다가 거절당해서',mem:{t:'love_no',p:58,sum:'{o}에게 고백했다가 거절당한 기억'}},
+    B:{aff:-.5,emo:{sad:8,anxious:10},why:'{o}의 고백을 거절해 마음이 무거워서',mem:{t:'love_no',p:28,sum:'{o}의 고백을 거절했던 기억'}}},
+  confess_fail:{label:'고백을 망설임',
+    A:{aff:0,emo:{anxious:14,sad:6},why:'{o}에게 마음을 전하려다 말지 못해서',mem:{t:'love_fail',p:22,sum:'{o}에게 마음을 전하려다 말지 못한 기억'}},B:null},
+  propose_ok:{label:'프로포즈 승낙',
+    A:{aff:5,emo:{happy:30,excited:26},why:'{o}에게 프로포즈해 승낙을 받아서',mem:{t:'propose_ok',p:72,sum:'{o}에게 프로포즈해 승낙받은 기억'}},
+    B:{aff:5,emo:{happy:28,excited:24},why:'{o}의 프로포즈를 받아들여서',mem:{t:'propose_ok',p:70,sum:'{o}의 프로포즈를 받아들인 기억'}}},
+  propose_no:{label:'프로포즈에 답을 미룸',
+    A:{aff:-1,emo:{sad:18,anxious:12},why:'{o}에게 프로포즈했지만 답을 미뤄져서',mem:{t:'propose_no',p:40,sum:'{o}에게 프로포즈했지만 답을 미뤄진 기억'}},
+    B:{aff:-.5,emo:{anxious:14},why:'{o}의 프로포즈에 답을 미뤄서',mem:{t:'propose_no',p:26,sum:'{o}의 프로포즈에 답을 미뤘던 기억'}}}};
 /* 호환: 사건 효과의 상한(한 번에 과하게 바뀌지 않도록) */
 const LIMITS={perEvent:8,dayPos:12,dayNeg:-16,memPerPair:10,memPerOwner:30,seen:600,aloneReset:30*MIN,maxTickGap:3*HOUR};
 /* 행동 시뮬레이션 그룹이 감정에서 받는 영향(곱셈 가중치) — groupMul 에서 사용 */
@@ -79,10 +101,11 @@ const LIMITS={perEvent:8,dayPos:12,dayNeg:-16,memPerPair:10,memPerOwner:30,seen:
 /* =====================================================================
    상태
    ===================================================================== */
-const create=()=>({v:1,emo:{},rel:{},th:{},mem:{},seen:[],last:{}});
+const create=()=>({v:1,emo:{},rel:{},th:{},mem:{},seen:[],last:{},rom:{},rev:{}});
 function migrate(s){
   if(!s||typeof s!=='object'||s.v!==1)return create();
   s.emo=s.emo&&typeof s.emo==='object'?s.emo:{};s.rel=s.rel&&typeof s.rel==='object'?s.rel:{};s.th=s.th&&typeof s.th==='object'?s.th:{};
+  s.rom=s.rom&&typeof s.rom==='object'?s.rom:{};s.rev=s.rev&&typeof s.rev==='object'?s.rev:{};
   s.mem=s.mem&&typeof s.mem==='object'?s.mem:{};s.seen=Array.isArray(s.seen)?s.seen:[];s.last=s.last&&typeof s.last==='object'?s.last:{};return s}
 const pk=(a,b)=>a+'>'+b;                 // a 가 b 에 대해 갖는 관계(방향 있음)
 const pairKey=(a,b)=>a<b?a+'|'+b:b+'|'+a;
@@ -260,7 +283,7 @@ function applyEvent(s,ev,env){
    갱신(시뮬레이션이 한 번 돈 뒤 호출)
    input: {now,hour,day,chars:[{id,name,profile}],A:id=>분석,cur:{id:{mode,action,verb,seg,segName,partner,n,outAt,say}},prev:{id:{n,outAt}}}
    ===================================================================== */
-const PAIR_VERB={bg_pair:'play',bg_floor:'play',pillow:'affection'};
+const PAIR_VERB={bg_pair:'play',bg_floor:'play',pillow:'affection',love_aff:'affection',love_crush:'talk'};
 function makeEnv(s,inp){const byId={};inp.chars.forEach(c=>byId[c.id]=c);
   return {now:inp.now,hour:inp.hour,day:inp.day,char:id=>byId[id]||null,name:id=>(byId[id]||{}).name||'상대',A:id=>inp.A(byId[id]||{id,name:'',profile:''})}}
 function update(s,inp){
@@ -288,6 +311,8 @@ function update(s,inp){
     for(const o of ids){if(o===c.id||!inp.cur[o]||inp.cur[o].mode!=='out'||inp.cur[o].outAt!==cu.outAt)continue;
       if(!String(cu.say||'').includes(env.name(o))||!/함께/.test(cu.say||''))continue;
       const r=applyEvent(s,{id:`date|${pairKey(c.id,o)}|${cu.outAt}`,type:'date',a:c.id,b:o,at:now},env);if(r){log.push(r)}}}
+  /* 2.5) v19 고백·프로포즈 결과 반영 */
+  romResolve(s,env,now,log);
   /* 3) 같은 방에 함께 있는 동안의 변화(30분 단위로 한 번만 판정, 결과는 쌍과 시각으로 고정) */
   const slice=Math.floor(now/(30*MIN));
   for(let i=0;i<home.length;i++)for(let j=i+1;j<home.length;j++){
@@ -312,7 +337,7 @@ function ambient(s,a,b,slice,inp,env){
   /* 다툼 */
   const irr=Math.max(lv(ea,'irritated'),lv(eb,'irritated'));
   if(irr>=20||Ra.aff+Rb.aff<-20){let p=.012+.07*irr/100+.03*Math.max(0,-(Ra.aff+Rb.aff)/200);
-    if((Ra.type==='lover'||Ra.type==='family')&&Ra.aff>40)p*=.5;p=Math.min(.2,p);
+    if((Ra.type==='lover'||Ra.type==='spouse'||Ra.type==='family')&&Ra.aff>40)p*=.5;p=Math.min(.2,p);
     if(rng()<p){const x=lv(ea,'irritated')>=lv(eb,'irritated')?a:b;return mk('conflict',x,x===a?b:a)}}
   /* 위로·도움 */
   for(const [x,y,Rx,Ax,ex,ey] of [[a,b,Ra,A,ea,eb],[b,a,Rb,B,eb,ea]]){
@@ -343,7 +368,58 @@ function hooks(s,now){
     const th=s.th[pk(a,b)];if(th&&(th.id==='notice'||th.id==='fun'))m*=1+lvl(a,'excited')/150+lvl(a,'curious')/250;
     if(th&&th.id==='wary')m*=.6;
     return clamp(m,.15,2.5)};
+
+  /* ---- v19 연애: 문장·특별 이벤트 (viv-love.js 가 있을 때만) ---- */
+  const LV=()=>root.VivLove||null;
+  const roleOf=(c,o)=>{const st=romState(s,c,o);
+    if(st.k==='spouse'||st.k==='lover'||st.k==='mutual')return st.k;
+    if(st.k==='crush'||st.k==='oneside')return st.from===c?'crush':(romBits(s,c,o).kn?'beloved_a':'beloved_u');
+    return null};
+  const rvOf=(a,b)=>s.rev[pairKey(a,b)]||null;
+  const rctx=(c,o)=>{const rv=rvOf(c,o),l=rv&&rv.last;let rejected=false,rejecting=false;
+    if(l&&l.kind==='confess'&&l.outcome==='reject'&&now-l.at<3*DAY){if(l.a===c)rejected=true;else if(l.b===c)rejecting=true}
+    const g=agg(s,c,o,now);return {quarrel:g.open,rejected,rejecting}};
+  const seed=(c,o,k)=>mulberry(hash(pairKey(c,o)+'|'+k+'|'+c+'|'+Math.floor(now/(15*MIN))));
+  const aff=(c,o)=>{const R=s.rel[pk(c,o)];return R?R.aff:0};
   return {
+    /* 둘이서 하는 일반 행동의 지문을 연애 상태에 맞게 바꾼 문장(해당 없으면 null) */
+    romLine(c,o,A,B,rng,cname,oname,room,force){const L=LV();if(!L)return null;const role=roleOf(c,o);if(!role)return null;
+      const pr=(role==='beloved_u'||role==='beloved_a')?.35:.62;if(!force&&rng()>pr)return null;
+      const t=L.stateLine(role,A,B,rng,oname,rctx(c,o));return t?(room?room+'에서 ':'')+t:null},
+    romRole:roleOf,
+    isCouple(c,o){const st=romState(s,c,o);return st.k==='lover'||st.k==='spouse'},
+    romCan(kind,c,o,A,B){
+      const st=romState(s,c,o),rv=rvOf(c,o)||{},u=rv.until||{},me=romBits(s,c,o),th=romBits(s,o,c),r=seed(c,o,kind);
+      if(rv.sug)return false;
+      if(kind==='crush'){if(!(st.k==='crush'||st.k==='oneside'||st.k==='mutual'))return false;if(!me.lv)return false;return r()<.5}
+      if(kind==='aff'){if(st.k!=='lover'&&st.k!=='spouse')return false;return r()<.55}
+      if(kind==='confess'){
+        if(!me.lv||th.kn)return false;if(!(st.k==='crush'||st.k==='mutual'))return false;
+        if(now<(u.confess||0))return false;const af=aff(c,o);if(af<15)return false;
+        let p=.07*Math.max(.4,Math.min(1.6,af/55));
+        p*=1+1.5*Math.max(0,tvOf(A,'bold'));p*=1-.6*Math.max(0,tvOf(A,'shy'));p*=1-.35*Math.max(0,tvOf(A,'tsun'));p*=1-.3*Math.max(0,tvOf(A,'inexpr'));p*=1-.3*Math.max(0,tvOf(A,'aloof'));
+        p*=1+.25*Math.max(0,tvOf(A,'playful'))+.3*Math.max(0,tvOf(A,'jealous'))+.25*Math.max(0,tvOf(A,'smug'));
+        return r()<Math.min(.3,p)}
+      if(kind==='propose'){
+        if(st.k!=='lover'||!(me.lv&&me.kn&&th.lv&&th.kn))return false;
+        if(now<(u.propose||0))return false;if(aff(c,o)<55||aff(o,c)<45)return false;
+        let p=.035*(1+1.2*Math.max(0,tvOf(A,'bold')))*(1-.5*Math.max(0,tvOf(A,'shy')))*(1-.3*Math.max(0,tvOf(A,'aloof')));
+        return r()<Math.min(.2,p)}
+      return false},
+    /* 이벤트를 실제로 시작할 때 결과(수락·거절 등)까지 정해 계획으로 저장하고, 두 사람의 지문을 돌려줌. 결과는 update() 에서 한 번만 반영됨 */
+    romPlan(kind,c,o,A,B,cname,oname,room,rng){const L=LV();if(!L)return null;
+      const st=romState(s,c,o),rv=romRev(s,c,o),th=romBits(s,o,c);let style='direct',outcome='accept';
+      if(kind==='confess'){
+        const nerves=tvOf(A,'shy')+.5*tvOf(A,'inexpr')+.3*tvOf(A,'tsun')-.5*tvOf(A,'bold'),r1=rng(),r2=rng(),r3=rng();
+        if(nerves>.35&&r1<.45){style='hesitate';outcome='hesitate'}
+        else if(nerves>.3&&r1<.6&&r3<.18){style='flee';outcome='flee'}
+        else{style=nerves>.5&&r2<.7?'letter':'direct';
+          if(th.lv)outcome=rng()<(tvOf(B,'tsun')>=.4?.8:.93)?'accept':'reject';
+          else{const af=aff(o,c),soft=(af>=55&&tvOf(B,'caring')>=.4)?.28:(af>=30?.07:.02);outcome=rng()<soft?'accept':'reject'}}}
+      else{style='direct';const af=aff(o,c);outcome=rng()<(af>=70?.88:af>=55?.72:.5)?'accept':'decline'}
+      const L2=L.eventLines(kind,style,outcome==='accept'?'accept':(outcome==='reject'||outcome==='decline')?outcome:'none',A,B,rng,cname,oname,st.k==='mutual');
+      rv.plan={kind,a:c,b:o,style,outcome,at:now,done:false};
+      return {a:room?room+'에서 '+L2.a:L2.a,b:room?room+'에서 '+L2.b:L2.b,style,outcome}},
     groupMul(c,g){const L=lvl(c,'lonely'),T=lvl(c,'tired'),B=lvl(c,'bored'),S=lvl(c,'sad'),I=lvl(c,'irritated'),X=lvl(c,'excited'),C=lvl(c,'curious');let m=1;
       if(g==='chat')m=(1+L/60)*(1+X/120)*(1-.4*I/100)*(1-.25*S/100);
       else if(g==='sleep')m=1+T/90;else if(g==='rest')m=1+T/150+S/150;
@@ -359,6 +435,76 @@ function hooks(s,now){
       m*=1-.35*lvl(o,'irritated')/100-.25*lvl(o,'sad')/100-.2*lvl(o,'tired')/100;
       return clamp(m,.1,1.6)}}}
 
+
+/* =====================================================================
+   v19 연애 상태 (짝사랑·맞짝사랑·외사랑·연인·부부)
+   - 감정 방향은 독립: R(a→b).lv = a 가 b 를 좋아함, R(a→b).kn = a 가 'b 의 마음'을 앎. 쌍마다 따로 저장(s.rom[a>b])하고, 설정한 쌍에만 적용된다.
+   - 이 값이 없으면 기존 관계 유형(연인/부부)에서 읽는다 → 기존 저장 데이터·프로필의 연인 관계가 그대로 유지된다.
+   - 고백·프로포즈의 '결과'는 연애 상태를 바로 덮어쓰지 않고, 사용자가 확인하는 '제안'(s.rev[pair].sug)으로만 남긴다.
+   ===================================================================== */
+const ROM_LABEL={spouse:'부부',lover:'연인',mutual:'맞짝사랑',crush:'짝사랑',oneside:'외사랑',none:'없음'};
+const romBits=(s,a,b)=>{const e=s.rom[pk(a,b)];if(e)return {lv:e.lv?1:0,kn:e.kn?1:0};const R=s.rel[pk(a,b)];return R&&(R.type==='lover'||R.type==='spouse')?{lv:1,kn:1}:{lv:0,kn:0}};
+function romState(s,a,b){
+  s=migrate(s);const x=romBits(s,a,b),y=romBits(s,b,a),Ra=s.rel[pk(a,b)],Rb=s.rel[pk(b,a)];
+  if((Ra&&Ra.type==='spouse')||(Rb&&Rb.type==='spouse'))return {k:'spouse',label:ROM_LABEL.spouse,from:null,loves:[a,b]};
+  if(x.lv&&y.lv)return (x.kn&&y.kn)?{k:'lover',label:ROM_LABEL.lover,from:null,loves:[a,b]}:{k:'mutual',label:ROM_LABEL.mutual,from:null,loves:[a,b],half:!!(x.kn||y.kn)};
+  if(x.lv||y.lv){const l=x.lv?a:b,t=x.lv?b:a,tBits=x.lv?y:x;    // l 이 t 를 좋아함. tBits.kn = t 가 l 의 마음을 아는지
+    const known=!!(romBits(s,t,l).kn);return {k:known?'oneside':'crush',label:known?ROM_LABEL.oneside:ROM_LABEL.crush,from:l,to:t,loves:[l]}}
+  return {k:'none',label:'',from:null,loves:[]}}
+const romRev=(s,a,b)=>{const k=pairKey(a,b);return s.rev[k]||(s.rev[k]={until:{},sug:null,plan:null,last:null})};
+/* 사용자가 한 쌍에 연애 상태를 정함. preset: none | crush(a→b 짝사랑) | oneside(a→b 외사랑) | mutual | lover | spouse. 다른 쌍은 건드리지 않음 */
+function setRomance(s,a,b,preset,env){
+  s=migrate(s);rel(s,a,b,env);rel(s,b,a,env);
+  const set=(x,y,lv,kn)=>{s.rom[pk(x,y)]={lv,kn,u:1}};
+  const ty=(t,why)=>{for(const [x,y] of [[a,b],[b,a]]){const R=s.rel[pk(x,y)];R.type=t;R.lock='user';R.why=why;R.whyAt=env.now}};
+  if(preset==='crush'){set(a,b,1,0);set(b,a,0,0)}
+  else if(preset==='oneside'){set(a,b,1,0);set(b,a,0,1)}
+  else if(preset==='mutual'){set(a,b,1,0);set(b,a,1,0)}
+  else if(preset==='lover'||preset==='spouse'){set(a,b,1,1);set(b,a,1,1);ty(preset,'직접 '+ROM_LABEL[preset]+'(으)로 정함')}
+  else {set(a,b,0,0);set(b,a,0,0)}
+  if(preset!=='lover'&&preset!=='spouse'){for(const [x,y] of [[a,b],[b,a]]){const R=s.rel[pk(x,y)];if(R.type==='lover'||R.type==='spouse'){R.type='friend';R.lock='user';R.why='연애 상태를 '+ROM_LABEL[preset]+'(으)로 바꾸면서 친구로 정리';R.whyAt=env.now}}}
+  const rv=romRev(s,a,b);rv.sug=null;rv.plan=null;
+  return romState(s,a,b)}
+/* 두 사람 각각의 방향별 값을 직접 정함(세부 설정): who 가 other 를 좋아하는지 / 상대의 마음을 아는지 */
+function setRomBits(s,a,b,bitsA,bitsB,env){
+  s=migrate(s);rel(s,a,b,env);rel(s,b,a,env);
+  s.rom[pk(a,b)]={lv:bitsA.lv?1:0,kn:bitsA.kn?1:0,u:1};s.rom[pk(b,a)]={lv:bitsB.lv?1:0,kn:bitsB.kn?1:0,u:1};
+  const st=romState(s,a,b);
+  for(const [x,y] of [[a,b],[b,a]]){const R=s.rel[pk(x,y)];const want=st.k==='lover'||st.k==='spouse'?st.k:null;
+    if(want&&R.type!==want){R.type=want;R.lock='user';R.why='직접 '+ROM_LABEL[want]+'(으)로 정함';R.whyAt=env.now}
+    else if(!want&&(R.type==='lover'||R.type==='spouse')){R.type='friend';R.lock='user';R.why='연애 상태 변경으로 친구로 정리';R.whyAt=env.now}}
+  const rv=romRev(s,a,b);rv.sug=null;return st}
+/* 고백·프로포즈 결과 제안: 사용자가 '바꾸기'를 누를 때만 적용 */
+function romSugApply(s,a,b,env){
+  s=migrate(s);const rv=romRev(s,a,b),g=rv.sug;if(!g)return null;
+  const from=g.from,to=from===a?b:a;
+  if(g.to==='oneside'){setRomance(s,from,to,'oneside',env)}
+  else if(g.to==='lover'){setRomance(s,a,b,'lover',env)}
+  else if(g.to==='spouse'){setRomance(s,a,b,'spouse',env)}
+  rv.sug=null;rv.until.confess=Math.max(rv.until.confess||0,env.now+3*HOUR);return romState(s,a,b)}
+function romSugDismiss(s,a,b,env){s=migrate(s);const rv=romRev(s,a,b);rv.sug=null;rv.until.confess=env.now+3*DAY;rv.until.propose=Math.max(rv.until.propose||0,env.now+3*DAY)}
+/* 시뮬레이션이 고른 이벤트 계획이 실제 일어났을 때(update) 결과를 반영 */
+function romResolve(s,env,now,log){
+  for(const key of Object.keys(s.rev)){const rv=s.rev[key],p=rv&&rv.plan;if(!p||p.done)continue;
+    if(now-p.at>6*HOUR){rv.plan=null;continue}
+    const a=p.a,b=p.b;if(!env.char(a)||!env.char(b)){rv.plan=null;continue}
+    p.done=true;
+    const evId=`rom|${key}|${p.kind}|${p.at}`;
+    if(p.kind==='confess'){
+      const type=p.outcome==='accept'?'confess_ok':p.outcome==='reject'?'confess_no':'confess_fail';
+      const r=applyEvent(s,{id:evId,type,a,b,at:now},env);if(r)log.push(r);
+      if(p.outcome==='accept')rv.sug={to:'lover',from:a,at:now,text:`${env.name(a)}의 고백을 ${ga(env.name(b))} 받아들였어요. 두 사람을 '연인'으로 바꿀까요?`};
+      else if(p.outcome==='reject')rv.sug={to:'oneside',from:a,at:now,text:`${ga(env.name(b))} ${env.name(a)}의 고백을 거절했어요. 이제 ${eun(env.name(b))} ${env.name(a)}의 마음을 알아요. '외사랑'으로 바꿀까요?`};
+      else rv.until.confess=now+(p.outcome==='flee'?8:4)*HOUR;
+      rv.last={kind:'confess',outcome:p.outcome,a,b,at:now}}
+    else if(p.kind==='propose'){
+      const type=p.outcome==='accept'?'propose_ok':'propose_no';
+      const r=applyEvent(s,{id:evId,type,a,b,at:now},env);if(r)log.push(r);
+      if(p.outcome==='accept')rv.sug={to:'spouse',from:a,at:now,text:`${ga(env.name(b))} ${env.name(a)}의 프로포즈를 받아들였어요. 두 사람을 '부부'로 바꿀까요?`};
+      else rv.until.propose=now+3*DAY;
+      rv.last={kind:'propose',outcome:p.outcome,a,b,at:now}}
+  }}
+
 /* =====================================================================
    화면용 조회 · 사용자 설정
    ===================================================================== */
@@ -366,7 +512,8 @@ function view(s,cid,now,otherIds,env){
   s=migrate(s);const out={emo:rep(s,cid,now),rels:[]};
   for(const o of otherIds){const R=s.rel[pk(cid,o)];const th=s.th[pk(cid,o)];
     out.rels.push({id:o,type:R?R.type:null,typeName:R?REL_TYPES[R.type].n:'아직 모르는 사이',lock:R?R.lock:null,aff:R?Math.round(R.aff):0,last:R?R.last:0,why:R?R.why:'',whyAt:R?R.whyAt:0,origin:R?R.origin:'',
-      th:th?{id:th.id,name:THOUGHTS[th.id],why:th.why,since:th.since}:null,known:!!R})}
+      th:th?{id:th.id,name:THOUGHTS[th.id],why:th.why,since:th.since}:null,known:!!R,
+      rom:(()=>{const st=romState(s,cid,o);const rv=s.rev[pairKey(cid,o)]||{};const me=romBits(s,cid,o),th2=romBits(s,o,cid);return {k:st.k,label:st.label,from:st.from,me,them:th2,sug:rv.sug||null}})()})}
   return out}
 function memories(s,a,b,now){
   s=migrate(s);return mems(s,a).filter(m=>m.o===b).map(m=>({id:m.id,t:m.t,type:MEM_TYPES[m.t]?MEM_TYPES[m.t].n:m.t,sum:m.sum,at:m.at,val:m.val,cnt:m.cnt||1,pow:Math.round(effPow(m,now)),pow0:Math.round(m.p0||m.pow),fading:effPow(m,now)<(m.p0||m.pow)*.7,open:!!m.open}))
@@ -385,13 +532,14 @@ function prune(s,alive){
   for(const k of Object.keys(s.emo))if(!ok.has(k))delete s.emo[k];
   for(const k of Object.keys(s.last))if(!ok.has(k))delete s.last[k];
   for(const k of Object.keys(s.mem)){if(!ok.has(k))delete s.mem[k];else s.mem[k]=s.mem[k].filter(m=>ok.has(m.o))}
-  for(const k of Object.keys(s.rel)){const [a,b]=k.split('>');if(!ok.has(a)||!ok.has(b)){delete s.rel[k];delete s.th[k]}}
+  for(const k of Object.keys(s.rel)){const [a,b]=k.split('>');if(!ok.has(a)||!ok.has(b)){delete s.rel[k];delete s.th[k];delete s.rom[k]}}
+  for(const k of Object.keys(s.rev)){const [a,b]=k.split('|');if(!ok.has(a)||!ok.has(b))delete s.rev[k]}
   return s}
 
 /* 특정 캐릭터가 삭제될 때만 그 캐릭터의 감정·관계·기억을 지움(다른 기기·다른 집의 데이터는 건드리지 않음) */
-function forget(s,id){s=migrate(s);delete s.emo[id];delete s.last[id];delete s.mem[id];for(const k of Object.keys(s.mem))s.mem[k]=s.mem[k].filter(m=>m.o!==id);for(const k of Object.keys(s.rel)){const [a,b]=k.split('>');if(a===id||b===id){delete s.rel[k];delete s.th[k]}}return s}
+function forget(s,id){s=migrate(s);delete s.emo[id];delete s.last[id];delete s.mem[id];for(const k of Object.keys(s.mem))s.mem[k]=s.mem[k].filter(m=>m.o!==id);for(const k of Object.keys(s.rel)){const [a,b]=k.split('>');if(a===id||b===id){delete s.rel[k];delete s.th[k];delete s.rom[k]}}for(const k of Object.keys(s.rev)){const [a,b]=k.split('|');if(a===id||b===id)delete s.rev[k]}return s}
 const envOf=(chars,A,now,day)=>makeEnv(null,{chars,A,now,day,hour:0});
-const api={forget,env:envOf,EMOTIONS,REL_TYPES,THOUGHTS,MEM_TYPES,EVENTS,LIMITS,LEVELS,create,migrate,update,applyEvent,hooks,view,memories,setRelType,setRelAff,prune,rep,effPow,agg,updateThought,reclassify,ensureEmo,addEmo,rel,initRel,profileRel,tickChar,targets,pk,pairKey,hash,mulberry};
+const api={forget,env:envOf,EMOTIONS,REL_TYPES,THOUGHTS,MEM_TYPES,EVENTS,LIMITS,LEVELS,create,migrate,update,applyEvent,hooks,view,memories,setRelType,setRelAff,romState,setRomance,setRomBits,romSugApply,romSugDismiss,ROM_LABEL,prune,rep,effPow,agg,updateThought,reclassify,ensureEmo,addEmo,rel,initRel,profileRel,tickChar,targets,pk,pairKey,hash,mulberry};
 
 /* ---------- 브라우저 저장(도면·캐릭터·시뮬레이션 키와 별도) ---------- */
 if(typeof localStorage!=='undefined'){
