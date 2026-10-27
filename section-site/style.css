@@ -46,7 +46,6 @@ dialog{border:1px solid var(--ink);border-radius:2px;background:var(--paper);col
 .rmh{margin:8px 0 2px;font-weight:700;font-size:12px;font-style:italic}.rm{display:flex;gap:4px;align-items:center;margin:3px 0}.rm input:first-child{flex:1;min-width:0}.rm input[type=number]{width:68px}.rm .u{font-size:12px;color:var(--mut)}
 .li{display:flex;justify-content:space-between;align-items:center;padding:3px 4px;border-bottom:1px dotted var(--rule);cursor:pointer;font-size:13px}.li.on{background:var(--paper2);font-weight:700}
 .two{display:flex;gap:4px}#tHouse label.sub .two input{width:62px}#layList label.chk{margin:3px 0}
-@media(max-width:900px){main{grid-template-columns:1fr;grid-template-rows:200px 1fr 170px}aside{border:0;border-bottom:1px solid var(--rule)}}
 
 /* 6차: 패널 접기, 버튼, 드래그 성능 */
 main{transition:grid-template-columns .18s ease}
@@ -67,7 +66,6 @@ button.wide{width:100%;margin:6px 0}button.wide.on{background:var(--ink);color:#
 .rz{position:absolute;top:0;bottom:0;width:8px;margin-left:-4px;cursor:col-resize;z-index:6;touch-action:none}
 .rz:hover,.rz.on{background:linear-gradient(90deg,transparent 3px,var(--ink) 3px,var(--ink) 5px,transparent 5px)}
 main.noanim{transition:none}
-@media(max-width:900px){.rz{display:none}}
 .fold-h{cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
 .fold-h .car{font-style:normal;font-size:11px;padding:0 4px}
 .fold-h:hover{background:var(--paper2)}

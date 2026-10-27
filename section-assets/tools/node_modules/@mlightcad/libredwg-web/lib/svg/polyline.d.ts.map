@@ -1,1 +1,0 @@
-{"version":3,"file":"polyline.d.ts","sourceRoot":"","sources":["../../src/svg/polyline.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,mBAAmB,EAAE,UAAU,EAAE,MAAM,sBAAsB,CAAA;AAGtE,wBAAgB,uBAAuB,CACrC,IAAI,EAAE,UAAU,EAChB,EAAE,EAAE,UAAU,EACd,KAAK,EAAE,MAAM,EACb,UAAU,GAAE,MAAU,GACrB,UAAU,EAAE,CAyDd;AAED,wBAAgB,mBAAmB,CACjC,MAAM,EAAE,mBAAmB,EAC3B,MAAM,GAAE,OAAe,gBA4BxB"}

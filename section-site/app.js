@@ -559,7 +559,14 @@ function setTool(n){tool=n;svg.style.cursor=n?'crosshair':'';const b=$('#pDraw')
 function wallPos(p){const k=floorAt(p.y);if(k<0)return null;const x=Math.round(p.x/5)*5;if(!(x>XL(k)+S.b.t+20&&x<XR(k)-S.b.t-20))return {k,x:null};return {k,x}}
 function placeWall(p){const w=wallPos(p);if(!w){msg('층 안쪽을 눌러 주세요');return}if(w.x===null){msg('벽은 외벽 안쪽에 놓을 수 있어요');return}
  const q={id:uid(),f:w.k,x:w.x,t:12,mat:S.b.mat.wall};S.parts.push(q);sel=q.id;setTool(null);commit();sync();render()}
-svg.addEventListener('pointerdown',ev=>{if(ev.button>1)return;const p=toWorld(ev);
+/* v23.15 두 손가락: 핀치로 확대·축소, 손가락을 같이 움직이면 이동 */
+const ptrs=new Map();let pinch=null;
+const pinchStart=()=>{const [a,b]=[...ptrs.values()],r=svg.getBoundingClientRect();const cx=(a.x+b.x)/2,cy=(a.y+b.y)/2,k=VP.w/r.width;
+ pinch={d0:Math.max(10,Math.hypot(a.x-b.x,a.y-b.y)),w0:VP.w,wx:VP.x+(cx-r.left)*k,wy:VP.y+(cy-r.top)*k}};
+const pinchMove=()=>{if(!pinch||ptrs.size<2)return;const [a,b]=[...ptrs.values()],r=svg.getBoundingClientRect();const cx=(a.x+b.x)/2,cy=(a.y+b.y)/2,d=Math.max(10,Math.hypot(a.x-b.x,a.y-b.y));
+ const nw=Math.min(8000,Math.max(150,pinch.w0*pinch.d0/d)),k=nw/r.width;VP.w=nw;VP.x=pinch.wx-(cx-r.left)*k;VP.y=pinch.wy-(cy-r.top)*k;applyVP()};
+svg.addEventListener('pointerdown',ev=>{if(ev.pointerType==='touch'){ptrs.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});if(ptrs.size===2){if(drag){if(drag.m==='pan'){drag=null;busy(false)}else endDrag()}pinchStart();return}if(ptrs.size>2)return}
+ if(ev.button>1)return;const p=toWorld(ev);
  if(tool==='wall'){placeWall(p);return}
  const bhn=ev.target.closest('[data-bh]');if(bhn){drag={m:'bh',id:bhn.dataset.bh,moved:true};busy(true);return}
  const hnd=ev.target.closest('[data-h]');const g=ev.target.closest('.itm');const og=ev.target.closest('[data-id]');svg.setPointerCapture(ev.pointerId);const pxs=pxcm();
@@ -570,7 +577,7 @@ svg.addEventListener('pointerdown',ev=>{if(ev.button>1)return;const p=toWorld(ev
  const si=cur();if(si&&p.x>=si.x-si.w/2&&p.x<=si.x+si.w/2&&-p.y>=si.e&&-p.y<=si.e+si.h){startMv(si);return} // 선택한 가구는 상자 안 어디를 잡아도 옮겨짐
  sel=null;drawSel();inspector();drag={m:'pan',sx:ev.clientX,sy:ev.clientY,vx:VP.x,vy:VP.y};busy(true)});
 let pmEv=null,pmRaf=0;
-svg.addEventListener('pointermove',ev=>{pmEv=ev;if(pmRaf)return;pmRaf=requestAnimationFrame(()=>{pmRaf=0;handleMove(pmEv)})});
+svg.addEventListener('pointermove',ev=>{if(ptrs.has(ev.pointerId)){ptrs.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});if(pinch){pinchMove();return}}pmEv=ev;if(pmRaf)return;pmRaf=requestAnimationFrame(()=>{pmRaf=0;handleMove(pmEv)})});
 function handleMove(ev){const p=toWorld(ev);
  if(!drag){if(tool==='wall'){svg.querySelectorAll('.guide').forEach(g=>g.remove());const w=wallPos(p);if(w&&w.x!==null)mk('line',{class:'guide',x1:w.x,y1:-lvl(w.k),x2:w.x,y2:-(lvl(w.k+1)-sl(w.k+1))},svg)}return}
  if(drag.m==='mv'){const it=drag.it,r=pxcm();if(!drag.moved&&Math.hypot(ev.clientX-drag.sx,ev.clientY-drag.sy)<3)return;drag.moved=true;
@@ -588,7 +595,8 @@ function handleMove(ev){const p=toWorld(ev);
  else if(drag.m==='rs'){const it=drag.it;const w=Math.max(5,2*(p.x-drag.off-it.x));const r=drag.s.w/drag.s.h;it.w=+w.toFixed(1);it.h=+(w/r).toFixed(1);render()}
  else if(drag.m==='pan'){const r=svg.getBoundingClientRect(),k=VP.w/r.width;VP.x=drag.vx-(ev.clientX-drag.sx)*k;VP.y=drag.vy-(ev.clientY-drag.sy)*k;applyVP()}}
 const endDrag=()=>{if(!drag)return;if(pmRaf){cancelAnimationFrame(pmRaf);pmRaf=0;if(pmEv)handleMove(pmEv)}const d=drag;drag=null;busy(false);svg.querySelectorAll('.guide').forEach(g=>g.remove());if((d.m==='mv'||d.m==='og')&&d.moved){commit();if(d.m==='og')sync();inspector()}else if(d.m==='rs'){commit()}else if(d.m==='bh'){commit();sync()}};
-svg.addEventListener('pointerup',endDrag);svg.addEventListener('pointercancel',endDrag);
+const ptrEnd=ev=>{const was=pinch;ptrs.delete(ev.pointerId);if(was){if(ptrs.size<2)pinch=null;return}endDrag()};
+svg.addEventListener('pointerup',ptrEnd);svg.addEventListener('pointercancel',ptrEnd);
 svg.addEventListener('wheel',ev=>{ev.preventDefault();busy(true);clearTimeout(busyT);busyT=setTimeout(()=>{if(!drag)busy(false)},160);const p=toWorld(ev);const f=ev.deltaY>0?1.12:1/1.12;const nw=Math.min(8000,Math.max(150,VP.w*f));const k=nw/VP.w;VP.x=p.x-(p.x-VP.x)*k;VP.y=p.y-(p.y-VP.y)*k;VP.w=nw;applyVP()},{passive:false});
 svg.addEventListener('dragover',e=>e.preventDefault());svg.addEventListener('drop',e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(!id.startsWith('asset:'))return;const p=toWorld(e);addAsset(id.slice(6),p.x,p.y)});
 window.addEventListener('resize',applyVP);
@@ -902,8 +910,8 @@ window.__sec={get S(){return S},load,render,sync,weights:()=>weights(),stairGeo,
 /* ---------- 시작 ---------- */
 (async()=>{
  const cands=[...new Set([window.LIB||'',"../section-assets/","./section-assets/","section-assets/","/section-assets/"].filter(Boolean))];let tried=[],ok=false;
- for(const c of cands){try{const r=await fetch(c+'catalog/assets.json');tried.push(new URL(c+'catalog/assets.json',location.href).href+' → '+r.status);if(!r.ok)continue;const j=await r.json();LIB=c;const all=j.assets.filter(a=>a.status!=='failed'&&['front','leftSide','rightSide'].some(k=>a.views[k]));all.forEach(a=>AM[a.assetId]=a);A=all.filter(a=>!a.stairAsset); // 계단 에셋은 건물 탭 '계단'에서만 사용
-   const cc=await (await fetch(LIB+'catalog/category-config.json')).json();CATS=cc.categories;CATS.forEach(k=>$('#fcat').insertAdjacentHTML('beforeend',`<option value="${k.id}">${esc(k.nameKo)}</option>`));ok=true;break}catch(e){tried.push(new URL(c+'catalog/assets.json',location.href).href+' → '+e.message)}}
+ for(const c of cands){try{const ccP=fetch(c+'catalog/category-config.json').then(x=>x.json());ccP.catch(()=>{});let r=await fetch(c+'catalog/assets.web.json');if(!r.ok)r=await fetch(c+'catalog/assets.json');tried.push(new URL(c+'catalog/assets.json',location.href).href+' → '+r.status);if(!r.ok)continue;const j=await r.json();LIB=c;const all=j.assets.filter(a=>a.status!=='failed'&&['front','leftSide','rightSide'].some(k=>a.views[k]));all.forEach(a=>AM[a.assetId]=a);A=all.filter(a=>!a.stairAsset); // 계단 에셋은 건물 탭 '계단'에서만 사용
+   const cc=await ccP;CATS=cc.categories;CATS.forEach(k=>$('#fcat').insertAdjacentHTML('beforeend',`<option value="${k.id}">${esc(k.nameKo)}</option>`));ok=true;break}catch(e){tried.push(new URL(c+'catalog/assets.json',location.href).href+' → '+e.message)}}
  if(!ok){const er=$('#err');er.hidden=false;er.innerHTML='<b>에셋 목록을 불러오지 못했어요.</b><br>'+(location.protocol==='file:'?'파일을 더블클릭으로 열면 브라우저가 데이터 읽기를 막습니다. 웹서버(또는 GitHub Pages)로 여세요.<br>':'<code>section-assets</code> 폴더가 <code>section-site</code> 폴더와 같은 위치에 올라가 있는지 확인하세요.<br>')+'<small>시도한 주소:<br>'+tried.map(esc).join('<br>')+'</small>';$('#count').textContent='가구 0개'}
  try{if(!slotsRead())slotsMigrate();const cs=SL.slots[SL.cur];if(cs&&cs.doc&&cs.doc.b&&cs.doc.items)S=norm(cs.doc);else{SL.cur=SL.cur||'1';SL.slots[SL.cur]=SL.slots[SL.cur]||{name:'',t:Date.now(),doc:S}}}catch(e){}
  uaLoad();Object.values(UA).forEach(r=>{try{uaRegister(r,true)}catch(e){}});if(Object.values(UA).length&&!CATS.some(k=>k.id==='custom')&&!document.querySelector('#fcat option[value=custom]'))$('#fcat').insertAdjacentHTML('beforeend','<option value="custom">내 에셋(기타)</option>');
@@ -912,5 +920,5 @@ window.__sec={get S(){return S},load,render,sync,weights:()=>weights(),stairGeo,
 })();
 /* 비바리움 관찰 탭(viv.js)용 읽기 전용 연결부: 편집기 내부 함수·상태를 그대로 재사용하기 위해 필요한 항목만 노출 */
 function slotCreate(doc,name){const id=[1,2,3,4,5].map(String).find(i=>!SL.slots[i]);if(!id)return null;persistNow();SL.cur=id;SL.slots[id]={name:name||'',t:Date.now(),doc:clone(doc)};load(doc);return id}
-window.SectionBridge={get ready(){return READY},HK,slotBtn,slotCreate,slotOpen:openSlot,loadDoc:load,msg,get SLOT_MAX(){return SLOT_MAX},get S(){return S},set S(v){S=v},get sel(){return sel},set sel(v){sel=v},get SL(){return SL},get AM(){return AM},norm,render,exportSvg,EH,lvl,sl,fnameKo,OPT,STAIR_ASSET,art,ART,applyVP,persistNow,slotName,esc,roomsOf,stairGeo,roofGeo,fh,BB};
+window.SectionBridge={get ready(){return READY},fit,get VP(){return VP},HK,slotBtn,slotCreate,slotOpen:openSlot,loadDoc:load,msg,get SLOT_MAX(){return SLOT_MAX},get S(){return S},set S(v){S=v},get sel(){return sel},set sel(v){sel=v},get SL(){return SL},get AM(){return AM},norm,render,exportSvg,EH,lvl,sl,fnameKo,OPT,STAIR_ASSET,art,ART,applyVP,persistNow,slotName,esc,roomsOf,stairGeo,roofGeo,fh,BB};
 })();
