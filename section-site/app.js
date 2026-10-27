@@ -414,7 +414,7 @@ function render(){try{fillRoomSel()}catch(e){}const b=S.b,N=b.f,E=EH(),t=b.t,s=b
  // 가구
  const g=lay('items',{id:'items'});
  [...S.items].sort((a,b2)=>(a.z-b2.z)).forEach(it=>renderItem(it,g,WT));   // 원경(연하게)은 가려지지 않고, 다른 가구 뒤쪽에 연한 선으로 그림
- drawSel();drawBH();applyVP();inspector();caption();lwInfo();
+ drawSel();drawBH();applyVP();if(!(drag&&drag.m==='og'&&drag.moved)){inspector();caption();lwInfo()}   // 벽·문을 끄는 중에는 패널을 다시 만들지 않음(놓을 때 갱신)
 }
 function lwInfo(){const el=$('#lwInfo');if(!el)return;const W=LASTW;const n=S.items.length;el.textContent=n?`적용값 — 외곽 ${(+W._o).toFixed(2)}cm · 내부 ${(+W._i).toFixed(2)}cm (가구 ${n}개)`:`가구를 놓으면 적용값이 표시됩니다 (설정: 외곽 ${S.lw.out} · 내부 ${S.lw.inn})`}
 function caption(){const el=$('#capR');if(el)el.textContent=`가구 ${S.items.length}개 · 지상 ${S.b.f-BB()}층${BB()?' · 지하 '+BB()+'층':''} · 폭 ${S.b.w}cm`}
@@ -437,10 +437,12 @@ function bhMove(p){const id=drag.id,sn=v=>Math.round(v/5)*5,t=S.b.t,b=S.b;
  else if(id==='rl'&&b.rfx)b.rfx.l=Math.min(sn(p.x),b.rfx.r-60);
  else if(id==='rr'&&b.rfx)b.rfx.r=Math.max(sn(p.x),b.rfx.l+60);
  render()}
+let dsb=null;const QUICK=new Set(['part','stair','terr','roof','chim']);
 function drawSel(){svg.querySelectorAll('.sel,.guide').forEach(n=>n.remove());const ob=findObj(sel);if(!ob)return;
  if(ob.k==='item'){const it=ob.o,x0=it.x-it.w/2,y0=-it.e-it.h;
   mk('rect',{class:'sel sel-box',x:x0,y:y0,width:it.w,height:it.h},svg);placeHandle(x0+it.w,y0+it.h);
   const k=nearLevel(it.e);if(k.d<1)mk('line',{class:'guide',x1:it.x-it.w,y1:-it.e,x2:it.x+it.w,y2:-it.e},svg);return}
+ if(dsb&&dsb.id===sel){mk('rect',{class:'sel sel-box',x:dsb.x0+dsb.dx-4,y:dsb.y0+dsb.dy-4,width:dsb.x1-dsb.x0+8,height:dsb.y1-dsb.y0+8},svg);return}   // 끄는 중: 레이아웃을 강제하는 getBBox 대신 시작 때 잰 상자를 옮겨 그림
  const els=[...svg.querySelectorAll(`[data-id="${sel}"]`)];if(!els.length)return;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
  els.forEach(e=>{try{const bb=e.getBBox();x0=Math.min(x0,bb.x);y0=Math.min(y0,bb.y);x1=Math.max(x1,bb.x+bb.width);y1=Math.max(y1,bb.y+bb.height)}catch(x){}});
  if(x1>x0)mk('rect',{class:'sel sel-box',x:x0-4,y:y0-4,width:x1-x0+8,height:y1-y0+8},svg)}
@@ -568,16 +570,17 @@ const pinchMove=()=>{if(!pinch||ptrs.size<2)return;const [a,b]=[...ptrs.values()
  const nw=Math.min(8000,Math.max(150,pinch.w0*pinch.d0/d)),k=nw/r.width;VP.w=nw;VP.x=pinch.wx-(cx-r.left)*k;VP.y=pinch.wy-(cy-r.top)*k;applyVP()};
 svg.addEventListener('pointerdown',ev=>{if(ev.pointerType==='touch'){ptrs.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});if(ptrs.size===2){if(drag){if(drag.m==='pan'){drag=null;busy(false)}else endDrag()}pinchStart();return}if(ptrs.size>2)return}
  if(ev.button>1)return;const p=toWorld(ev);
+ if(VLOCK){if(drag)endDrag();try{svg.setPointerCapture(ev.pointerId)}catch(e){}dpid=ev.pointerId;drag={m:'pan',sx:ev.clientX,sy:ev.clientY,vx:VP.x,vy:VP.y};busy(true);return}   // 보기 잠금: 선택·편집 없이 화면 이동만
  if(tool==='wall'){placeWall(p);return}
  const bhn=ev.target.closest('[data-bh]');if(bhn){if(drag)endDrag();try{svg.setPointerCapture(ev.pointerId)}catch(e){}dpid=ev.pointerId;drag={m:'bh',id:bhn.dataset.bh,moved:true};busy(true);return}
  if(drag)endDrag();const hnd=ev.target.closest('[data-h]');const g=ev.target.closest('.itm');const og=ev.target.closest('[data-id]');try{svg.setPointerCapture(ev.pointerId)}catch(e){}const pxs=pxcm();dpid=ev.pointerId;
  const startMv=it=>{sel=it.uid;drag={m:'mv',it,dx:p.x-it.x,dy:p.y-(-it.e),p0:p,x0:it.x,e0:it.e,sx:ev.clientX,sy:ev.clientY,moved:false};busy(true);drawSel();inspector()};
  if(hnd){const it=cur();if(!it)return;drag={m:'rs',it,s:{w:it.w,h:it.h},off:p.x-(it.x+it.w/2)};busy(true);return}
  if(g){startMv(S.items.find(i=>i.uid===g.dataset.uid));return}
- if(og){sel=og.dataset.id;const ob=findObj(sel);drag={m:'og',ob,p0:p,s:clone(ob.o),moved:false};busy(true);drawSel();inspector();return}
+ if(og){sel=og.dataset.id;const ob=findObj(sel);drag={m:'og',ob,p0:p,s:clone(ob.o),moved:false};busy(true);dsb=null;drawSel();inspector();{const r=svg.querySelector('.sel-box');if(r)dsb={id:sel,x0:+r.getAttribute('x')+4,y0:+r.getAttribute('y')+4,x1:+r.getAttribute('x')+4+(+r.getAttribute('width'))-8,y1:+r.getAttribute('y')+4+(+r.getAttribute('height'))-8,dx:0,dy:0}}return}
  const si=cur();if(si&&p.x>=si.x-si.w/2&&p.x<=si.x+si.w/2&&-p.y>=si.e&&-p.y<=si.e+si.h){startMv(si);return} // 선택한 가구는 상자 안 어디를 잡아도 옮겨짐
  sel=null;drawSel();inspector();drag={m:'pan',sx:ev.clientX,sy:ev.clientY,vx:VP.x,vy:VP.y};busy(true)});
-let pmEv=null,pmRaf=0,dpid=null;
+let pmEv=null,pmRaf=0,dpid=null,VLOCK=false;
 svg.addEventListener('pointermove',ev=>{if(ptrs.has(ev.pointerId)){ptrs.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});if(pinch){pinchMove();return}}if(drag&&dpid!==null&&ev.pointerId!==dpid)return;pmEv=ev;if(pmRaf)return;pmRaf=requestAnimationFrame(()=>{pmRaf=0;handleMove(pmEv)})});
 function handleMove(ev){const p=toWorld(ev);
  if(!drag){if(tool==='wall'){svg.querySelectorAll('.guide').forEach(g=>g.remove());const w=wallPos(p);if(w&&w.x!==null)mk('line',{class:'guide',x1:w.x,y1:-lvl(w.k),x2:w.x,y2:-(lvl(w.k+1)-sl(w.k+1))},svg)}return}
@@ -591,11 +594,14 @@ function handleMove(ev){const p=toWorld(ev);
   else if(k==='terr'||k==='roof'){const w=s0.x1-s0.x0;o.x0=sn(s0.x0+dx);o.x1=o.x0+w}
   else if(k==='chim')o.x=sn(s0.x+dx)
   else if(k==='op'){o.sill=clamp(sn(s0.sill-dy),0,fh(o.f)-s_(o.f)-o.h);if(o.on==='back')o.x=clamp(sn(s0.x+dx),bounds().l,bounds().r)}
+  if(QUICK.has(k)&&dsb){const ddx=(k==='terr'||k==='roof'?o.x0-s0.x0:o.x-s0.x);const els=drag.els||(drag.els=[...svg.querySelectorAll(`[data-id="${sel}"]`)].map(e=>({e,t:e.getAttribute('transform')||''})));
+   if(els.length){els.forEach(({e,t})=>e.setAttribute('transform',`translate(${ddx} 0) ${t}`));dsb.dx=ddx;dsb.dy=0;drawSel();return}}   // 가로 이동만 하는 것(내벽·계단·테라스·지붕·굴뚝)은 끄는 동안 그 요소만 옮기고, 놓을 때 정확히 다시 그림
+  if(dsb){dsb.dx=k==='terr'||k==='roof'?o.x0-s0.x0:(k==='op'?(o.on==='back'?o.x-s0.x:0):o.x-s0.x);dsb.dy=k==='op'?-(o.sill-s0.sill):0}
   render()}
  else if(drag.m==='bh')bhMove(p)
  else if(drag.m==='rs'){const it=drag.it;const w=Math.max(5,2*(p.x-drag.off-it.x));const r=drag.s.w/drag.s.h;it.w=+w.toFixed(1);it.h=+(w/r).toFixed(1);rerenderItem(it)}
  else if(drag.m==='pan'){const r=svg.getBoundingClientRect(),k=VP.w/r.width;VP.x=drag.vx-(ev.clientX-drag.sx)*k;VP.y=drag.vy-(ev.clientY-drag.sy)*k;applyVP()}}
-const endDrag=()=>{if(!drag)return;if(pmRaf){cancelAnimationFrame(pmRaf);pmRaf=0;if(pmEv)handleMove(pmEv)}const d=drag;drag=null;busy(false);svg.querySelectorAll('.guide').forEach(g=>g.remove());if((d.m==='mv'||d.m==='og')&&d.moved){commit();if(d.m==='og')sync();inspector()}else if(d.m==='rs'){commit()}else if(d.m==='bh'){commit();sync()}};
+const endDrag=()=>{if(!drag)return;if(pmRaf){cancelAnimationFrame(pmRaf);pmRaf=0;if(pmEv)handleMove(pmEv)}const d=drag;drag=null;busy(false);if(dsb){dsb=null;if(d.m==='og')render()}svg.querySelectorAll('.guide').forEach(g=>g.remove());if((d.m==='mv'||d.m==='og')&&d.moved){commit();if(d.m==='og')sync();inspector()}else if(d.m==='rs'){commit()}else if(d.m==='bh'){commit();sync()}};
 const ptrEnd=ev=>{const was=pinch;ptrs.delete(ev.pointerId);if(was){if(ptrs.size<2)pinch=null;return}if(drag&&dpid!==null&&ev.pointerId!==dpid)return;dpid=null;endDrag()};
 svg.addEventListener('lostpointercapture',ev=>{if(drag&&!pinch&&ev.pointerId===dpid){dpid=null;endDrag()}});
 svg.addEventListener('pointerup',ptrEnd);svg.addEventListener('pointercancel',ptrEnd);
@@ -894,6 +900,9 @@ function zoomRoom(key){const sel_=$('#zroom');if(!key){fit();return}const f=+key
  camTo((r.left+r.right)/2-w/2,(top+bot)/2-h/2,w)}
 let RSIG='';function fillRoomSel(){const z=$('#zroom');if(!z)return;let sg=S.b.f+'|';for(let k=0;k<S.b.f;k++)sg+=roomsOf(k).map(r=>r.key+S.rooms[r.key]).join(',')+';';if(sg===RSIG)return;RSIG=sg;const cur=z.value;let h='<option value="">전체 보기</option>';for(let k=S.b.f-1;k>=0;k--)roomsOf(k).forEach((r,i)=>{h+=`<option value="${esc(r.key)}">${fnameKo(k)} · ${esc(S.rooms[r.key]||'방 '+(i+1))}</option>`});z.innerHTML=h;z.value=[...z.options].some(o=>o.value===cur)?cur:''}
 $('#zroom').onchange=e=>zoomRoom(e.target.value);$('#zfit').addEventListener('click',()=>{const z=$('#zroom');if(z)z.value=''});
+function setVLock(on){VLOCK=!!on;svg.classList.toggle('vlock',VLOCK);const b=$('#vlock');if(b){b.classList.toggle('on',VLOCK);b.innerHTML=VLOCK?'🔒<span class="t"> 잠금 중</span>':'🔓<span class="t"> 보기 잠금</span>';b.setAttribute('aria-pressed',VLOCK)}
+ if(VLOCK){if(drag)endDrag();if(tool)setTool(null);sel=null;drawSel();inspector();msg('보기 잠금: 화면 이동·확대만 돼요. 가구는 선택되지 않아요.')}else msg('잠금 해제')}
+$('#vlock').onclick=()=>setVLock(!VLOCK);
 $('#undo').onclick=undo;$('#redo').onclick=redo;$('#zfit').onclick=fit;$('#zin').onclick=()=>{const c=VP.x+VP.w/2;VP.w/=1.25;VP.x=c-VP.w/2;applyVP()};$('#zout').onclick=()=>{const c=VP.x+VP.w/2;VP.w*=1.25;VP.x=c-VP.w/2;applyVP()};
 $('#optGrid').checked=OPT.grid;$('#optFill').checked=OPT.fill;$('#optDims').checked=OPT.dims;
 const saveOpt=()=>{try{localStorage.setItem('sectionSite.opt',JSON.stringify(OPT))}catch(e){}};

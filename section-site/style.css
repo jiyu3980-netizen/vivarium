@@ -73,3 +73,6 @@ main.noanim{transition:none}
 
 .bh-hit{fill:transparent;stroke:none;cursor:ew-resize}.bh-dot{fill:#fff;stroke:var(--ink);stroke-width:1.5;vector-effect:non-scaling-stroke;pointer-events:none}.bh-hit[data-bh=ra]{cursor:move}
 .rm{flex-wrap:wrap}.rm input:first-child{min-width:90px}.rm select{flex:1 0 100%;font-size:12px}
+
+#vlock.on{background:#1c1c1c;color:#fff}#svg.vlock{cursor:grab}#svg.vlock .itm,#svg.vlock [data-id],#svg.vlock [data-h],#svg.vlock [data-bh]{pointer-events:none!important}#svg.vlock .sel,#svg.vlock .guide{display:none}#svg.vlock [filter]{filter:none!important}
+@media(max-width:900px){#vlock .t{display:none}#zroom{max-width:68px;padding:0 2px;font-size:12px}}

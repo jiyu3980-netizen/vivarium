@@ -128,3 +128,5 @@ body.mode-viv #viv{display:block}body.mode-viv main{display:none}body.mode-viv #
 .vm-sug{margin-top:8px;padding:8px 10px;border:1px solid #1c1c1c;border-radius:6px;background:#fffbe9;font-size:12.5px;line-height:1.5}
 .vm-sugb{display:flex;gap:6px;margin:6px 0}.vm-sugb button{padding:5px 12px;font-size:12px;cursor:pointer}
 .vm-romtag{background:#ffe3e8;border-color:#e8a0b0}
+
+.vv-zroom{position:absolute;left:8px;top:8px;z-index:3;font-size:12px;padding:3px 6px;border:1px solid var(--rule);background:#fff;border-radius:6px;max-width:44%;cursor:pointer}

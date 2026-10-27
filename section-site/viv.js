@@ -255,7 +255,20 @@ function initZoom(slide,wrap){
   Z.recheck=()=>{dims();settle()};
   wrap.classList.add('vv-zoomable');
   {const rb=document.createElement('button');rb.type='button';rb.className='vv-zreset';rb.textContent='보기 맞춤';rb.hidden=true;rb.title='확대·이동 되돌리기 (휠·두 손가락으로 확대/축소, 빈 곳을 끌어서 이동)';
-  rb.onclick=()=>{Z.k=1;Z.x=0;Z.y=0;apply(true);settle()};wrap.appendChild(rb)}
+  rb.onclick=()=>{Z.k=1;Z.x=0;Z.y=0;apply(true);settle();const zs=q('.vv-zroom',wrap);if(zs)zs.value=''};wrap.appendChild(rb)}
+  /* 방별 보기: 방을 고르면 그 방이 화면에 차게 부드럽게 이동 (내 화면에서만) */
+  {const sn=slide._snap,g=sn&&sn.geo;if(g&&g.rooms&&g.rooms.length){
+    const sel=document.createElement('select');sel.className='vv-zroom';sel.title='방별 보기';sel.setAttribute('aria-label','방별 보기');
+    let h='<option value="">전체 보기</option>';for(let k=g.floors.length-1;k>=0;k--)g.rooms.filter(r=>r.f===k).forEach((r,i)=>{h+=`<option value="${esc(r.key)}">${esc(g.floors[k].name)} · ${esc(r.name||'방 '+(i+1))}</option>`});
+    sel.innerHTML=h;wrap.appendChild(sel);
+    let tw=0;const goTo=(k1,x1,y1)=>{cancelAnimationFrame(tw);const a={k:Z.k,x:Z.x,y:Z.y},t0=performance.now(),Dm=matchMedia('(prefers-reduced-motion:reduce)').matches?0:260;
+      const step=n=>{const u=Dm?1:Math.min(1,(n-t0)/Dm),e=u<1?1-Math.pow(1-u,3):1;Z.k=a.k+(k1-a.k)*e;Z.x=a.x+(x1-a.x)*e;Z.y=a.y+(y1-a.y)*e;moving();apply(false);if(u<1)tw=requestAnimationFrame(step)};tw=requestAnimationFrame(step)};
+    sel.onchange=()=>{const key=sel.value;if(!key){goTo(1,0,0);return}const r=g.rooms.find(q_=>q_.key===key),fl=g.floors[r.f];if(!r||!fl)return;
+      const d=dims();if(!d)return;const fx=d.w/sn.w,fy=d.h/sn.h;   // 세계 cm → 화면 px (확대 전)
+      const px0=(r.left-sn.x0)*fx,px1=(r.right-sn.x0)*fx,py0=(-fl.top-sn.y0)*fy,py1=(-fl.e-sn.y0)*fy,mg=1.12;
+      const k=Math.max(.5,Math.min(8,Math.min(d.rw/((px1-px0)*mg),d.rh/((py1-py0)*mg))));
+      goTo(k,d.rw/2-d.ox-k*(px0+px1)/2,d.rh/2-d.oy-k*(py0+py1)/2)};
+  }}
   apply(true);
   if(wrap._zi){wrap._zr=apply;return}
   wrap._zi=true;wrap._zr=apply;
@@ -264,7 +277,7 @@ function initZoom(slide,wrap){
     const f=Math.exp(-Math.max(-120,Math.min(120,ev.deltaY))*.0016),nk=Math.min(8,Math.max(.5,Z.k*f)),q_=nk/Z.k;
     Z.x=px-ox-(px-ox-Z.x)*q_;Z.y=py-oy-(py-oy-Z.y)*q_;Z.k=nk;moving();later()},{passive:false});
   const P=new Map();let pan=null,pin=null;
-  wrap.addEventListener('pointerdown',ev=>{if(ev.button>1||ev.target.closest('.vv-ch,.vv-zreset'))return;
+  wrap.addEventListener('pointerdown',ev=>{if(ev.button>1||ev.target.closest('.vv-ch,.vv-zreset,.vv-zroom'))return;
     P.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});try{wrap.setPointerCapture(ev.pointerId)}catch(e){}dims();
     if(P.size===2){const [a,b]=[...P.values()];const r=wrap.getBoundingClientRect();pan=null;pin={d0:Math.hypot(a.x-b.x,a.y-b.y)||1,k0:Z.k,cx:(a.x+b.x)/2-r.left,cy:(a.y+b.y)/2-r.top,x0:Z.x,y0:Z.y};wrap.classList.add('vv-panning');moving()}
     else if(P.size===1)pan={sx:ev.clientX,sy:ev.clientY,x:Z.x,y:Z.y,moved:false}});
