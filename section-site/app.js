@@ -186,7 +186,7 @@ function outerGeo(a){const b=S.b,f=a.f;if(!(f>=0&&f<b.f))return null;
  const out=side==='L'?-1:1;                      // 건물 밖으로 향하는 방향
  const eLo=Math.min(eB,eT);
  if(a.kind==='zig'){   // 외부계단(비상계단): 정면에서 본 모양 — 층마다 가로로 긴 참(승강장), 그 사이를 채워진 계단 구간(단 구분선)이 건물 쪽/바깥 쪽으로 번갈아 놓이고, 바깥쪽에 세로 기둥(벽)이 섬
-  const pt=Math.max(6,Math.min(60,a.lt||12)),lv=[eB];const cand=[];for(let k=0;k<S.b.f;k++){const e=lvl(k);if(e>Math.min(eB,eT)+8&&e<Math.max(eB,eT)-8)cand.push(e)}
+  const pt=Math.max(6,Math.min(60,a.lt||12)),lv=[eB];const cand=[];for(let k=0;k<S.b.f;k++){const e=lvl(k);if(Math.abs(e-eB)>=110&&Math.abs(e-eT)>=110&&e>Math.min(eB,eT)&&e<Math.max(eB,eT))cand.push(e)}   // 지면(출발)·도착 높이와 110cm 안쪽인 층은 참을 만들지 않음 → 낮은 단차 계단 없이 길게 이어짐
   cand.sort((x,y)=>up?x-y:y-x);cand.forEach(e=>lv.push(e));lv.push(eT);
   const nst=lv.length-1,sr=rise/nst,W=Math.max(120,a.run>=60?a.run:240),fw=Math.max(40,Math.min(W-20,a.fw>=40?a.fw:Math.round(W*.55))),ns=a.n>=3?Math.min(40,Math.round(a.n)):Math.max(3,Math.round(sr/17.5));
   const polys=[],thin=[],lo=Math.min(eB,eT),hiL=Math.max(eB,eT),wb=14;
