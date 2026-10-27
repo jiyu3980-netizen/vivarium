@@ -142,15 +142,16 @@ function analyze(profile,name,others){
     if(STAT_BAD.test(c)&&!/직업이? ?없/.test(c))continue;
     for(const [k,re] of STAT_RE){const m=re.exec(c);if(m){status={kind:k,words:[m[0]]};break}}
     if(status)break}
+  const HOME_JOB_RE=/집에서 ?(일|근무|작업|출퇴근|출근|퇴근)|집으로 ?(출퇴근|출근|퇴근)|집에 ?출근|집이 ?직장|재택|홈 ?오피스/;
   let job=null;const JOBNEG=/백수|무직|퇴사|퇴직|은퇴|실직|휴직|방학|취준|구직/,JOB_ASPIRE=/지망|꿈|희망|되고 ?싶|되려|목표|준비 ?중/;
   for(const c of cl.flatMap(x=>x.split(/이고|이며|인데|이지만/))){if(NEG.test(c)||JOBNEG.test(c)||JOB_ASPIRE.test(c))continue;let k=null;
-    if(/프리랜서|프리랜스|프리 ?랜서|자영업|1인 ?기업|외주|재택 ?근무|재택근무/.test(c))k='freelance';
+    if(/프리랜서|프리랜스|프리 ?랜서|자영업|1인 ?기업|외주|재택 ?근무|재택근무/.test(c)||HOME_JOB_RE.test(c))k='freelance';   // v23.11 '집에서 일한다·집으로 출퇴근' 도 프리랜서와 같은 분류
     else if(/알바|아르바이트|파트 ?타임/.test(c))k='parttime';
     else if(KIN_RE.test(c)&&!SELF_RE.test(c)){/* 가족·친구의 직업은 이 캐릭터의 직업이 아님 */}
     else if(JOB_FREE_RE.test(c))k='freelance';
     else if(/직장인|회사원|회사에? ?다니|출근|퇴근|사무직|월급쟁이|근무|직장|공무원|은행원|간호사|의사|교사|선생님|연구원|엔지니어|기자|변호사|약사|점원|판매원|요리사|바리스타|승무원|경찰|소방관|군인|직업은|직업이|회사/.test(c)||JOB_NOUN_RE.test(c))k='office';
-    if(k&&(!job||(k==='freelance')))job={kind:k,words:[(/프리랜서|프리랜스|자영업|외주|재택/.exec(c)||/알바|아르바이트|파트/.exec(c)||/직장인|회사원|출근|사무직|근무|직장|회사|직업/.exec(c)||[k])[0]]}}
-  if(status&&job&&job.kind!=='parttime')job=null;   // 신분이 명시돼 있으면 프리랜서·직장인으로 추정하지 않음
+    if(k&&(!job||(k==='freelance')))job={kind:k,home:HOME_JOB_RE.test(c),words:[(HOME_JOB_RE.exec(c)||/프리랜서|프리랜스|자영업|외주|재택/.exec(c)||/알바|아르바이트|파트/.exec(c)||/직장인|회사원|출근|사무직|근무|직장|회사|직업/.exec(c)||[k])[0]]}}
+  if(status&&job&&job.kind!=='parttime'&&!job.home)job=null;   // 신분이 명시돼 있으면 프리랜서·직장인으로 추정하지 않음
   if(status)fl.push({k:'status',label:'신분',text:({student:'학생',jobseeker:'취준생',jobless:'백수',unemployed:'무직'})[status.kind]});
   if(job){job.night=/새벽|야근|야간|심야|밤샘|나이트|올빼미 ?근무|교대 ?근무/.test(profile);
     fl.push({k:'job',label:'직업',text:({office:'직장인',parttime:'아르바이트',freelance:'프리랜서'})[job.kind]+(job.night?' · 밤·새벽 근무 있음':'')})}
@@ -344,7 +345,7 @@ V('tidy_books','read',['bookshelf'],'stand',[6,14],['{r}에서 책장의 책을 
 V('copy_text','read','desk','stand',[20,50],['{r}에서 책상에서 좋아하는 구절을 필사하는 중'],{reader:1.5,worker:.5},{need:['bookshelf','book']});
 /* 작업 */
 V('work_desk','work','desk','stand',[30,100],['{r}에서 책상 앞에서 작업하는 중','{r}에서 책상 앞에서 집중해서 일하는 중'],{worker:1.5});
-V('job_free','work',['desk','laptop'],'stand',[40,120],['{r}에서 프리랜서 일을 하는 중','{r}에서 일감을 처리하는 중이에요','{r}에서 프리랜서 업무에 몰두하는 중'],{worker:1.2,busy:.4},{jobv:true,req:A=>!!(A.job&&A.job.kind==='freelance')});
+V('job_free','work',['desk','laptop'],'stand',[40,120],['{r}에서 일을 하는 중','{r}에서 일감을 처리하는 중이에요','{r}에서 업무에 몰두하는 중'],{worker:1.2,busy:.4},{jobv:true,req:A=>!!(A.job&&A.job.kind==='freelance')});
 V('hobby_free','hobby',null,'stand',[20,60],['{r}에서 {L}을(를) 즐기는 중','{r}에서 {L}에 푹 빠져 시간을 보내는 중','{r}에서 {L} 하며 여유를 즐기는 중'],{hobby:1.5,creative:.5},{hobbyFree:true,hr:[8,24]});
 V('music_listen','rest',['sofa','chair','bed'],'sit',[20,60],['{r}에서 좋아하는 음악을 들으며 쉬는 중','{r}에서 이어폰을 끼고 음악에 빠진 중'],{music:1.6},{trait:'music'});
 V('home_workout','rest',null,'stand',[15,40],['{r}에서 홈트레이닝으로 운동하는 중','{r}에서 스트레칭을 하며 몸을 푸는 중'],{sporty:1.5,outdoor:1},{trait:'sporty',hr:[6,22]});
@@ -1108,7 +1109,8 @@ function wishList(ctx,c){
   for(const pe of ownPets(ctx,c))for(const k of SPECIES[pe.pet.sp].care){const w=wishById(ctx,c,`care:${k}:${pe.id}`);if(w)out.push(w)}
   return out}
 function resolveWish(wo,A){if(!wo||!wo.job)return wo;   // '일하기': 학생·백수·취준생·무직은 아르바이트, 고정 근무는 일하러 나가기, 프리랜서는 집에서 일하기
-  if(A&&A.status)return {...wo,out:'pt',label:'알바하러 가기'};
+  if(A&&A.job&&A.job.home&&A.job.kind==='freelance')return {...wo,g:'work',job:true};   // 집에서 일하는 사람은 신분·알바 표기가 있어도 프리랜서와 같음
+  if(A&&(A.status||(A.job&&A.job.kind==='parttime')))return {...wo,out:'pt',label:'알바하러 가기'};   // 학생·취준·백수·무직·알바생은 알바하러 나가는 행동지문
   if(!A||!A.job)return {...wo,g:'work'};return A.job.kind==='freelance'?{...wo,g:'work',job:true}:{...wo,out:'job'}}
 function wishCheck(ctx,c,wo0){
   const wo=resolveWish(wo0,ctx.analysis?ctx.analysis(c):analyze(c.profile,c.name,ctx.chars||[]));
@@ -1189,6 +1191,6 @@ function reconcile(ctx){
     if(together&&!AFF.test(p.say||''))ctx.setPlace(c.id,{say:fillSay(pick(r,['{r}에서 {p}를 꼭 안고 잠든 중','{r}에서 {p}의 곁에서 서로 기대어 곤히 자는 중','{r}에서 {p}의 팔을 베고 잠든 중']),room,cp.name)});
     else if(!together&&AFF.test(p.say||''))ctx.setPlace(c.id,{say:fillSay(pick(r,['{r}에서 침대에서 곤히 자는 중','{r}에서 이불을 덮고 잠든 중','{r}에서 새근새근 자고 있는 중']),room,'')})}}
 
-const api={parsePet,petTag,SPECIES,SPECIES_IDS,CARE,petNeeds,careNeed,petInit,wishList,fillSay,_candidates:candidates,_posOf:posOf,GROUPS,seoul,analyze,kindsOf,buildWorld,stepHouse,revalidate,wishOptions,setWish,VERBS,OUT_WHY,WISHES,BASE,hash,mulberry,KNAME,TRAIT_RULES,effHour,wa,ro,jobSlot,isOffDay,HOLIDAYS,hobbyPool};
+const api={resolveWish,parsePet,petTag,SPECIES,SPECIES_IDS,CARE,petNeeds,careNeed,petInit,wishList,fillSay,_candidates:candidates,_posOf:posOf,GROUPS,seoul,analyze,kindsOf,buildWorld,stepHouse,revalidate,wishOptions,setWish,VERBS,OUT_WHY,WISHES,BASE,hash,mulberry,KNAME,TRAIT_RULES,effHour,wa,ro,jobSlot,isOffDay,HOLIDAYS,hobbyPool};
 root.Sim=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

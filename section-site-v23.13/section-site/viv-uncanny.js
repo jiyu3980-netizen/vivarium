@@ -17,7 +17,7 @@ const MIN=60000,HOUR=3600000,DAY=86400000;
    ===================================================================== */
 const UNCANNY={
   /* 의사결정 한 번에서 '위화감 행동'이 선택될 몫(0~1). 체류 일수(날) → 몫. 첫날에는 일상과 비슷한 빈도(≈.42), 이후 서서히 증가 */
-  share:{curve:[[0,.52],[2,.54],[5,.58],[10,.64],[20,.8],[40,.92]],burdenGain:.2,max:.94,min:.05,
+  share:{curve:[[0,.30],[2,.32],[5,.36],[10,.44],[20,.58],[40,.70]],burdenGain:.15,max:.78,min:.05,
     night:{from:0,to:6,mul:.3},          // 새벽에는 잠이 우선이라 위화감 행동이 드묾
     streakMul:[1,.55,.3,.15]},           // 위화감 행동이 연속으로 이어질수록 다음 몫이 줄어듦(0·1·2·3회 연속)
   /* 진행도 P = 체류 일수 × 개인 속도 + 부담 환산 일수. 단계(tier)별 등장 기준 */
@@ -48,8 +48,8 @@ const UNCANNY={
     stareAfterSec:75,misreadAfterSec:50,
     p:{sky:.5,clock:.012,shift:.012,misread:.05,stare:.35}},
   aw:{base:{rational:3,anxious:3,curious:2,resigned:2,avoidant:1},tyDamp:.35,tyN:3},  // 자기인식 단계 상한(성격별+개인차)·최근 같은 유형 반복 감쇠
-  talk:{gap:45*MIN,recentN:10},          // 관찰자에게 말을 거는 대사: 같은 캐릭터가 이 간격 안에는 다시 하지 않음 / 최근 N개 문구는 반복하지 않음
-  out:{p:.22,gap:75*MIN,burdenMul:.5},    // 외출 중 공간 위화감 지문: 30분 점검마다 나올 확률(첫날 기준 몫으로 환산)·최소 간격
+  talk:{gap:75*MIN,recentN:10},          // 관찰자에게 말을 거는 대사: 같은 캐릭터가 이 간격 안에는 다시 하지 않음 / 최근 N개 문구는 반복하지 않음
+  out:{p:.16,gap:75*MIN,burdenMul:.5},    // 외출 중 공간 위화감 지문: 30분 점검마다 나올 확률(첫날 기준 몫으로 환산)·최소 간격
   watch:{reset:true}
 };
 
@@ -212,21 +212,21 @@ const EVENTS={
     rational:['오늘도 하늘이 맑네.','조용해서 생각하기엔 좋네.'],
     avoidant:['조용해서 다행이야.','아무도 안 오는 게 편하긴 해.'],
     resigned:['여긴 늘 이렇게 조용하네.','어제와 별로 다를 게 없네.']}},
-  u_talk2:{ty:1,aw:2,tier:2,kind:'stand',speech:true,dur:[2,4],w:.5,txt:{
+  u_talk2:{minD:6,ty:1,aw:2,tier:2,kind:'stand',speech:true,dur:[2,4],w:.5,txt:{
     any:['거기 누구 없어요?','누가 부른 것 같은데.','여긴 정말 내 집이 맞나?','하늘이 왜 항상 똑같지?'],
     curious:['누가 있는 거 맞죠?','저기요, 거기 누구 있어요?'],
     anxious:['누가 나를 보고 있는 것 같아.','방금 누가 있었던 것 같은데.'],
     rational:['이상하네, 분명 누가 있었는데.','착각이겠지.'],
     avoidant:['…아무도 없지?','신경 쓰지 말자.'],
     resigned:['여기 이웃들을 만난 적이 없네.','불러도 아무도 안 오겠지.']}},
-  u_talk3:{ty:1,aw:3,tier:3,kind:'stand',speech:true,dur:[2,5],w:.5,txt:{
+  u_talk3:{minD:12,ty:1,aw:3,tier:3,kind:'stand',speech:true,dur:[2,5],w:.5,txt:{
     any:['거기서 나 보고 있지?','넌 누구야?','보지 말아줘.'],
     curious:['넌 누구야, 어디서 보는 거야?','거기서 보면 여기가 어떻게 보여?'],
     anxious:['제발 보지 말아줘.','계속 지켜보고 있는 거 알아.'],
     rational:['분명히 누가 보고 있어.','대답해 줘, 거기 누구야?'],
     avoidant:['보지 말아줘.','내 쪽은 그만 봤으면 좋겠어.'],
     resigned:['어차피 보고 있겠지.','또 거기서 보고 있구나.']}},
-  u_talk4:{ty:7,aw:3,tier:4,kind:'stand',speech:true,dur:[2,5],w:.45,txt:{
+  u_talk4:{minD:20,ty:7,aw:3,tier:4,kind:'stand',speech:true,dur:[2,5],w:.45,txt:{
     any:['날 여기서 내보내줘.','내보내 달란 말이야!!','여기서 나가고 싶어.'],
     curious:['이 밖에는 뭐가 있어?','나가는 길을 알려줘.'],
     anxious:['제발 날 내보내줘!','더는 못 있겠어.'],
@@ -327,7 +327,7 @@ const EVENTS={
     resigned:['같은 이야기를 한 번 더 하고 어깨를 으쓱하는 중']}},
   u_n_off:{ty:7,aw:3,tier:3,kind:'stand',dur:[3,8],w:.6,txt:{
     any:['아무도 보지 않을 때를 기다리듯 방 안을 한 바퀴 둘러보는 중','혼자일 때는 안 하던 인사를 허공에 건네는 중']}},
-  u_n_say1:{ty:1,aw:2,tier:2,kind:'stand',speech:true,dur:[2,4],w:.5,txt:{
+  u_n_say1:{minD:8,ty:1,aw:2,tier:2,kind:'stand',speech:true,dur:[2,4],w:.5,txt:{
     any:['방금 누가 내 이름 불렀어?','…내 얘기 듣고 있었어?','아, 아니야, 혼잣말이야.'],
     curious:['저기요, 혹시 누구 계세요?'],anxious:['아무도 없는 거 맞죠?'],rational:['소리가 났는데, 아니겠지.'],
     avoidant:['…아니야, 그냥 해 본 소리야.'],resigned:['대답은 없겠지만, 그냥 말해 볼게.']}},
@@ -347,12 +347,12 @@ const EVENTS={
   u_n_say6:{ty:6,aw:3,tier:3,kind:'stand',speech:true,dur:[2,5],w:.45,txt:{
     any:['나 방금도 이 말 했었나?','기억은 있는데, 출처를 모르겠어.','왜 기분이 좋은지 모르겠는데, 좋아.'],
     anxious:['아무도 안 불렀는데 대답하게 돼.'],resigned:['내가 여기 언제부터 있었지.'],avoidant:['…그런 건 생각 안 할래.']}},
-  u_n_say7:{ty:7,aw:3,tier:3,kind:'stand',speech:true,dur:[2,5],w:.45,txt:{
+  u_n_say7:{minD:14,ty:7,aw:3,tier:3,kind:'stand',speech:true,dur:[2,5],w:.45,txt:{
     any:['오늘은 재미있었어요?','이 정도면 괜찮았죠?','더 보여 드릴까요?'],
     curious:['다음엔 뭘 해 볼까요?'],anxious:['잘 하고 있는 거죠?'],avoidant:['…이제 그만 봐도 되는데.'],resigned:['보시는 대로 하면 되죠.']}},
-  u_n_obs:{ty:1,aw:2,tier:2,kind:'stand',speech:true,dur:[2,5],w:.45,ladder:[
-    [1,'오늘도 조용하네요, 혼잣말이에요.'],[5,'아까부터 누가 있는 것 같아서요.'],[10,'대답은 안 해도 되는데, 듣고 있죠?'],
-    [18,'계속 보고 계시면, 말씀해 주세요.'],[28,'이제 안 보는 척 안 해도 돼요.']],txt:{any:[]}},
+  u_n_obs:{minD:8,ty:1,aw:2,tier:2,kind:'stand',speech:true,dur:[2,5],w:.45,ladder:[
+    [8,'오늘도 조용하네요, 혼잣말이에요.'],[11,'아까부터 누가 있는 것 같아서요.'],[15,'대답은 안 해도 되는데, 듣고 있죠?'],
+    [21,'계속 보고 계시면, 말씀해 주세요.'],[30,'이제 안 보는 척 안 해도 돼요.']],txt:{any:[]}},
 
 };
 const KINDS=Object.keys(EVENTS);
@@ -500,6 +500,7 @@ function hooks(s,now,opts){
       const E=EVENTS[id];if(!E)return false;const u=ensure(s,cid,now),P=progress(u,cid,now);
       if(E.tier>tierMax(P,u.b))return false;
       if(E.aw&&E.aw>awMax(cid,R(cid,A)))return false;
+      if(E.minD&&stayDays(u,now)<E.minD)return false;   // 관찰자(사용자)를 인지하는 대사는 체류가 길어진 뒤에만
       if(now-(u.last[id]||0)<UNCANNY.repeat.kindCooldown[E.tier])return false;
       if(E.speech&&now-(u.lastTalk||0)<UNCANNY.talk.gap)return false;
       if(E.ladder&&!E.ladder.some(x=>x[0]<=stayDays(u,now)))return false;

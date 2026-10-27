@@ -634,7 +634,7 @@ function anHtml(A){
   return `<div class="hint">프로필에 적힌 사실</div><div class="vv-an">${facts}</div>
   <div class="hint">규칙 추정 (행동 확률만 조정)</div><div class="vv-an">${traits}</div>
   ${cls?`<div class="hint">문장별로 읽은 행동 패턴</div><ul class="vv-cl">${cls}</ul>`:''}
-  ${A.status?`<div class="hint">일하기 규칙</div><div class="vv-an"><span class="vv-tag fact">${esc(({student:'학생',jobseeker:'취준생',jobless:'백수',unemployed:'무직'})[A.status.kind])}: 「알바하러 가기」를 누르면 아르바이트를 하러 나가요 (프리랜서·직장인으로 보지 않아요)</span></div>`:A.job?`<div class="hint">일하기 규칙</div><div class="vv-an"><span class="vv-tag fact">${A.job.kind==='freelance'?'프리랜서: 집에서 컴퓨터·책상으로 일하는 모습이 나와요':'평일(공휴일 제외) 오전 9시~오후 6시에 일하러 나가요'}${A.job.night?' · 밤·새벽 근무 단어가 있어 18시 이후에도 일할 수 있어요':''}</span></div>`:''}
+  ${(!A.status&&A.job&&A.job.kind==='parttime')?`<div class="hint">일하기 규칙</div><div class="vv-an"><span class="vv-tag fact">알바: 「알바하러 가기」를 누르면 아르바이트를 하러 나가요</span></div>`:A.status?`<div class="hint">일하기 규칙</div><div class="vv-an"><span class="vv-tag fact">${esc(({student:'학생',jobseeker:'취준생',jobless:'백수',unemployed:'무직'})[A.status.kind])}: 「알바하러 가기」를 누르면 아르바이트를 하러 나가요 (프리랜서·직장인으로 보지 않아요)</span></div>`:A.job?`<div class="hint">일하기 규칙</div><div class="vv-an"><span class="vv-tag fact">${A.job.kind==='freelance'?'프리랜서: 집에서 컴퓨터·책상으로 일하는 모습이 나와요':'평일(공휴일 제외) 오전 9시~오후 6시에 일하러 나가요'}${A.job.night?' · 밤·새벽 근무 단어가 있어 18시 이후에도 일할 수 있어요':''}</span></div>`:''}
   ${hob.length?`<div class="hint">가구 없이도 즐길 수 있는 취미·좋아하는 것</div><div class="vv-an">${hob.map(w=>`<span class="vv-tag">${esc(w)}</span>`).join('')}</div>`:''}`}
 function renderDetail(){
   const el=q('#vvDetail'),c=selChar&&Viv.char(selChar);
@@ -654,8 +654,9 @@ function renderDetail(){
     wishHtml=`<div class="vv-wishes">${base.map(wb).join('')}</div>${care.length?`<div class="hint vv-carehd">반려동물 돌보기</div><div class="vv-wishes">${care.map(wb).join('')}</div>`:''}<div id="vvWmsg" class="vv-wmsg"></div>`+opts.filter(o=>!o.ok).map(o=>`<div class="vv-why">· ${esc(o.label)}: ${esc(o.why)}</div>`).join('')}
   const facts=A.factList.map(f=>`<span class="vv-tag fact">${esc(f.label)}: ${esc(f.text)}</span>`).join('')||'<span class="hint">명시된 사실이 없어요</span>';
   const traits=A.traitList.map(t=>`<span class="vv-tag${t.v<0?' neg':''}" title="찾은 단어: ${esc(t.words.join(', '))}">${esc(t.label)} <small>${esc(t.words.slice(0,2).join('·'))}</small></span>`).join('')||'<span class="hint">읽어 낼 단서가 없어 기본 생활 규칙으로 움직여요</span>';
-  el.innerHTML=`<h3>${esc(dispName)}</h3>
-  <div class="vv-pic${mm?' vv-uc-bad':(UVw.st==='damaged'?' vv-uc-dmg':'')}">${IMG[c.id]?`<img src="${IMG[c.id]}" alt="${esc(c.name)}" onerror="VivUI.imgBad('${esc(c.id)}')">`:'<span>이미지 없음</span>'}</div>
+  const canPen=!ro&&!mm;
+  el.innerHTML=`<h3><span class="vv-nm">${esc(dispName)}</span>${canPen?'<button type="button" class="vv-pen" id="vdPenN" title="이름 수정" aria-label="이름 수정">✎</button>':''}</h3>
+  <div class="vv-pic${mm?' vv-uc-bad':(UVw.st==='damaged'?' vv-uc-dmg':'')}">${IMG[c.id]?`<img src="${IMG[c.id]}" alt="${esc(c.name)}" onerror="VivUI.imgBad('${esc(c.id)}')">`:'<span>이미지 없음</span>'}</div>${canPen?'<button type="button" class="vv-pen vv-pen-img" id="vdPenI" title="이미지 수정" aria-label="이미지 수정">✎</button><input type="file" id="vdImgF" accept="image/png,image/jpeg,image/webp,image/gif" hidden>':''}
   <p class="vv-phrase">${esc(d.phrase)}</p>
   <dl><dt>현재 위치</dt><dd>${esc(d.loc)}</dd><dt>현재 행동</dt><dd>${esc(d.act)}</dd><dt>다음 행동</dt><dd id="vvNextAct">${placed?esc(nextText(st)):'-'}</dd>${isRem?`<dt>등록한 사람</dt><dd>${esc(owner||'참여자')}${c.mine?' (나)':''}</dd>`:''}<dt>프로필</dt><dd class="vv-prof">${ro?(profText(c)?esc(profText(c)):'<span class="hint">프로필이 비어 있어요</span>'):`<textarea id="vdProf" rows="5" maxlength="${Viv.PROFILE_MAX}" placeholder="성격·직업·취미·생활 습관을 적어 주세요. 고치면 아래 해석이 바로 바뀌고 자동 저장돼요.">${esc(profText(c))}</textarea><span class="hint" id="vdProfSt">고치면 자동으로 저장돼요</span>`}</dd></dl>
   ${pet?'':'<div id="vvMind"></div>'}${pet?petPanel(c,pet):petCarePanel(c)}
@@ -663,12 +664,22 @@ function renderDetail(){
   <p class="hint">고르면 가능한 조건(가구·길·서울 시각)을 확인해 바로 반영하고, 이후 한동안 그 방향이 조금 더 자주 나와요. 고르지 않아도 자율 행동은 계속돼요.</p>
   ${pet?'':`<h4>프로필 해석 <small>키워드 규칙 · AI 아님</small></h4>
   <div id="vdAn">${anHtml(A)}</div>`}
-  <h4>배치</h4>
-  <label>집 <select id="vdHouse" ${ro||isRem?'disabled':''}>${hopts}</select></label>
   <label>크기(높이 cm) <span class="row"><input type="range" id="vdSz" min="${HMIN}" max="${HMAX}" value="${Math.round(p.h)}" ${placed&&!out&&!ro?'':'disabled'}><input type="number" id="vdSzN" min="${HMIN}" max="${HMAX}" value="${Math.round(p.h)}" ${placed&&!out&&!ro?'':'disabled'}></span></label>
-  <div class="vv-btns"><button id="vdEdit" ${ro?'disabled':''}>프로필 수정</button><button id="vdDel" class="vv-danger" ${ro?'disabled':''}>삭제</button></div>`;
+  <div class="vv-btns"><button id="vdDel" class="vv-danger" ${ro?'disabled':''}>삭제</button></div>`;
   if(!pet)mindFill(q('#vvMind',el),c);
-  q('#vdEdit').onclick=()=>openForm(c.id);
+  /* 이름·이미지는 상세 머리말의 연필로 바로 고침(수정 대화상자 없이 같은 저장 경로 사용) */
+  const quick=async(d,prep)=>{if(c.remote)await SH().updateChar(c.id,Viv.validate?Viv.validate(d):d,prep);else await Viv.saveChar(d,prep,c.id);
+    if(prep){delete IMG[c.id];const u=await Viv.imageUrl(c.id);if(u)IMG[c.id]=u}
+    const s2=qa('.vv-slide')[activeIdx];s2&&drawChars(s2);renderList();renderDetail()};
+  {const pn=q('#vdPenN',el);if(pn)pn.onclick=()=>{const nm=q('.vv-nm',el);if(!nm||q('input',nm))return;
+    const inp=document.createElement('input');inp.className='vv-nmin';inp.maxLength=Viv.NAME_MAX;inp.value=c.name;nm.textContent='';nm.appendChild(inp);inp.focus();inp.select();pn.hidden=true;
+    let done=false;const end=async ok=>{if(done)return;done=true;const v2=inp.value.trim();
+      if(!ok||!v2||v2===c.name){renderDetail();return}
+      try{await quick({name:v2,profile:withTag(c,profText(c))},null)}catch(ex){note(ex.message||String(ex),'warn');renderDetail()}};
+    inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();end(true)}else if(e.key==='Escape'){e.stopPropagation();end(false)}};inp.onblur=()=>end(true)}}
+  {const pi2=q('#vdPenI',el),fi=q('#vdImgF',el);if(pi2&&fi){pi2.onclick=()=>fi.click();
+    fi.onchange=async()=>{const f=fi.files[0];if(!f)return;
+      try{const prep=await Viv.prepareImage(f,c.remote?{bytes:1100*1024}:undefined);await quick({name:c.name,profile:withTag(c,profText(c))},prep)}catch(ex){note(ex.message||String(ex),'warn')}}}}
   {const ta=q('#vdProf',el);if(ta){let tm=0,last=profText(c);const stEl=q('#vdProfSt',el);
     ta.oninput=()=>{   // 입력하는 즉시 해석을 새로 읽어 보여 주고, 잠시 멈추면 자동 저장
       const an=q('#vdAn',el);if(an)an.innerHTML=anHtml(Sim.analyze(ta.value,c.name,humansIn(p.house)));
@@ -680,7 +691,7 @@ function renderDetail(){
     ta.onblur=()=>{clearTimeout(tm);if(ta.value!==last)save()}}}
   q('#vdDel').onclick=async()=>{if(!confirm(c.remote?`'${c.name}' 캐릭터를 삭제할까요? 서버에서 이미지와 프로필이 지워져요.`:`'${c.name}' 캐릭터를 삭제할까요? 이미지와 프로필이 이 브라우저에서 지워져요.`))return;
     try{if(c.remote)await SH().removeChar(c.id);else await Viv.removeChar(c.id)}catch(e){note(e.message,'warn');return}if(MD()){MD().forget(MD().store.get(),c.id);MD().store.save()}if(UC()){UC().forget(UC().store.get(),c.id);UC().store.save()}if(mindSel===c.id)mindSel=null;selChar=null;delete IMG[c.id];const s=qa('.vv-slide')[activeIdx];s&&drawChars(s);renderList();renderDetail()};
-  q('#vdHouse').onchange=e=>{const v=e.target.value;
+  const hsel=q('#vdHouse');if(hsel)hsel.onchange=e=>{const v=e.target.value;
     if(!v)Viv.setPlace(c.id,{house:null,mode:'home',say:'',tgt:null,verb:'',pose:'stand',dy:0,e:null});
     else{Viv.setPlace(c.id,{house:v,x:null,f:0,mode:'home',say:'',tgt:null,verb:'',pose:'stand',dy:0,e:null});Viv.setSim(c.id,{decideAt:0,then:null,outUntil:0})}
     refreshStage(v)};

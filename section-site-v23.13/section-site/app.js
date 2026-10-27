@@ -185,33 +185,20 @@ function outerGeo(a){const b=S.b,f=a.f;if(!(f>=0&&f<b.f))return null;
  const run=Math.max(60,a.run||Math.round(rise*1.7)),n=a.n>=3?Math.min(60,Math.round(a.n)):Math.max(3,Math.round(rise/17.5)),rs=rise/n,tr=run/(n-1);
  const out=side==='L'?-1:1;                      // 건물 밖으로 향하는 방향
  const eLo=Math.min(eB,eT);
- if(a.kind==='zig'){   // 외부계단(비상계단). 한 층만 오르면: 벽에 붙은 승강장 + 지면까지 이어지는 한 줄 계단. 여러 층이면: 건물 바깥 계단실(바깥 벽 포함)에 층마다 번갈아 옆면(사선)·정면(칸칸이) 계단 구간이 이어짐
-  const th=16,pt=Math.max(6,Math.min(60,a.lt||12)),lv=[eB];const cand=[];for(let k=0;k<S.b.f;k++){const e=lvl(k);if(e>Math.min(eB,eT)+8&&e<Math.max(eB,eT)-8)cand.push(e)}
+ if(a.kind==='zig'){   // 외부계단(비상계단): 정면에서 본 모양 — 층마다 가로로 긴 참(승강장), 그 사이를 채워진 계단 구간(단 구분선)이 건물 쪽/바깥 쪽으로 번갈아 놓이고, 바깥쪽에 세로 기둥(벽)이 섬
+  const pt=Math.max(6,Math.min(60,a.lt||12)),lv=[eB];const cand=[];for(let k=0;k<S.b.f;k++){const e=lvl(k);if(e>Math.min(eB,eT)+8&&e<Math.max(eB,eT)-8)cand.push(e)}
   cand.sort((x,y)=>up?x-y:y-x);cand.forEach(e=>lv.push(e));lv.push(eT);
-  const nst=lv.length-1,sr=rise/nst,fl=Math.max(120,a.run||Math.round(sr*1.0)),pl=Math.max(50,a.land||70),ns=a.n>=3?Math.min(40,Math.round(a.n)):Math.max(3,Math.round(sr/17.5));
-  const polys=[],thin=[],slab=(x0,x1,h)=>polys.push([[x0,h],[x1,h],[x1,h-pt],[x0,h-pt]]);
-  const flight=(xa,ha,xb,hb)=>{const P=[[xa,ha]];for(let j=0;j<ns;j++){const xj=xa+(xb-xa)*j/ns,xk=xa+(xb-xa)*(j+1)/ns,hj=ha+(hb-ha)*(j+1)/ns;P.push([xj,hj]);P.push([xk,hj])}P.push([xb,hb-th]);P.push([xa,ha-th]);polys.push(P)};
-  const lo=Math.min(eB,eT);
-  if(nst<=1){   // ── 한 층: 벽에 붙은 승강장 + 지면으로 내려오는 계단
-   const xe=edge+out*pl,xf=edge+out*(pl+fl);slab(edge,xe,eT);flight(xe,eT,xf,eB);
-   thin.push([[xe,eT],[xe,eT+90]],[[xe,eT+90],[xf,eB+sr/ns+90]],[[xf,eB],[xf,eB+sr/ns+90]]);   // 난간
-   thin.push([[edge,eB],[xf+out*14,eB]],[[xf,eB],[xf,eB-30]]);                                    // 바닥 보와 지지 기둥
-   const xmn=Math.min(edge,xf+out*14),xmx=Math.max(edge,xf+out*14);
-   return {poly:[],polys,rail:[],land:null,thin,voidX:null,xs:[xmn,xmx],outer:true,zig:true,hit:[xmn,lo-30,xmx,Math.max(eB,eT)+90]}}
-  // ── 여러 층: 바깥 계단실
-  const fw=Math.max(40,a.fw||pl+40),wsh=Math.max(pl+fl+15,fw+15),xo=edge+out*wsh,xW=edge+out*pl,xO=edge+out*(wsh-15),top=eT;
-  polys.push([[xo,lo],[xo+out*8,lo],[xo+out*8,top+110],[xo,top+110]]);                              // 바깥 벽(계단실 바깥쪽 벽)
-  for(let i=0;i<nst;i++){const h0=lv[i],h1=lv[i+1],diag=i%2===0;
-   if(diag){const toWall=i%4===0;if(toWall)flight(xO,h0,xW,h1);else flight(xW,h0,xO,h1);
-    thin.push(toWall?[[xO,h0+90],[xW,h1+90]]:[[xW,h0+90],[xO,h1+90]])}
-   else{const x0=edge,x1=edge+out*fw;polys.push([[x0,h0],[x1,h0],[x1,h1],[x0,h1]]);   // 정면에서 본 구간: 기존 계단 앞면처럼 면을 채우고 단 구분선을 그림
-    for(let j=1;j<ns;j++){const y=h0+(h1-h0)*j/ns;thin.push([[x0,y],[x1,y]])}}
-   const last=i===nst-1,toWallEnd=diag&&i%4===0;
-   if(toWallEnd)slab(edge,xW,h1);else slab(edge,xo,h1)                                              // 층마다 참: 벽 쪽에서 끝나면 짧게, 아니면 계단실 폭 전체
-  }
-  thin.push([[xo,top+90],[xo,top+110]]);
-  const xmn=Math.min(edge,xo+out*8),xmx=Math.max(edge,xo+out*8);
-  return {poly:[],polys,rail:[],land:null,thin,voidX:null,xs:[xmn,xmx],outer:true,zig:true,hit:[xmn,lo-10,xmx,top+110]}}
+  const nst=lv.length-1,sr=rise/nst,W=Math.max(120,a.run>=60?a.run:240),fw=Math.max(40,Math.min(W-20,a.fw>=40?a.fw:Math.round(W*.55))),ns=a.n>=3?Math.min(40,Math.round(a.n)):Math.max(3,Math.round(sr/17.5));
+  const polys=[],thin=[],lo=Math.min(eB,eT),hiL=Math.max(eB,eT),wb=14;
+  const xo=edge+out*W;                                                     // 참의 바깥 끝(기둥 안쪽 면)
+  const rect=(xa,xb,h0,h1)=>polys.push([[xa,h0],[xb,h0],[xb,h1],[xa,h1]]);
+  lv.forEach(h=>{if(h>lo+.5)rect(edge,xo,h-pt,h)});                         // 층마다 참(맨 아래 지면 높이는 제외)
+  for(let i=0;i<nst;i++){const h0=Math.min(lv[i],lv[i+1]),h1=Math.max(lv[i],lv[i+1])-pt,nearBldg=i%2===0;
+   const xa=nearBldg?edge:edge+out*(W-fw),xb=nearBldg?edge+out*fw:xo;
+   rect(xa,xb,h0,h1);for(let j=1;j<ns;j++){const y=h0+(h1-h0)*j/ns;thin.push([[xa,y],[xb,y]])}}
+  rect(xo,xo+out*wb,lo,hiL);                                                // 바깥 기둥(벽)
+  const xmn=Math.min(edge,xo+out*wb),xmx=Math.max(edge,xo+out*wb);
+  return {poly:[],polys,rail:[],land:null,thin,voidX:null,xs:[xmn,xmx],outer:true,zig:true,hit:[xmn,lo-10,xmx,hiL+10]}}
  const poly2=[[edge+out*run,eLo]];
  for(let i=0;i<n;i++){const xo=edge+out*(run-i*tr),h=eB+(eT-eB)*(i+1)/n;poly2.push([xo,h]);if(i<n-1)poly2.push([edge+out*(run-(i+1)*tr),h])}
  poly2.push([edge,eT]);poly2.push([edge,eLo]);
@@ -509,8 +496,8 @@ function inspector(){const ob=findObj(sel),body=$('#inspBody'),H=$('#insp h4');
   body.innerHTML=`${opt('종류','ok',[['door','문'],['window','창문']],o.kind)}${opt('층','of',floorOpts(),o.f)}${opt('붙는 곳','oo',onOpts(o.f),o.on)}${back?fld('중심 x(cm)','ox',o.x,0,5)+fld('폭(cm)','ow',o.w,20,5):''}${fld('바닥에서 높이(cm)','os',o.sill,0,5)}${fld('개구부 높이(cm)','oh',o.h,20,5)}${stdBtns}<div class="hint" style="margin-top:6px">${back?'뒷벽 개구부는 입면으로 보이는 문·창문이에요.':'벽에 뚫린 단면 개구부예요 (벽 두께만큼).'} 도면에서 위아래로 끌 수 있어요.</div>`;
   bind('#ok',v=>o.kind=v);bind('#of',v=>{o.f=+v;if(o.on!=='back'&&o.on!=='L'&&o.on!=='R')o.on='back'});bind('#oo',v=>o.on=v);bind('#ox',v=>o.x=clamp(v,bounds().l,bounds().r));bind('#ow',v=>o.w=Math.max(20,v));bind('#os',v=>o.sill=clamp(v,0,fh(o.f)-s_(o.f)-20));bind('#oh',v=>o.h=clamp(v,20,fh(o.f)-s_(o.f)-o.sill))}
  else if(ob.k==='stair'&&o.type==='outer'){const ZG=o.kind==='zig';H.textContent=stairName(o);
-  body.innerHTML=`${opt('종류','otype',OUT_TYPES,ZG?'emerg':'porch')}${opt('도착 층 (문·테라스가 있는 층)','of',floorOpts(),o.f)}${opt('출발','ofrom',[[-1,'지면'],...floorOpts().filter(([k])=>k!==o.f).map(([k,t])=>[k,t+' 바닥'])],o.from>=0?o.from:-1)}${opt('붙는 쪽','oside',[['R','오른쪽 바깥'],['L','왼쪽 바깥']],o.side||'R')}${fld(ZG?'계단 한 줄의 수평 길이(cm, 0=자동)':'수평 길이(cm, 0=자동)','orun',o.run||0,0,10)}${fld(ZG?'한 줄 단 수(0=자동)':'단 수(0=자동)','on_',o.n||0,0,1)}${ZG?fld('참(승강장) 길이(cm)','olnd',o.land||70,50,10)+fld('참(승강장) 두께(cm)','olt',o.lt||12,6,2)+fld('정면 구간 폭(cm, 0=자동)','ofw',o.fw||0,0,10):''}${opt('재질','omat',MATS,o.mat||'concrete')}${stdBtns}<div class="hint" style="margin-top:6px">${ZG?'건물 바깥에 붙은 비상계단이에요. 한 층만 오르면 승강장과 한 줄 계단, 여러 층이면 바깥 계단실에 층마다 방향이 번갈아 이어져요. ':''}외벽 바깥쪽에 붙어 지면(또는 다른 층)과 문턱을 이어요. 지면보다 낮은 지하 현관이면 아래로 내려가는 계단이 돼요. 1층 바닥이 지면보다 높아야 현관 계단이 생겨요(건물 탭의 '1층 바닥 높이').</div>`;
-  bind('#otype',v=>{if(v==='emerg'){o.kind='zig';o.mat='steel';o.land=o.land||70}else{delete o.kind;o.mat='concrete'}});bind('#of',v=>o.f=+v);bind('#ofrom',v=>o.from=+v);bind('#oside',v=>o.side=v);bind('#orun',v=>o.run=v>=60?v:0);bind('#on_',v=>o.n=v>=3?Math.min(60,Math.round(v)):0);bind('#omat',v=>o.mat=v);if(ZG){bind('#olnd',v=>o.land=Math.max(50,v));bind('#olt',v=>o.lt=clamp(v,6,60));bind('#ofw',v=>o.fw=v>=40?v:0)}}
+  body.innerHTML=`${opt('종류','otype',OUT_TYPES,ZG?'emerg':'porch')}${opt('도착 층 (문·테라스가 있는 층)','of',floorOpts(),o.f)}${opt('출발','ofrom',[[-1,'지면'],...floorOpts().filter(([k])=>k!==o.f).map(([k,t])=>[k,t+' 바닥'])],o.from>=0?o.from:-1)}${opt('붙는 쪽','oside',[['R','오른쪽 바깥'],['L','왼쪽 바깥']],o.side||'R')}${fld(ZG?'계단실 전체 폭(cm, 0=자동)':'수평 길이(cm, 0=자동)','orun',o.run||0,0,10)}${fld(ZG?'한 줄 단 수(0=자동)':'단 수(0=자동)','on_',o.n||0,0,1)}${ZG?fld('참(승강장) 두께(cm)','olt',o.lt||12,6,2)+fld('계단 구간 폭(cm, 0=자동)','ofw',o.fw||0,0,10):''}${opt('재질','omat',MATS,o.mat||'concrete')}${stdBtns}<div class="hint" style="margin-top:6px">${ZG?'건물 바깥에 붙은 비상계단을 정면에서 본 모양이에요. 층마다 가로로 긴 참이 있고, 그 사이 계단 구간이 건물 쪽·바깥 쪽으로 번갈아 놓여요. 계단실 전체 폭과 계단 구간 폭을 따로 조절할 수 있어요. ':''}외벽 바깥쪽에 붙어 지면(또는 다른 층)과 문턱을 이어요. 지면보다 낮은 지하 현관이면 아래로 내려가는 계단이 돼요. 1층 바닥이 지면보다 높아야 현관 계단이 생겨요(건물 탭의 '1층 바닥 높이').</div>`;
+  bind('#otype',v=>{if(v==='emerg'){o.kind='zig';o.mat='none'}else{delete o.kind;o.mat='concrete'}});bind('#of',v=>o.f=+v);bind('#ofrom',v=>o.from=+v);bind('#oside',v=>o.side=v);bind('#orun',v=>o.run=v>=60?v:0);bind('#on_',v=>o.n=v>=3?Math.min(60,Math.round(v)):0);bind('#omat',v=>o.mat=v);if(ZG){bind('#olt',v=>o.lt=clamp(v,6,60));bind('#ofw',v=>o.fw=v>=40?v:0)}}
  else if(ob.k==='terr'){H.textContent='테라스';
   body.innerHTML=`${opt('바닥 높이(층)','tf',terrFloorOpts(),o.f)}${fld('왼쪽 끝 x(cm)','tx0',o.x0,undefined,5)}${fld('오른쪽 끝 x(cm)','tx1',o.x1,undefined,5)}${opt('난간','tr',RAIL_TYPES,o.rail)}${opt('구성','ts',[['1','바닥 + 난간'],['0','난간만 (이미 바닥이 있는 곳)']],o.slab===false?'0':'1')}${stdBtns}<div class="hint" style="margin-top:6px">도면에서 좌우로 끌어 옮길 수 있어요. 난간은 왼쪽·오른쪽 끝 사이 전체에 그려져요.</div>`;
   bind('#tf',v=>o.f=clamp(+v,0,S.b.f));bind('#tx0',v=>o.x0=Math.min(v,o.x1-20));bind('#tx1',v=>o.x1=Math.max(v,o.x0+20));bind('#tr',v=>o.rail=v);bind('#ts',v=>o.slab=v==='1')}
@@ -724,7 +711,7 @@ $('#tfAdd').onclick=()=>{const f=+$('#tfFloor').value,side=$('#tfSide').value,w=
 $('#oxAdd').onclick=()=>{const f=+$('#oxFloor').value,side=$('#oxSide').value;let note='';
  if($('#oxType').value==='emerg'){   // 외부계단(지그재그): 도착 층 = 고른 층, 출발은 지면
   if(!(f>=0&&f<=S.b.f-1)){msg('붙일 층을 골라 주세요');return}
-  const z={id:uid(),type:'outer',kind:'zig',f,from:-1,side,run:0,n:0,mat:'steel',dir:1,x:0,land:70};S.stairs.push(z);sel=z.id;commit();sync();render();fit();
+  const z={id:uid(),type:'outer',kind:'zig',f,from:-1,side,run:0,n:0,mat:'none',dir:1,x:0};S.stairs.push(z);sel=z.id;commit();sync();render();fit();
   msg(stairGeo(z)?'외부계단을 추가했어요. 구간 길이·참 길이·재질은 오른쪽 속성창에서 바꿀 수 있어요.':'이 층은 지면과 높이가 같아 계단이 보이지 않아요. 속성창에서 출발을 다른 층으로 바꿔 주세요.');return}
  if(f===BB()&&Math.abs(lvl(f)-gE())<8){S.b.rz=Math.max(S.b.rz||0,45);note=' 현관 앞 계단을 만들려고 1층 바닥을 지면보다 45cm 높였어요(건물 탭에서 조절)'}
  const a={id:uid(),type:'outer',f,from:-1,side,run:0,n:0,mat:'concrete',dir:1,x:0};S.stairs.push(a);sel=a.id;commit();sync();render();fit();
