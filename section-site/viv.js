@@ -8,7 +8,7 @@ const {norm,render,exportSvg,EH,lvl,sl,fnameKo,OPT,STAIR_ASSET,art,ART,applyVP,p
 const q=(s,r)=>(r||document).querySelector(s),qa=(s,r)=>[...(r||document).querySelectorAll(s)];
 const G=Sim.GROUPS,REDUCE=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
 const HMIN=8,HMAX=400;
-let editFitted=false,mode='viv',houses=[],activeIdx=0,selChar=null,IMG={},token=0,clockT=0,simT=0,shareT=0,booted=false;
+let mode='edit',houses=[],activeIdx=0,selChar=null,IMG={},token=0,clockT=0,simT=0,shareT=0,booted=false;
 const SH=()=>window.VivShare||null;
 const shareOn=()=>!!(SH()&&SH().enabled());
 const curShare=()=>{const h=houses[activeIdx];return h&&h.shared?h.shared:null};    // 지금 보는 집이 공유 집이면 {hid,role}
@@ -95,7 +95,7 @@ function drawDoc(doc){
     const x0=ex.x0,y0=ex.y0,w=ex.w,h=ex.h;
     const geo=buildGeo(S,b);
     const text=ex.text.replace(/<rect x="[^"]*" y="[^"]*" width="[^"]*" height="[^"]*" fill="#f7f6f2"\/>/,'');   // 도면 바깥 종이색 사각형(집 둘레의 테두리처럼 보이던 것)은 관찰 화면에서 뺌
-    return {text,x0,y0,w,h,geo,gy:b.rz||0,dk:JSON.stringify(doc)}
+    return {text,x0,y0,w,h,geo,gy:b.rz||0}
   }finally{B.S=keepS;B.sel=keepSel;render()}}   // 편집기 문서 원상 복구
 
 /* ---------- 위치·행동 문구 ---------- */
@@ -116,7 +116,7 @@ function build(){
   <aside class="vv-side"><h3>캐릭터 <small id="vvCount"></small></h3><div id="vvChars"></div><button id="vvAdd" class="vv-primary">＋ 캐릭터 등록</button>
    <p class="vv-note"><b>저장 범위</b> 내 집의 캐릭터는 <b>이 브라우저(이 기기)에만</b> 저장돼요. 다른 기기에서는 보이지 않고, 사이트 데이터를 지우면 사라져요. 「집 공유하기」로 만든 공유 집의 캐릭터는 서버에 저장돼 초대 코드로 들어온 사람들과 함께 봐요. 도면 원본과는 따로 저장되며, 캐릭터를 올리거나 옮겨도 도면은 바뀌지 않아요.</p></aside>
   <section class="vv-main"><div class="vv-bar"><b id="vvHouse"></b><span class="vv-sp"></span><span id="vvPal" class="vv-pal" title="내 화면의 색감 (다른 사람에게는 영향 없음)"><small>색감</small>${Object.keys(PALS).map(k=>`<button type="button" data-pal="${k}" title="${PALS[k].n}" aria-label="${PALS[k].n}" style="background:linear-gradient(135deg,${PALS[k].sw[0]} 0 38%,${PALS[k].sw[1]} 38% 68%,${PALS[k].sw[2]} 68%)"></button>`).join('')}</span><span id="vvClock" title="Asia/Seoul 기준"></span><button id="vvHood" hidden title="이웃으로 등록한 집들을 나란히 놓고 보기">동네 보기</button><button id="vvShare" title="초대 코드로 다른 사람과 이 집을 함께 쓰기">집 공유하기</button><button id="vvRefresh">도면 새로고침</button></div><div id="vvNote" class="vv-note2" hidden></div><div id="vvOuts" class="vv-outs" hidden></div>
-   <div id="vvEmpty" class="vv-empty" hidden><h2>아직 내 집이 없어요!</h2><p>직접 단면도를 만들어 집을 꾸미거나, 받은 초대 코드로 「입장하기」를 눌러 다른 사람의 집에 들어갈 수 있어요.</p><button id="vvGoEdit" class="vv-primary">집 만들기</button></div>
+   <div id="vvEmpty" class="vv-empty" hidden><h2>저장된 도면이 없어요</h2><p>비바리움은 「단면도 편집」 탭에서 만든 도면을 불러와 보여줘요.<br>먼저 단면도를 만들고 가구를 배치해 보세요. 편집 내용은 이 브라우저에 자동 저장되고, 「내 단면도」 목록에서 이름을 붙여 둘 수 있어요.</p><button id="vvGoEdit" class="vv-primary">단면도 편집으로 이동</button></div>
    <div id="vvCar" class="vv-car"><button class="vv-arrow" id="vvPrev" aria-label="이전 집">‹</button><div id="vvTrack" class="vv-track"></div><button class="vv-arrow" id="vvNext" aria-label="다음 집">›</button></div><div id="vvDots" class="vv-dots"></div></section>
   <aside class="vv-detail" id="vvDetail"></aside></div>`;
   const dlg=document.createElement('dialog');dlg.id='vvDlg';document.body.appendChild(dlg);
@@ -138,8 +138,8 @@ function go(m){
   if(m==='viv'&&!booted){booted=true;build()}
   mode=m;document.body.classList.toggle('mode-viv',m==='viv');
   qa('.vnav button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
-  try{history.replaceState(null,'',m==='viv'?'#viv':'#edit')}catch(e){}
-  if(m==='viv')enter();else{clearInterval(clockT);clearInterval(simT);clearInterval(shareT);try{applyVP();render();if(!editFitted){editFitted=true;requestAnimationFrame(()=>{try{B.fit&&B.fit()}catch(e){}})}}catch(e){}}
+  try{history.replaceState(null,'',m==='viv'?'#viv':location.pathname+location.search)}catch(e){}
+  if(m==='viv')enter();else{clearInterval(clockT);clearInterval(simT);clearInterval(shareT);try{applyVP();render()}catch(e){}}
 }
 /* v23.4 이미지가 비어 있거나(아직 못 받음) 깨진(만료된 blob 주소) 캐릭터는 다시 받아 와 그 자리에 채움 — 외출 중·손님 캐릭터도 포함 */
 let imgTry={};
@@ -195,29 +195,16 @@ async function ensureStage(slide,h){
    도면 SVG 는 연필 번짐 필터·해칭 패턴이 무거워서, 확대·이동할 때마다 다시 그리면 버벅인다.
    → 한 번 그림(WebP/PNG)으로 구워 두고 그 그림만 움직인다. 아주 크게 확대했을 때만 가만히 멈춘 순간에 원본 벡터로 바꿔 또렷하게 보여 준다. */
 const MOBILE=()=>matchMedia('(max-width:900px)').matches||(('ontouchstart' in window)&&Math.min(innerWidth,innerHeight)<820);
-/* 구운 도면 그림 저장소(IndexedDB, 최근 8장만). 실패하면 조용히 건너뛰고 매번 굽는다 */
-const BAKE_DB='viv-bake-v1';let _bdb=null;
-function bakeDb(){return _bdb||(_bdb=new Promise(res=>{try{const r=indexedDB.open(BAKE_DB,1);r.onupgradeneeded=()=>r.result.createObjectStore('b',{keyPath:'k'});r.onsuccess=()=>res(r.result);r.onerror=r.onblocked=()=>res(null)}catch(e){res(null)}}))}
-const BAKE_VER='23.15';   // 도면을 그리는 방식이 바뀌면 올려서 옛 저장본을 쓰지 않게 함
-function bakeKey(doc,W,H){let h=2166136261;const t=BAKE_VER+'|'+doc+'|'+palId;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)+'.'+t.length+'.'+W+'x'+H}
-async function bakeGet(k){try{const db=await bakeDb();if(!db)return null;return await new Promise(res=>{const r=db.transaction('b').objectStore('b').get(k);r.onsuccess=()=>res(r.result&&r.result.blob||null);r.onerror=()=>res(null)})}catch(e){return null}}
-async function bakePut(k,blob){try{const db=await bakeDb();if(!db)return;const tx=db.transaction('b','readwrite'),os=tx.objectStore('b');os.put({k,blob,t:Date.now()});
-  const all=os.getAll();all.onsuccess=()=>{const rows=(all.result||[]).sort((a,b)=>b.t-a.t);rows.slice(8).forEach(r=>os.delete(r.k))}}catch(e){}}
 async function bake(slide){
   const snap=slide&&slide._snap,im=slide&&q('.vv-bg',slide);if(!im||!snap)return;const key=slide._url;
   try{
-    const st=q('.vv-stage',slide),dpr=Math.min(window.devicePixelRatio||1,2),cap=MOBILE()?1800:2800;
-    let W=Math.min(cap,Math.round(Math.max(st&&st.offsetWidth||0,500)*dpr*2)),H=Math.round(W*snap.h/snap.w);if(H>cap){H=cap;W=Math.round(H*snap.w/snap.h)}
-    /* 새로고침 때마다 다시 굽지 않도록 같은 도면·팔레트·크기면 저장해 둔 그림을 바로 재사용 (굽는 데 모바일에서 1초 이상 걸림) */
-    const ck=bakeKey(snap.dk||snap.text,W,H);let blob=await bakeGet(ck);
+    if(!im.complete)await new Promise((r,j)=>{im.addEventListener('load',r,{once:true});im.addEventListener('error',j,{once:true})});
+    await new Promise(r=>(window.requestIdleCallback||setTimeout)(r,{timeout:700}));
     if(slide._url!==key)return;
-    if(!blob){
-      if(!im.complete)await new Promise((r,j)=>{im.addEventListener('load',r,{once:true});im.addEventListener('error',j,{once:true})});
-      await new Promise(r=>(window.requestIdleCallback||setTimeout)(r,{timeout:700}));
-      if(slide._url!==key)return;
-      const cv=document.createElement('canvas');cv.width=W;cv.height=H;cv.getContext('2d').drawImage(im,0,0,W,H);
-      blob=await new Promise(r=>cv.toBlob(r,'image/webp',.88));if(!blob||blob.type!=='image/webp')blob=await new Promise(r=>cv.toBlob(r,'image/png'));
-      if(blob&&slide._url===key)bakePut(ck,blob)}
+    const st=q('.vv-stage',slide),dpr=Math.min(window.devicePixelRatio||1,2),cap=MOBILE()?2048:3600;
+    let W=Math.min(cap,Math.round(Math.max(st&&st.offsetWidth||0,500)*dpr*2.5)),H=Math.round(W*snap.h/snap.w);if(H>cap){H=cap;W=Math.round(H*snap.w/snap.h)}
+    const cv=document.createElement('canvas');cv.width=W;cv.height=H;cv.getContext('2d').drawImage(im,0,0,W,H);
+    let blob=await new Promise(r=>cv.toBlob(r,'image/webp',.92));if(!blob||blob.type!=='image/webp')blob=await new Promise(r=>cv.toBlob(r,'image/png'));
     if(!blob||slide._url!==key||!im.isConnected)return;
     const u=URL.createObjectURL(blob),old=slide._rast;slide._rast=u;slide._rastW=W;
     await new Promise(r=>{const t=new Image();t.onload=r;t.onerror=r;t.src=u});   // 화면에 바꾸기 전에 미리 디코딩
@@ -1031,9 +1018,9 @@ function init(){
   const nav=document.createElement('nav');nav.className='vnav';nav.innerHTML='<button data-m="viv">비바리움 관찰</button><button data-m="edit" class="on">단면도 편집</button><button class="vjoin" id="vvJoin" title="초대 코드로 다른 사람의 집에 들어가기">입장하기</button><button class="vjoin vnb" id="vvNb" title="초대 코드를 등록한 집과 이웃이 되어 서로 놀러 가기">이웃하기</button>';
   q('#top .logo').after(nav);qa('button[data-m]',nav).forEach(b=>b.onclick=()=>go(b.dataset.m));q('#vvJoin',nav).onclick=()=>{if(!booted){booted=true;build()}openJoin()};q('#vvNb',nav).onclick=()=>{if(!booted){booted=true;build()}openNb()};if(SH())SH().onChange(onShareChange);
   const sec=document.createElement('section');sec.id='viv';document.body.appendChild(sec);
-  window.addEventListener('hashchange',()=>go(location.hash==='#edit'?'edit':'viv'));
+  window.addEventListener('hashchange',()=>go(location.hash==='#viv'?'viv':'edit'));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)simTick()});
-  go(location.hash==='#edit'?'edit':'viv');   // v23.15 처음 열면 「비바리움 관찰」 탭(집이 없으면 「아직 내 집이 없어요!」 안내)
+  if(location.hash==='#viv')go('viv');
   window.VivUI={nbFor:id=>nbFor(id).map(h=>h.name),nbDump:()=>({srv:nbSrv,houses:houses.map(h=>h.id+"|"+h.name),idx:activeIdx}),go,isBlank,getHouses,drawDoc,describe,runSim,simTick,note,imgBad,uc:{fx:ucFx,view:ucView,isMiss,refresh:ucRefresh,garble:ucGarble}};
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();

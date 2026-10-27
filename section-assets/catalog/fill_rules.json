@@ -1,0 +1,217 @@
+{
+ "reading-area/front": {
+  "exclude": [
+   [
+    0.8325,
+    0.6537
+   ],
+   [
+    0.2537,
+    0.4283
+   ],
+   [
+    0.8538,
+    0.3268
+   ]
+  ],
+  "include": []
+ },
+ "tea-kettle/front": {
+  "exclude": [
+   [
+    0.8369,
+    0.265
+   ]
+  ],
+  "include": []
+ },
+ "tea-set/front": {
+  "exclude": [
+   [
+    0.8988,
+    0.3067
+   ]
+  ],
+  "include": []
+ },
+ "traditional-kettle/rightSide": {
+  "exclude": [
+   [
+    0.7524,
+    0.2212
+   ]
+  ],
+  "include": []
+ },
+ "kitchen-pots-1/front": {
+  "exclude": [
+   [
+    0.4838,
+    0.1209
+   ]
+  ],
+  "include": []
+ },
+ "kitchen-pots-2/front": {
+  "exclude": [
+   [
+    0.4862,
+    0.1336
+   ]
+  ],
+  "include": []
+ },
+ "kitchen-pots-3/front": {
+  "exclude": [
+   [
+    0.5,
+    0.167
+   ]
+  ],
+  "include": []
+ },
+ "gas-hobs/front": {
+  "exclude": [
+   [
+    0.0338,
+    0.4298
+   ],
+   [
+    0.1775,
+    0.4298
+   ],
+   [
+    0.2775,
+    0.4298
+   ],
+   [
+    0.4088,
+    0.4298
+   ]
+  ],
+  "include": [],
+  "fine": true
+ },
+ "accessible-stove/front": {
+  "exclude": [
+   [
+    0.4675,
+    0.5899
+   ],
+   [
+    0.06,
+    0.8669
+   ],
+   [
+    0.7675,
+    0.8669
+   ]
+  ],
+  "include": []
+ },
+ "kitchen-utensils-rack/front": {
+  "exclude": [
+   [
+    0.1675,
+    0.2197
+   ],
+   [
+    0.2625,
+    0.2197
+   ],
+   [
+    0.3575,
+    0.2197
+   ],
+   [
+    0.6438,
+    0.2138
+   ],
+   [
+    0.595,
+    0.3955
+   ],
+   [
+    0.68,
+    0.6152
+   ]
+  ],
+  "include": []
+ },
+ "kitchen-decorations-condiments-3/front": {
+  "exclude": [
+   [
+    0.065,
+    0.7771
+   ],
+   [
+    0.1662,
+    0.8274
+   ],
+   [
+    0.3612,
+    0.7731
+   ],
+   [
+    0.51,
+    0.8274
+   ],
+   [
+    0.7887,
+    0.8274
+   ],
+   [
+    0.6462,
+    0.7678
+   ],
+   [
+    0.9338,
+    0.7784
+   ]
+  ],
+  "include": []
+ },
+ "hanging-clothes-v1/rightSide": {
+  "exclude": [
+   [
+    0.2315,
+    0.3375
+   ],
+   [
+    0.5032,
+    0.1788
+   ],
+   [
+    0.6291,
+    0.0862
+   ]
+  ],
+  "include": []
+ },
+ "modern-desk/front": {
+  "exclude": [
+   [
+    0.2875,
+    0.5688
+   ],
+   [
+    0.055,
+    0.7508
+   ],
+   [
+    0.605,
+    0.8323
+   ]
+  ],
+  "include": []
+ },
+ "fuel-container/rightSide": {
+  "exclude": [
+   [
+    0.1094,
+    0.0612
+   ]
+  ],
+  "include": []
+ }
+}

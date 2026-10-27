@@ -26,5 +26,4 @@ if not any(views.values()):sys.exit('front/leftSide/rightSide.svg 중 하나는 
 J['assets'].append({'assetId':i,'nameKo':g.name,'nameEn':i,'categoryId':g.cat,'subcategoryId':g.cat,'tags':[g.name],'source':{'file':'manual'},'classification':{'basis':'manual','confidence':'high'},'views':views,'extraViews':{},'reviewReasons':[],'errors':[],'sizeSource':'manual','unit':{'name':'cm','toCm':1},'defaultSizeCm':{'width':g.width_cm,'height':g.height_cm,'depth':g.depth_cm},'placement':{'origin':'bottom-center'},'viewBox':(views['front'] or next(v for v in views.values() if v))['viewBox'],'status':'ok'})
 json.dump(J,open(R+'catalog/assets.json','w',encoding='utf-8'),ensure_ascii=False,indent=1)
 subprocess.check_call([sys.executable,H+'/refill.py',i]);subprocess.check_call([sys.executable,H+'/make_thumbs.py',i])
-subprocess.check_call([sys.executable,H+'/make_web_catalog.py'])
 subprocess.call([sys.executable,H+'/validate_assets.py'])
