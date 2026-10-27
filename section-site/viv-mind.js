@@ -228,6 +228,15 @@ function targets(s,c,env,loc){
   for(const o of loc.sameRoom||[]){const R=s.rel[pk(c.id,o)];if(!R)continue;const g2=agg(s,c.id,o,env.now),nm=env.name(o);
     if(g2.negPow>=25){const k=Math.min(30,g2.negPow*.4);T.anxious+=k*.6;T.irritated+=k*.5;C.anxious=C.irritated=`${nm}와(과) 함께 있으니 지난 일이 떠올라서`}
     if(g2.posPow>=25&&R.aff>=20){const k=Math.min(18,g2.posPow*.25);T.happy+=k;C.happy=`${nm}와(과) 함께 있어서`;T.lonely*=.6}}
+  /* v23.22 위화감 → 현재 감정: 체류가 길어지고 이상현상을 겪어 마음이 무거울수록 감정이 달라짐. 성격(반응 유형)마다 방향이 다르다 */
+  {const U=env.unc&&!sleeping&&!out?env.unc(c.id):null;
+    if(U&&U.st&&U.st!=='stable'){const lv={uneasy:1,unstable:2,damaged:3}[U.st]||0,b=U.b||0,stay=Math.min(12,Math.max(0,U.days-2)*.8),rc=U.rc||'rational';
+      const k=Math.min(55,b*.55+stay);   // 위화감의 무게(0~55)
+      const mul={anxious:{anxious:1.15,irritated:.25,tired:.15},curious:{anxious:.35,curious:.5},rational:{anxious:.75,irritated:.15},avoidant:{anxious:.5,lonely:.45},resigned:{anxious:.55,sad:.45,tired:.2}}[rc]||{anxious:.7};
+      for(const id in mul)T[id]=(T[id]||0)+k*mul[id]*(1+.12*lv);
+      T.calm=Math.max(0,T.calm-Math.min(30,k*.5));
+      if(k>=8){const why={anxious:'이 집에서 자꾸 이상한 느낌이 들어서',curious:'이 집의 이상한 점이 계속 마음에 걸려서',rational:'설명되지 않는 위화감이 이어져서',avoidant:'이상한 느낌을 애써 외면하다 보니 마음이 가라앉아서',resigned:'바뀌지 않는 이상한 일상에 지쳐서'}[rc]||'이상한 느낌이 이어져서';
+        if(mul.anxious)C.anxious=why;if(mul.sad)C.sad=why;if(mul.lonely&&(T.lonely||0)>=SHOW_MIN)C.lonely=why;if(mul.curious&&(T.curious||0)>=SHOW_MIN)C.curious=why}}}
   for(const k of EMO_IDS)T[k]=clamp(T[k],0,100);
   return {T,C}}
 function tickChar(s,c,env,loc){
@@ -285,7 +294,7 @@ function applyEvent(s,ev,env){
    ===================================================================== */
 const PAIR_VERB={bg_pair:'play',bg_floor:'play',pillow:'affection',love_aff:'affection',love_crush:'talk'};
 function makeEnv(s,inp){const byId={};inp.chars.forEach(c=>byId[c.id]=c);
-  return {now:inp.now,hour:inp.hour,day:inp.day,char:id=>byId[id]||null,name:id=>(byId[id]||{}).name||'상대',A:id=>inp.A(byId[id]||{id,name:'',profile:''})}}
+  return {now:inp.now,hour:inp.hour,day:inp.day,char:id=>byId[id]||null,name:id=>(byId[id]||{}).name||'상대',A:id=>inp.A(byId[id]||{id,name:'',profile:''}),unc:id=>(inp.unc?inp.unc(id):null)}}
 function update(s,inp){
   s=migrate(s);const env=makeEnv(s,inp),now=inp.now,log=[],ids=inp.chars.map(c=>c.id);
   /* 0) 같은 집 캐릭터끼리는 처음 만날 때 관계(유형·친밀도)와 첫 생각을 준비 — 프로필에 적힌 관계가 있으면 그대로 반영 */

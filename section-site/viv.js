@@ -8,7 +8,7 @@ const {norm,render,exportSvg,EH,lvl,sl,fnameKo,OPT,STAIR_ASSET,art,ART,applyVP,p
 const q=(s,r)=>(r||document).querySelector(s),qa=(s,r)=>[...(r||document).querySelectorAll(s)];
 const G=Sim.GROUPS,REDUCE=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
 const HMIN=8,HMAX=400;
-let mode='edit',houses=[],activeIdx=0,selChar=null,IMG={},token=0,clockT=0,simT=0,shareT=0,booted=false;
+let editFitted=false,mode='viv',houses=[],activeIdx=0,selChar=null,IMG={},token=0,clockT=0,simT=0,shareT=0,booted=false;
 const SH=()=>window.VivShare||null;
 const shareOn=()=>!!(SH()&&SH().enabled());
 const curShare=()=>{const h=houses[activeIdx];return h&&h.shared?h.shared:null};    // 지금 보는 집이 공유 집이면 {hid,role}
@@ -36,7 +36,9 @@ async function preload(doc){
   (doc.items||[]).forEach(it=>{const a=B.AM[it.assetId],v=a&&a.views&&a.views[it.view];if(v){urls.add(v.svg);if(OPT.fill&&v.fill)urls.add(v.fill)}});
   (doc.stairs||[]).forEach(s=>{const k=STAIR_ASSET[s.type];if(k)addA(B.AM[k.id])});
   const t0=Date.now();
-  while(Date.now()-t0<8000){let all=true;for(const u of urls){art(u,true);if(!(ART[u]&&ART[u].ready))all=false}if(all)break;await new Promise(r=>setTimeout(r,60))}}
+  const tries={};let bad=false;
+  while(Date.now()-t0<8000){let all=true,wait=60;bad=false;for(const u of urls){art(u,true);const e=ART[u];if(!(e&&e.ready))all=false;else if(e.err){bad=true;tries[u]=(tries[u]||0)+1;if(tries[u]<=3){delete ART[u];all=false;wait=500}}}   // 읽기 실패한 그림은 몇 번 다시 시도 (빈 그림이 굳어 저장되지 않게)
+    if(all)return !bad;await new Promise(r=>setTimeout(r,wait))}return false}   // 시간 안에 다 못 읽으면 false (빈 상자로 그려진 그림을 저장해 두지 않기 위해)
 /* 도면에서 시뮬레이션에 필요한 기하만 뽑는다: 층·방(내벽 구간)·문·창문·계단 끝점·가구(분류 메타 포함). S 를 읽기만 한다. */
 function buildGeo(S,b){
   const ex_=b.ext||[],lo_=Math.min(...(ex_.length?ex_.map(e=>e.l):[0])),hi_=Math.max(...(ex_.length?ex_.map(e=>e.r):[b.w]));
@@ -54,8 +56,15 @@ function buildGeo(S,b){
     if(g.asset){const A=g.asset;if(a.type==='spiral'){xb=xt=A.x+A.w*.5}else{xb=dir>0?A.x+A.w*.12:A.x+A.w*.88;xt=dir>0?A.x+A.w*.88:A.x+A.w*.12}}
     else{xb=a.x;if(a.type==='U')xt=a.x;else if(g.land&&a.type!=='straight')xt=dir>0?g.land[1]:g.land[0];else xt=g.xt}
     geo.stairs.push({f:a.f,xb,xt})});
+  /* v23.17: 외벽 밖 마당 — 1층(지면) 외벽 바깥, 지면 높이에 놓인 에셋이 있는 쪽마다 구역을 만든다(캐릭터가 문으로 나가 상호작용) */
+  const gE=-(b.rz||0),X0=XL_(g0),X1=XR_(g0);geo.groundE=gE;geo.g0=g0;
+  const yl=[],yr=[],isYard=i=>Math.abs((+i.e||0)-gE)<=14&&(i.x+(i.w||0)/2<=X0-2||i.x-(i.w||0)/2>=X1+2);
+  S.items.forEach(i=>{if(!isYard(i))return;(i.x<X0?yl:yr).push(i)});
+  if(yl.length||yr.length){geo.yard={};
+    if(yl.length)geo.yard.L={l:Math.max(X0-3000,Math.min(X0-262,...yl.map(i=>i.x-(i.w||0)/2-80))),r:X0-2};
+    if(yr.length)geo.yard.R={l:X1+2,r:Math.min(X1+3000,Math.max(X1+262,...yr.map(i=>i.x+(i.w||0)/2+80)))}}
   S.items.forEach(i=>{const a=B.AM[i.assetId]||{},fv=a.views&&a.views.front;
-    let f=0;geo.floors.forEach(fl=>{if(fl.e<=i.e+3)f=fl.k});
+    let f=0;geo.floors.forEach(fl=>{if(fl.e<=i.e+3)f=fl.k});if(isYard(i))f=g0;
     geo.items.push({uid:i.uid,aid:i.assetId,x:i.x,e:i.e,w:i.w,h:i.h,f,name:a.nameKo||'가구',en:a.nameEn||'',cat:a.categoryId||'',sub:a.subcategoryId||'',tags:a.tags||[],sb:(fv&&fv.sourceBlock)||''})});
   return geo}
 /* ---------- 색감 팔레트 (보는 사람 개인 설정: 이 브라우저에만 저장, 공유·서버·도면 원본과 무관) ---------- */
@@ -95,7 +104,7 @@ function drawDoc(doc){
     const x0=ex.x0,y0=ex.y0,w=ex.w,h=ex.h;
     const geo=buildGeo(S,b);
     const text=ex.text.replace(/<rect x="[^"]*" y="[^"]*" width="[^"]*" height="[^"]*" fill="#f7f6f2"\/>/,'');   // 도면 바깥 종이색 사각형(집 둘레의 테두리처럼 보이던 것)은 관찰 화면에서 뺌
-    return {text,x0,y0,w,h,geo,gy:b.rz||0}
+    return {text,x0,y0,w,h,geo,gy:b.rz||0,dk:JSON.stringify(doc)}
   }finally{B.S=keepS;B.sel=keepSel;render()}}   // 편집기 문서 원상 복구
 
 /* ---------- 위치·행동 문구 ---------- */
@@ -115,8 +124,8 @@ function build(){
   sec.innerHTML=`<div class="vv-wrap">
   <aside class="vv-side"><h3>캐릭터 <small id="vvCount"></small></h3><div id="vvChars"></div><button id="vvAdd" class="vv-primary">＋ 캐릭터 등록</button>
    <p class="vv-note"><b>저장 범위</b> 내 집의 캐릭터는 <b>이 브라우저(이 기기)에만</b> 저장돼요. 다른 기기에서는 보이지 않고, 사이트 데이터를 지우면 사라져요. 「집 공유하기」로 만든 공유 집의 캐릭터는 서버에 저장돼 초대 코드로 들어온 사람들과 함께 봐요. 도면 원본과는 따로 저장되며, 캐릭터를 올리거나 옮겨도 도면은 바뀌지 않아요.</p></aside>
-  <section class="vv-main"><div class="vv-bar"><b id="vvHouse"></b><span class="vv-sp"></span><span id="vvPal" class="vv-pal" title="내 화면의 색감 (다른 사람에게는 영향 없음)"><small>색감</small>${Object.keys(PALS).map(k=>`<button type="button" data-pal="${k}" title="${PALS[k].n}" aria-label="${PALS[k].n}" style="background:linear-gradient(135deg,${PALS[k].sw[0]} 0 38%,${PALS[k].sw[1]} 38% 68%,${PALS[k].sw[2]} 68%)"></button>`).join('')}</span><span id="vvClock" title="Asia/Seoul 기준"></span><button id="vvHood" hidden title="이웃으로 등록한 집들을 나란히 놓고 보기">동네 보기</button><button id="vvShare" title="초대 코드로 다른 사람과 이 집을 함께 쓰기">집 공유하기</button><button id="vvRefresh">도면 새로고침</button></div><div id="vvNote" class="vv-note2" hidden></div><div id="vvOuts" class="vv-outs" hidden></div>
-   <div id="vvEmpty" class="vv-empty" hidden><h2>저장된 도면이 없어요</h2><p>비바리움은 「단면도 편집」 탭에서 만든 도면을 불러와 보여줘요.<br>먼저 단면도를 만들고 가구를 배치해 보세요. 편집 내용은 이 브라우저에 자동 저장되고, 「내 단면도」 목록에서 이름을 붙여 둘 수 있어요.</p><button id="vvGoEdit" class="vv-primary">단면도 편집으로 이동</button></div>
+  <section class="vv-main"><div class="vv-bar"><b id="vvHouse"></b><select id="vvRoomSel" class="vv-roomsel" title="방별 보기" aria-label="방별 보기" hidden></select><span class="vv-sp"></span><span id="vvPal" class="vv-pal" title="내 화면의 색감 (다른 사람에게는 영향 없음)"><small>색감</small>${Object.keys(PALS).map(k=>`<button type="button" data-pal="${k}" title="${PALS[k].n}" aria-label="${PALS[k].n}" style="background:linear-gradient(135deg,${PALS[k].sw[0]} 0 38%,${PALS[k].sw[1]} 38% 68%,${PALS[k].sw[2]} 68%)"></button>`).join('')}</span><span id="vvClock" title="Asia/Seoul 기준"></span><button id="vvHood" hidden title="이웃으로 등록한 집들을 나란히 놓고 보기">동네 보기</button><button id="vvShare" title="초대 코드로 다른 사람과 이 집을 함께 쓰기">집 공유하기</button><button id="vvRefresh">도면 새로고침</button></div><div id="vvNote" class="vv-note2" hidden></div><div id="vvOuts" class="vv-outs" hidden></div>
+   <div id="vvEmpty" class="vv-empty" hidden><h2>아직 내 집이 없어요!</h2><p>직접 단면도를 만들어 집을 꾸미거나, 받은 초대 코드로 「입장하기」를 눌러 다른 사람의 집에 들어갈 수 있어요.</p><button id="vvGoEdit" class="vv-primary">집 만들기</button></div>
    <div id="vvCar" class="vv-car"><button class="vv-arrow" id="vvPrev" aria-label="이전 집">‹</button><div id="vvTrack" class="vv-track"></div><button class="vv-arrow" id="vvNext" aria-label="다음 집">›</button></div><div id="vvDots" class="vv-dots"></div></section>
   <aside class="vv-detail" id="vvDetail"></aside></div>`;
   const dlg=document.createElement('dialog');dlg.id='vvDlg';document.body.appendChild(dlg);
@@ -138,11 +147,16 @@ function go(m){
   if(m==='viv'&&!booted){booted=true;build()}
   mode=m;document.body.classList.toggle('mode-viv',m==='viv');
   qa('.vnav button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
-  try{history.replaceState(null,'',m==='viv'?'#viv':location.pathname+location.search)}catch(e){}
-  if(m==='viv')enter();else{clearInterval(clockT);clearInterval(simT);clearInterval(shareT);try{applyVP();render()}catch(e){}}
+  try{history.replaceState(null,'',m==='viv'?'#viv':'#edit')}catch(e){}
+  if(m==='viv')enter();else{clearInterval(clockT);clearInterval(simT);clearInterval(shareT);try{applyVP();render();if(!editFitted){editFitted=true;requestAnimationFrame(()=>{try{B.fit&&B.fit()}catch(e){}})}}catch(e){}}
 }
+/* v23.4 이미지가 비어 있거나(아직 못 받음) 깨진(만료된 blob 주소) 캐릭터는 다시 받아 와 그 자리에 채움 — 외출 중·손님 캐릭터도 포함 */
+let imgTry={};
+function imgFill(){for(const c of Viv.chars()){if(!c.img||IMG[c.id])continue;const t=imgTry[c.id]||0;if(Date.now()-t<15000)continue;imgTry[c.id]=Date.now();
+  (async()=>{try{const u=await Viv.imageUrl(c.id);if(u){IMG[c.id]=u;const sl=qa('.vv-slide')[activeIdx];if(sl)drawChars(sl);renderList();softDetail()}}catch(e){}})()}}
+function imgBad(id){delete IMG[id];delete imgTry[id];imgFill()}
 async function loadImages(){IMG={};for(const c of Viv.chars()){try{const u=await Viv.imageUrl(c.id);if(u)IMG[c.id]=u}catch(e){}}}
-function tick(){const el=q('#vvClock');if(el)el.textContent='서울 '+Viv.seoul().text}
+function tick(){const el=q('#vvClock');if(el)el.textContent=(clockFx>Date.now()?'서울 --:--':'서울 '+Viv.seoul().text)}
 /* 편집기가 에셋 목록·저장 슬롯을 다 읽을 때까지 기다린다(비바리움 탭에서 새로고침했을 때 "저장된 도면 없음"으로 잘못 보이는 것을 막음) */
 const whenReady=()=>new Promise(res=>{const t0=Date.now();(function chk(){if((B.ready&&Object.keys(B.AM).length)||Date.now()-t0>8000)res();else setTimeout(chk,80)})()});
 async function enter(force){
@@ -168,38 +182,54 @@ function renderDots(){const d=q('#vvDots');d.innerHTML=houses.map((h,i)=>`<butto
   q('#vvPrev').disabled=activeIdx<=0;q('#vvNext').disabled=activeIdx>=houses.length-1;q('#vvPrev').hidden=q('#vvNext').hidden=houses.length<2;d.hidden=houses.length<2}
 async function activate(i,silent){
   const my=token;activeIdx=i;const h=houses[i];if(!h)return;
-  q('#vvHouse').textContent=`${h.name}${houses.length>1?`  (${i+1}/${houses.length})`:''}`;renderDots();Viv.setUi({house:h.id});
+  q('#vvHouse').textContent=`${h.name}${houses.length>1?`  (${i+1}/${houses.length})`:''}`;renderDots();Viv.setUi({house:h.id});fillRoomTop();
   const slide=qa('.vv-slide')[i];await ensureStage(slide,h);if(my!==token)return;
   if(selChar){const p=Viv.getPlace(selChar);if(p.house!==h.id&&!silent)selChar=null}
   runSim(i,false);   // 이 집을 열 때: 지금 서울 시각에 맞는 행동으로 한 번 갱신(오프라인 동안의 행동은 재생하지 않음)
   drawChars(slide);renderList();renderDetail();shareLabel();
   (window.requestIdleCallback||setTimeout)(()=>{if(my!==token)return;[i+1,i-1].forEach(j=>{const h2=houses[j],sl2=qa('.vv-slide')[j];if(h2&&sl2&&!sl2._snap)ensureStage(sl2,h2)})},{timeout:2500})}   // 옆 집도 미리 그려 둠(넘길 때 기다리지 않게)
+const YARD_WARNED=new Set();
 async function ensureStage(slide,h){
   if(slide._key===h.key&&slide._snap)return;
   const wrap=q('.vv-stagewrap',slide);
   try{
-    await preload(h.doc);const snap=drawDoc(h.doc);snap.world=Sim.buildWorld(snap.geo);
+    const okArt=await preload(h.doc);const snap=drawDoc(h.doc);snap.inc=!okArt;snap.world=Sim.buildWorld(snap.geo);
+    if(!h.shared&&snap.world.segs.some(sg=>sg.yard&&!sg.door)&&!YARD_WARNED.has(h.id)){YARD_WARNED.add(h.id);setTimeout(()=>note('외벽 밖에 놓인 에셋이 있지만 1층 외벽에 문이 없어서 캐릭터가 나갈 수 없어요. 단면도 편집에서 1층 외벽에 문을 달아 주세요.','warn'),700)}
     if(slide._url)URL.revokeObjectURL(slide._url);if(slide._rast){URL.revokeObjectURL(slide._rast);slide._rast=null}
     const url=palUrl(snap);slide._url=url;slide._snap=snap;slide._key=h.key;
     wrap.innerHTML=`<div class="vv-stage" style="--ar:${snap.w/snap.h};aspect-ratio:${snap.w}/${snap.h}"><div class="vv-gnd" style="top:${((snap.gy-snap.y0)/snap.h*100).toFixed(3)}%"></div><img class="vv-bg" alt="${esc(h.name)} 단면도" src="${url}" draggable="false" decoding="async"><svg class="vv-ov" viewBox="${snap.x0} ${snap.y0} ${snap.w} ${snap.h}" xmlns="${NSV}"></svg></div>`;
     q('.vv-stage',slide).addEventListener('pointerdown',e=>{if(e.target.closest('.vv-ch'))return;if(selChar){selChar=null;drawChars(slide);renderList();renderDetail()}});
     initZoom(slide,wrap);bake(slide);
+    if(snap.inc&&(slide._retry=(slide._retry||0)+1)<=4){const key0=slide._key;setTimeout(()=>{if(slide._key===key0&&slide._snap===snap){slide._key=null;ensureStage(slide,h).then(()=>{if(slide===qa('.vv-slide')[activeIdx]){drawChars(slide)}})}},2500)}else if(!snap.inc)slide._retry=0
   }catch(e){wrap.innerHTML=`<div class="vv-wait">도면을 불러오지 못했어요 (${esc(e.message||e)})</div>`}}
 
 /* ---------- 성능: 도면을 한 번만 비트맵으로 구워서 보여 줌 ----------
    도면 SVG 는 연필 번짐 필터·해칭 패턴이 무거워서, 확대·이동할 때마다 다시 그리면 버벅인다.
    → 한 번 그림(WebP/PNG)으로 구워 두고 그 그림만 움직인다. 아주 크게 확대했을 때만 가만히 멈춘 순간에 원본 벡터로 바꿔 또렷하게 보여 준다. */
 const MOBILE=()=>matchMedia('(max-width:900px)').matches||(('ontouchstart' in window)&&Math.min(innerWidth,innerHeight)<820);
+/* 구운 도면 그림 저장소(IndexedDB, 최근 8장만). 실패하면 조용히 건너뛰고 매번 굽는다 */
+const BAKE_DB='viv-bake-v1';let _bdb=null;
+function bakeDb(){return _bdb||(_bdb=new Promise(res=>{try{const r=indexedDB.open(BAKE_DB,1);r.onupgradeneeded=()=>r.result.createObjectStore('b',{keyPath:'k'});r.onsuccess=()=>res(r.result);r.onerror=r.onblocked=()=>res(null)}catch(e){res(null)}}))}
+const BAKE_VER='23.22';   // 도면을 그리는 방식이 바뀌면 올려서 옛 저장본을 쓰지 않게 함
+function bakeKey(doc,W,H){let h=2166136261;const t=BAKE_VER+'|'+doc+'|'+palId;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)+'.'+t.length+'.'+W+'x'+H}
+async function bakeGet(k){try{const db=await bakeDb();if(!db)return null;return await new Promise(res=>{const r=db.transaction('b').objectStore('b').get(k);r.onsuccess=()=>res(r.result&&r.result.blob||null);r.onerror=()=>res(null)})}catch(e){return null}}
+async function bakePut(k,blob){try{const db=await bakeDb();if(!db)return;const tx=db.transaction('b','readwrite'),os=tx.objectStore('b');os.put({k,blob,t:Date.now()});
+  const all=os.getAll();all.onsuccess=()=>{const rows=(all.result||[]).sort((a,b)=>b.t-a.t);rows.slice(8).forEach(r=>os.delete(r.k))}}catch(e){}}
 async function bake(slide){
   const snap=slide&&slide._snap,im=slide&&q('.vv-bg',slide);if(!im||!snap)return;const key=slide._url;
   try{
-    if(!im.complete)await new Promise((r,j)=>{im.addEventListener('load',r,{once:true});im.addEventListener('error',j,{once:true})});
-    await new Promise(r=>(window.requestIdleCallback||setTimeout)(r,{timeout:700}));
+    const st=q('.vv-stage',slide),dpr=Math.min(window.devicePixelRatio||1,2),cap=MOBILE()?1800:2800;
+    let W=Math.min(cap,Math.round(Math.max(st&&st.offsetWidth||0,500)*dpr*2)),H=Math.round(W*snap.h/snap.w);if(H>cap){H=cap;W=Math.round(H*snap.w/snap.h)}
+    /* 새로고침 때마다 다시 굽지 않도록 같은 도면·팔레트·크기면 저장해 둔 그림을 바로 재사용 (굽는 데 모바일에서 1초 이상 걸림) */
+    const ck=bakeKey(snap.dk||snap.text,W,H);let blob=await bakeGet(ck);
     if(slide._url!==key)return;
-    const st=q('.vv-stage',slide),dpr=Math.min(window.devicePixelRatio||1,2),cap=MOBILE()?2048:3600;
-    let W=Math.min(cap,Math.round(Math.max(st&&st.offsetWidth||0,500)*dpr*2.5)),H=Math.round(W*snap.h/snap.w);if(H>cap){H=cap;W=Math.round(H*snap.w/snap.h)}
-    const cv=document.createElement('canvas');cv.width=W;cv.height=H;cv.getContext('2d').drawImage(im,0,0,W,H);
-    let blob=await new Promise(r=>cv.toBlob(r,'image/webp',.92));if(!blob||blob.type!=='image/webp')blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+    if(!blob){
+      if(!im.complete)await new Promise((r,j)=>{im.addEventListener('load',r,{once:true});im.addEventListener('error',j,{once:true})});
+      await new Promise(r=>(window.requestIdleCallback||setTimeout)(r,{timeout:700}));
+      if(slide._url!==key)return;
+      const cv=document.createElement('canvas');cv.width=W;cv.height=H;cv.getContext('2d').drawImage(im,0,0,W,H);
+      blob=await new Promise(r=>cv.toBlob(r,'image/webp',.88));if(!blob||blob.type!=='image/webp')blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+      if(blob&&slide._url===key&&!snap.inc)bakePut(ck,blob)}
     if(!blob||slide._url!==key||!im.isConnected)return;
     const u=URL.createObjectURL(blob),old=slide._rast;slide._rast=u;slide._rastW=W;
     await new Promise(r=>{const t=new Image();t.onload=r;t.onerror=r;t.src=u});   // 화면에 바꾸기 전에 미리 디코딩
@@ -213,6 +243,8 @@ function bgMode(slide,mode){const im=q('.vv-bg',slide);if(!im||!slide._rast||sli
   slide._bgMode=mode;im.src=mode==='vec'?slide._url:slide._rast}
 
 /* ---------- 관찰 화면 확대/축소·이동 (내 화면에서만. 서버나 다른 사람에게는 전혀 공유되지 않음) ---------- */
+function fillRoomTop(){const sel=q('#vvRoomSel');if(!sel)return;const sl=qa('.vv-slide')[activeIdx];const o=sl&&sl._roomOpts;sel.hidden=!o;sel.innerHTML=o||'';sel.value=''}
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='vvRoomSel'){const sl=qa('.vv-slide')[activeIdx];if(sl&&sl._roomGo)sl._roomGo(e.target.value)}});
 function initZoom(slide,wrap){
   const Z=slide._z||(slide._z={k:1,x:0,y:0});const st=()=>q('.vv-stage',slide);
   let raf=0,idleT=0,D=null;
@@ -228,7 +260,19 @@ function initZoom(slide,wrap){
   Z.recheck=()=>{dims();settle()};
   wrap.classList.add('vv-zoomable');
   {const rb=document.createElement('button');rb.type='button';rb.className='vv-zreset';rb.textContent='보기 맞춤';rb.hidden=true;rb.title='확대·이동 되돌리기 (휠·두 손가락으로 확대/축소, 빈 곳을 끌어서 이동)';
-  rb.onclick=()=>{Z.k=1;Z.x=0;Z.y=0;apply(true);settle()};wrap.appendChild(rb)}
+  rb.onclick=()=>{Z.k=1;Z.x=0;Z.y=0;apply(true);settle();const zs=q('#vvRoomSel');if(zs)zs.value=''};wrap.appendChild(rb)}
+  /* 방별 보기: 방을 고르면 그 방이 화면에 차게 부드럽게 이동 (내 화면에서만). 선택창은 단면도 제목 줄(#vvRoomSel)에 있음 */
+  {const sn=slide._snap,g=sn&&sn.geo;slide._roomGo=null;slide._roomOpts='';if(g&&g.rooms&&g.rooms.length){
+    let h='<option value="">전체 보기</option>';for(let k=g.floors.length-1;k>=0;k--)g.rooms.filter(r=>r.f===k).forEach((r,i)=>{h+=`<option value="${esc(r.key)}">${esc(g.floors[k].name)} · ${esc(r.name||'방 '+(i+1))}</option>`});
+    slide._roomOpts=h;
+    let tw=0;const goTo=(k1,x1,y1)=>{cancelAnimationFrame(tw);const a={k:Z.k,x:Z.x,y:Z.y},t0=performance.now(),Dm=matchMedia('(prefers-reduced-motion:reduce)').matches?0:260;
+      const step=n=>{const u=Dm?1:Math.min(1,(n-t0)/Dm),e=u<1?1-Math.pow(1-u,3):1;Z.k=a.k+(k1-a.k)*e;Z.x=a.x+(x1-a.x)*e;Z.y=a.y+(y1-a.y)*e;moving();apply(false);if(u<1)tw=requestAnimationFrame(step)};tw=requestAnimationFrame(step)};
+    slide._roomGo=key=>{if(!key){goTo(1,0,0);return}const r=g.rooms.find(q_=>q_.key===key),fl=r&&g.floors[r.f];if(!r||!fl)return;
+      const d=dims();if(!d)return;const fx=d.w/sn.w,fy=d.h/sn.h;   // 세계 cm → 화면 px (확대 전)
+      const px0=(r.left-sn.x0)*fx,px1=(r.right-sn.x0)*fx,py0=(-fl.top-sn.y0)*fy,py1=(-fl.e-sn.y0)*fy,mg=1.12;
+      const k=Math.max(.5,Math.min(8,Math.min(d.rw/((px1-px0)*mg),d.rh/((py1-py0)*mg))));
+      goTo(k,d.rw/2-d.ox-k*(px0+px1)/2,d.rh/2-d.oy-k*(py0+py1)/2)}}
+    if(slide===qa('.vv-slide')[activeIdx])fillRoomTop()}
   apply(true);
   if(wrap._zi){wrap._zr=apply;return}
   wrap._zi=true;wrap._zr=apply;
@@ -237,7 +281,7 @@ function initZoom(slide,wrap){
     const f=Math.exp(-Math.max(-120,Math.min(120,ev.deltaY))*.0016),nk=Math.min(8,Math.max(.5,Z.k*f)),q_=nk/Z.k;
     Z.x=px-ox-(px-ox-Z.x)*q_;Z.y=py-oy-(py-oy-Z.y)*q_;Z.k=nk;moving();later()},{passive:false});
   const P=new Map();let pan=null,pin=null;
-  wrap.addEventListener('pointerdown',ev=>{if(ev.button>1||ev.target.closest('.vv-ch,.vv-zreset'))return;
+  wrap.addEventListener('pointerdown',ev=>{if(ev.button>1||ev.target.closest('.vv-ch,.vv-zreset,.vv-zroom'))return;
     P.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});try{wrap.setPointerCapture(ev.pointerId)}catch(e){}dims();
     if(P.size===2){const [a,b]=[...P.values()];const r=wrap.getBoundingClientRect();pan=null;pin={d0:Math.hypot(a.x-b.x,a.y-b.y)||1,k0:Z.k,cx:(a.x+b.x)/2-r.left,cy:(a.y+b.y)/2-r.top,x0:Z.x,y0:Z.y};wrap.classList.add('vv-panning');moving()}
     else if(P.size===1)pan={sx:ev.clientX,sy:ev.clientY,x:Z.x,y:Z.y,moved:false}});
@@ -259,7 +303,7 @@ function wrapText(t,max){const out=[];let cur='';for(const w of String(t).split(
   if(out.length>1&&[...out[out.length-1]].length<=3){const l=out.pop();out[out.length-1]+=' '+l}return out.slice(0,3)}
 function charBox(c,p,geo){const fl=floorOf(geo,p.f),ar=c.img?c.img.w/c.img.h:.6,h=p.h,w=h*ar,an=ANIM[c.id];
   const pose=an?'stand':(p.pose||'stand');let x=an?an.x:(p.x==null?geo.mid:p.x),e=an?an.e:(p.e!=null?p.e:fl.e);
-  if(!an){const half=(pose==='lie'?h:w)/2,E=geo.ext&&geo.ext[fl.k],lo=(E?E.l+geo.t:geo.in0)+half,hi=(E?E.r-geo.t:geo.in1)-half;x=lo<=hi?Math.min(Math.max(x,lo),hi):geo.mid}
+  if(!an){const half=(pose==='lie'?h:w)/2,E=geo.ext&&geo.ext[fl.k],Y=geo.yard&&fl.k===geo.g0?geo.yard:null,lo=(Y&&Y.L?Y.L.l:(E?E.l+geo.t:geo.in0))+half,hi=(Y&&Y.R?Y.R.r:(E?E.r-geo.t:geo.in1))-half;x=lo<=hi?Math.min(Math.max(x,lo),hi):geo.mid}
   return {x,w,h,e:e+(an?an.bob:0),f:fl.k,pose,vw:pose==='lie'?h:w,vh:pose==='lie'?w:h}}
 /* v22 이웃집 손님: 위치는 (손님 id + 방문 시작 시각)으로 정해 둬서, 같은 방문은 보는 사람마다 같은 자리에 보임. 방문 시작 90초 이내에 처음 그려질 때만 현관에서 걸어 들어오는 모습을 보여 줌 */
 const GUEST_SEEN=new Set();
@@ -272,19 +316,20 @@ function guestSpot(c,snap){const st=Viv.getSim(c.id),p=Viv.getPlace(c.id),geo=sn
   const first=!GUEST_SEEN.has(key);GUEST_SEEN.add(key);if(GUEST_SEEN.size>200)GUEST_SEEN.clear();
   const fresh=first&&Date.now()-(st.outAt||0)<90000&&!REDUCE;
   return {p:{...p,house:snap.hid||p.house,mode:'home',f:f0,x,e:null,pose:'stand',dy:0,h:p.h,say:p.say||''},enter:fresh,from:{x:doorX,e:fl.e,f:f0},route:[{x,e:fl.e,f:f0}]}}
-function drawChars(slide){
+function drawChars(slide){try{imgFill()}catch(e){}
   const snap=slide&&slide._snap;if(!snap)return;const ov=q('.vv-ov',slide);if(!ov)return;ov.innerHTML='';
   const hid=slide.dataset.house,geo=snap.geo,L1=mkv('g',{class:'vv-lc'},ov),L2=mkv('g',{class:'vv-lb2'},ov);Object.keys(NODES).forEach(k=>delete NODES[k]);
   const list=Viv.chars().filter(c=>{const p=Viv.getPlace(c.id);return p.house===hid&&(p.mode==='home'||ANIM[c.id])});
   list.sort((a,b)=>(a.id===selChar)-(b.id===selChar));
-  list.forEach(c=>makeChar(c,Viv.getPlace(c.id),geo,ov,slide,L1,L2));
+  if(!q('#vvucscan',ov)){const df=mkv('defs',{},ov),pt=mkv('pattern',{id:'vvucscan',width:4,height:4,patternUnits:'userSpaceOnUse'},df);mkv('rect',{width:4,height:1.2,fill:'rgba(255,255,255,.07)'},pt)}
+  list.forEach(c=>{const v=ucView(c.id);if(v.miss&&v.miss.vanished){makeMiss(c,Viv.getPlace(c.id),geo,ov,slide,L1,v);return}makeChar(c,Viv.getPlace(c.id),geo,ov,slide,L1,L2)});
   visitorsOf(hid).forEach(c=>{const gs=guestSpot(c,snap);makeChar(c,gs.p,geo,ov,slide,L1,L2,true);   // v22: 이웃집에 놀러 온 손님 — 현관으로 들어와 그 집 안에 서 있음(화면 표시 전용, 이 집 데이터는 바꾸지 않음)
     if(gs.enter){walk(slide,{id:c.id,from:gs.from,route:gs.route});const nd=NODES[c.id];if(nd)nd.lay()}});
   if(slide===qa('.vv-slide')[activeIdx]){renderOuts(slide);renderHood(slide);updNote(slide)}}
 /* v18.1: 다음 행동 갱신까지 남은 시간 — 도면 화면 오른쪽 아래에 작은 글씨로 */
 function updNote(slide){slide=slide||qa('.vv-slide')[activeIdx];if(!slide)return;const wrap=q('.vv-stagewrap',slide);if(!wrap||!slide._snap)return;
   let el=q('.vv-upd',wrap);const hid=slide.dataset.house;
-  const ids=Viv.chars().filter(c=>{const p=Viv.getPlace(c.id);return p.house===hid&&p.mode==='home'}).map(c=>c.id);
+  const ids=Viv.chars().filter(c=>{const p=Viv.getPlace(c.id);return p.house===hid&&p.mode==='home'&&!isMiss(c.id)}).map(c=>c.id);
   const now=Date.now(),ts=(selChar&&ids.includes(selChar)?[selChar]:ids).map(id=>{const st=Viv.getSim(id);return st&&st.decideAt>now?st.decideAt:0}).filter(Boolean);
   if(!ids.length){if(el)el.remove();return}
   if(!el){el=document.createElement('div');el.className='vv-upd';wrap.appendChild(el)}
@@ -297,13 +342,13 @@ function renderOuts(slide){const el=q('#vvOuts');if(el){el.hidden=true;el.innerH
   if(!outs.length){if(box)box.remove();return}
   if(!box){box=document.createElement('div');box.className='vv-outtop';wrap.appendChild(box)}
   // 집 밖에 있는 캐릭터: 도면에는 없고, 화면 왼쪽 위에 그림과 말풍선으로 나란히 보임 (같이 나간 사이면 붙어서)
-  box.innerHTML=outs.map(c=>{const p=Viv.getPlace(c.id),img=IMG[c.id];return `<div class="vv-out1" data-id="${esc(c.id)}">${img?`<img src="${img}" alt="">`:`<span class="ph">${esc([...c.name][0]||'?')}</span>`}<div class="bub"><b>${esc(c.name)}</b>${esc(p.say||'외출 중이에요')}</div></div>`}).join('')}
+  box.innerHTML=outs.map(c=>{const p=Viv.getPlace(c.id),img=IMG[c.id];return `<div class="vv-out1" data-id="${esc(c.id)}">${img?`<img src="${img}" alt="" onerror="VivUI.imgBad('${esc(c.id)}')">`:`<span class="ph">${esc([...c.name][0]||'?')}</span>`}<div class="bub"><b>${esc(c.name)}</b>${esc(p.say||'외출 중이에요')}</div></div>`}).join('')}
 function makeChar(c,p,geo,ov,slide,L1,L2,guest){
   const g=mkv('g',{class:'vv-ch'+(selChar===c.id?' sel':''),'data-id':c.id},L1),rot=mkv('g',{},g);
-  const img=IMG[c.id]?mkv('image',{href:IMG[c.id],preserveAspectRatio:'xMidYMid meet'},rot):null;
+  const img=IMG[c.id]?mkv('image',{href:IMG[c.id],preserveAspectRatio:'xMidYMid meet'},rot):null;if(img)img.addEventListener('error',()=>imgBad(c.id));
   const ph=img?null:mkv('rect',{rx:6,fill:'#ececea',stroke:'#1c1c1c','stroke-width':1.2},rot),ini=img?null:mkv('text',{'text-anchor':'middle','font-weight':'700',fill:'#444'},rot);if(ini)ini.textContent=[...c.name][0]||'?';
   const hit=mkv('rect',{fill:'transparent'},g),out=mkv('rect',{class:'vv-out',fill:'none','pointer-events':'none'},g),hd=mkv('circle',{class:'vv-handle'},g);
-  const say=p.mode==='home'&&p.say?p.say:'',lines=say?wrapText(say,16):[];
+  const fx0=sayFx[c.id]&&sayFx[c.id].until>Date.now()?sayFx[c.id].text:null,say=p.mode==='home'&&(fx0||p.say)?(fx0||p.say):'',lines=say?wrapText(say,16):[];
   const bub=mkv('g',{class:'vv-bub'+(selChar===c.id?' sel':'')},L2),bR=mkv('path',{},bub),nm=mkv('text',{class:'nm'},bub),lt=lines.map(()=>mkv('text',{},bub));
   nm.textContent=c.name+(guest?' · 손님':'');lines.forEach((l,i)=>lt[i].textContent=l);
   const snap=slide._snap,ref={c,p:{...p},geo,lay};NODES[c.id]=ref;
@@ -317,7 +362,7 @@ function makeChar(c,p,geo,ov,slide,L1,L2,guest){
     if(!say){bub.setAttribute('visibility','hidden');return b}
     bub.setAttribute('visibility','visible');
     const lh=fs*1.3,pad=fs*.55,w=Math.max(tw(c.name,fs),...lines.map(l=>tw(l,fs)))+pad*2,h=lh*(1+lines.length)+pad*1.1,tail=fs*.75;
-    const bx=Math.min(Math.max(b.x-w/2,geo.in0-30),geo.in1+30-w),by=vt-tail-h-2,tx=Math.min(Math.max(b.x,bx+pad+fs*.4),bx+w-pad-fs*.4);
+    const yL=geo.yard&&geo.yard.L?geo.yard.L.l:geo.in0,yR=geo.yard&&geo.yard.R?geo.yard.R.r:geo.in1,bx=Math.min(Math.max(b.x-w/2,Math.min(geo.in0,yL)-30),Math.max(geo.in1,yR)+30-w),by=vt-tail-h-2,tx=Math.min(Math.max(b.x,bx+pad+fs*.4),bx+w-pad-fs*.4);
     {const r=4,x2=bx+w,y2=by+h,t1=tx-fs*.4,t2=tx+fs*.4;   // 말풍선과 꼬리를 하나의 윤곽선으로 그려 꼬리 밑에 가로선이 남지 않게 함
      bR.setAttribute('d',`M${bx+r} ${by}H${x2-r}Q${x2} ${by} ${x2} ${by+r}V${y2-r}Q${x2} ${y2} ${x2-r} ${y2}H${t2}L${b.x} ${y2+tail}L${t1} ${y2}H${bx+r}Q${bx} ${y2} ${bx} ${y2-r}V${by+r}Q${bx} ${by} ${bx+r} ${by}Z`)}
     nm.setAttribute('font-size',fs);nm.setAttribute('x',bx+pad);nm.setAttribute('y',by+pad*.55+lh*.85);
@@ -365,22 +410,130 @@ function loop(now){rafId=0;
 const toSimChar=c=>{const t=Sim.parsePet(c.profile||'');return {id:c.id,name:c.name,profile:t.profile,pet:t.pet}};
 const petOfChar=c=>Sim.parsePet(c.profile||'').pet;
 const profText=c=>Sim.parsePet(c.profile||'').profile;
+/* 프로필 탭의 「종류」: 사람 ↔ 반려동물, 동물 종, 반려인을 바로 고친다(프로필 앞머리의 [반려:종|반려인] 표시를 바꾸는 방식이라 기존 저장 경로·서버 공유 그대로) */
+function kindEditHtml(c,pet){
+  const owners=(c.remote?Viv.chars().filter(x=>x.remote&&x.hid===c.hid):Viv.localChars()).filter(x=>!petOfChar(x)&&x.id!==c.id);
+  return `<div class="vv-kind vd-kind" id="vdKind"><div class="vv-kindrow"><span>종류</span><label class="inl"><input type="radio" name="vdKindR" value="person" ${pet?'':'checked'}> 사람</label><label class="inl"><input type="radio" name="vdKindR" value="pet" ${pet?'checked':''}> 반려동물</label></div>
+  <div id="vdPetOpt" ${pet?'':'hidden'}><label>동물 종 <select id="vdSp">${Sim.SPECIES_IDS.map(k=>`<option value="${k}" ${pet&&pet.sp===k?'selected':''}>${esc(Sim.SPECIES[k].n)}</option>`).join('')}</select></label>
+  <label>반려인 <select id="vdOwner"><option value="">(아직 정하지 않음)</option>${owners.map(o=>`<option value="${esc(o.id)}" ${pet&&pet.owner===o.id?'selected':''}>${esc(o.name)}</option>`).join('')}</select></label></div></div>`}
+function kindEditBind(el,c,pet,quick){
+  const box=q('#vdKind',el);if(!box)return;
+  const apply=async(toPet,spChanged)=>{
+    const sp=q('#vdSp',box).value,ow=q('#vdOwner',box).value||null;
+    if(toPet&&!pet){const mine=Viv.chars().filter(o=>{const t=petOfChar(o);return t&&t.owner===c.id}).length;
+      if(mine&&!confirm(`'${c.name}'을(를) 반려인으로 둔 반려동물이 ${mine}마리 있어요. 반려동물로 바꾸면 그 연결이 사라져요. 계속할까요?`)){renderDetail();return}}
+    try{await quick({name:c.name,profile:(toPet?Sim.petTag(sp,ow):'')+profText(c)},null);
+      if(toPet&&(!pet||spChanged))Viv.setPlace(c.id,{h:Sim.SPECIES[sp].h});   // 사람→동물, 종 변경이면 그 종의 기본 크기로
+      else if(!toPet&&pet)Viv.setPlace(c.id,{h:120});                          // 동물→사람이면 사람 기본 크기로
+      if(!toPet||!pet)Viv.setSim(c.id,{decideAt:0,then:null,wish:null,outUntil:0});
+      const i=houses.findIndex(h2=>h2.id===Viv.getPlace(c.id).house);if(i>=0)runSim(i,false);
+      const s2=qa('.vv-slide')[activeIdx];s2&&drawChars(s2);renderList();renderDetail()}
+    catch(ex){note(ex.message||String(ex),'warn');renderDetail()}};
+  qa('input[name=vdKindR]',box).forEach(r=>r.onchange=()=>{const toPet=q('input[name=vdKindR]:checked',box).value==='pet';q('#vdPetOpt',box).hidden=!toPet;apply(toPet,false)});
+  q('#vdSp',box).onchange=()=>{if(q('input[name=vdKindR]:checked',box).value==='pet')apply(true,true)};
+  q('#vdOwner',box).onchange=()=>{if(q('input[name=vdKindR]:checked',box).value==='pet')apply(true,false)}}
 const withTag=(c,text)=>{const t=petOfChar(c);return t?Sim.petTag(t.sp,t.owner)+text:text};
 const humansIn=hid=>inHouse(hid).map(toSimChar).filter(c=>!c.pet);
 const inHouse=hid=>Viv.chars().filter(c=>Viv.getPlace(c.id).house===hid);
-function simCtx(h,snap){const all=inHouse(h.id).map(toSimChar);
-  return {now:Date.now(),world:snap.world,houseId:h.id,chars:all,getPlace:Viv.getPlace,setPlace:Viv.setPlace,getSim:Viv.getSim,setSim:Viv.setSim,neighbors:nbFor(h.id).map(x=>({hid:x.id,name:x.name})),analysis:c=>Sim.analyze(c.profile,c.name,all.filter(o=>!o.pet)),mind:window.Mind?Mind.hooks(Mind.store.get(),Date.now()):null}}
+function simCtx(h,snap){const all=inHouse(h.id).filter(c=>!isMiss(c.id)).map(toSimChar);
+  return {now:Date.now(),world:snap.world,houseId:h.id,chars:all,getPlace:Viv.getPlace,setPlace:Viv.setPlace,getSim:Viv.getSim,setSim:Viv.setSim,neighbors:nbFor(h.id).map(x=>({hid:x.id,name:x.name})),analysis:c=>Sim.analyze(c.profile,c.name,all.filter(o=>!o.pet)),mind:window.Mind?Mind.hooks(Mind.store.get(),Date.now()):null,unc:ucHooks()}}
+
+/* ---------- v23 위화감 (viv-uncanny.js · 별도 저장소 viv.unc.v1) ----------
+   모든 연출은 화면 위의 임시 요소/클래스로만 그리고, 이미지 파일·캐릭터 데이터·도면은 바꾸지 않는다.
+   '존재 오류(404)'는 캐릭터를 지우는 게 아니라 viv.unc.v1 에 표시 상태만 기록한다(복구되면 그대로 다시 보임). */
+const UC=()=>window.Uncanny||null;
+const ucView=id=>{const U=UC();return U?U.view(U.store.get(),id,Date.now()):{st:'stable',miss:null,flash:null}};
+const isMiss=id=>!!ucView(id).miss;
+const calmMotion=()=>{try{return matchMedia('(prefers-reduced-motion:reduce)').matches}catch(e){return false}};
+let watch={cid:null,since:0};
+function ucWatch(){const now=Date.now();if(document.hidden||mode!=='viv'||!selChar||isMiss(selChar)){watch={cid:null,since:0};return null}   // 실제로 추적되는 행동: 지금 선택해서 보고 있는 캐릭터와 그 시간
+  if(watch.cid!==selChar)watch={cid:selChar,since:now};return {cid:watch.cid,sec:Math.round((now-watch.since)/1000)}}
+const ucEmo=(cid,k)=>{const M=MD();if(!M)return 0;try{const e=M.store.get().emo[cid];return e&&e.lv[k]?e.lv[k].v:0}catch(x){return 0}};
+function ucHooks(){const U=UC();return U?U.hooks(U.store.get(),Date.now(),{emo:ucEmo,watch:ucWatch()}):null}
+const ucRand=(()=>{let a=(Date.now()&0xffffff)|1;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}})();
+/* 이름·문구 일부를 손상된 것처럼 보이게(표시 전용) */
+function ucGarble(t,seed){t=String(t||'');const ch=[...t],r=(()=>{let a=(seed|0)+7;return()=>{a=a+0x6D2B79F5|0;let x=Math.imul(a^a>>>15,1|a);x=x+Math.imul(x^x>>>7,61|x)^x;return((x^x>>>14)>>>0)/4294967296}})();
+  const out=ch.map((c,i)=>/\s/.test(c)?c:(r()<.45?'█▓▒░?#'[Math.floor(r()*6)]:c));if(out.join('')===t&&out.length)out[Math.floor(r()*out.length)]='█';return out.join('')}
+/* 한 캐릭터의 이미지에 잠깐 생기는 글리치(수평 조각 이동·색 분리·블록 누락·투명도 변화). 원본 <image> 위에 임시 복사본만 얹고 끝나면 모두 지운다. */
+let GID=0;
+function ucGlitch(cid,sev,ms){
+  if(calmMotion())return;
+  const slide=qa('.vv-slide')[activeIdx],ov=slide&&q('.vv-ov',slide),g=ov&&ov.querySelector(`.vv-ch[data-id="${(window.CSS&&CSS.escape)?CSS.escape(cid):cid}"]`);if(!g)return;
+  const rot=g.firstChild,img=rot&&rot.querySelector('image');if(!img)return;
+  const X=+img.getAttribute('x'),Y=+img.getAttribute('y'),W=+img.getAttribute('width'),H=+img.getAttribute('height');if(!(W>0&&H>0))return;
+  if(sev>=2){ucPixStage(img,ms||(260+sev*140),sev)}   // 크게 깨질 때는 픽셀 단위 효과를 함께
+  const added=[],id=++GID,href=img.getAttribute('href');ms=ms||(180+sev*110);
+  const defs=mkv('defs',{},rot);added.push(defs);
+  const n=2+sev,r=ucRand;
+  for(let i=0;i<n;i++){const y0=Y+r()*H*.85,h=H*(.03+r()*.09),cp=mkv('clipPath',{id:`uc${id}_${i}`},defs);mkv('rect',{x:X-W*.4,y:y0,width:W*1.8,height:h},cp);
+    const cp2=mkv('image',{href,x:X+(r()-.5)*W*.4,y:Y,width:W,height:H,preserveAspectRatio:'xMidYMid meet','clip-path':`url(#uc${id}_${i})`},rot);added.push(cp2)}
+  if(sev>=2||r()<.4){[['sepia(1) saturate(7) hue-rotate(-55deg)',-1],['sepia(1) saturate(7) hue-rotate(150deg)',1]].forEach(([f,d])=>{const c2=mkv('image',{href,x:X+d*W*.035,y:Y,width:W,height:H,preserveAspectRatio:'xMidYMid meet',opacity:.5,style:`filter:${f};mix-blend-mode:screen`},rot);added.push(c2)})}
+  const mk=mkv('mask',{id:`ucm${id}`,maskUnits:'userSpaceOnUse',x:X-W,y:Y-H*.1,width:W*3,height:H*1.2},defs);mkv('rect',{x:X-W,y:Y-H*.1,width:W*3,height:H*1.2,fill:'#fff'},mk);
+  for(let i=0;i<sev*3;i++){const bw=W*(.06+r()*.12),bh=H*(.03+r()*.07);mkv('rect',{x:X+r()*(W-bw),y:Y+r()*(H-bh),width:bw,height:bh,fill:'#000'},mk)}
+  img.setAttribute('mask',`url(#ucm${id})`);const op0=img.style.opacity;if(r()<.5)img.style.opacity=String(.55+r()*.3);
+  setTimeout(()=>{added.forEach(n2=>n2.remove());try{img.removeAttribute('mask');img.style.opacity=op0||''}catch(e){}},ms)}
+/* 화면 전체에 잠깐 지나가는 노이즈(404 직전). 도면·UI 레이어 위에 얹는 임시 요소 */
+function ucNoise(ms){if(calmMotion())return;const w=q('.vv-stagewrap',qa('.vv-slide')[activeIdx]||document);if(!w)return;
+  const d=document.createElement('div');d.className='vv-ucnoise';w.appendChild(d);setTimeout(()=>d.remove(),ms||900)}
+let sayFx={},clockFx=0;
+const ucSlide=()=>qa('.vv-slide')[activeIdx];
+function ucRefresh(){const s=ucSlide();if(s)drawChars(s);renderList();renderDetail()}
+function ucFx(f){
+  const U=UC();if(!U)return;
+  if(f.k==='blip'){if(f.cid&&!isMiss(f.cid))ucGlitch(f.cid,f.sev||1)}
+  else if(f.k==='vanish'){   // 5-1: 멈춤 → 글리치/노이즈 → 사라짐 → 오류 문구
+    const c=Viv.char(f.cid);if(!c)return;sayFx[f.cid]={text:'…',until:Date.now()+8000};
+    const s=ucSlide();if(s)drawChars(s);
+    const van=f.van||2200;[0,.28,.55,.8].forEach((t,i)=>setTimeout(()=>ucGlitch(f.cid,i<2?2:3,260),van*t));
+    setTimeout(()=>ucNoise(Math.min(1100,van)),Math.max(0,van*.3));
+    setTimeout(()=>{ucRefresh()},van+40)}
+  else if(f.k==='return'){const c=Viv.char(f.cid);if(!c)return;const v=ucView(f.cid);if(v.flash&&v.flash.say&&v.flash.say[0])sayFx[f.cid]={text:v.flash.say[0],until:Date.now()+9000};
+    const p=Viv.getPlace(f.cid);if(p.mode==='home'){const st=Viv.getSim(f.cid);Viv.setSim(f.cid,{dirty:true})}   // 복귀 후 곧바로 다음 행동을 정함(원본 위치·진행 상황은 그대로)
+    ucRefresh();setTimeout(()=>{ucGlitch(f.cid,2,300);ucNoise(500)},120)}
+  else if(f.k==='stare'){const U2=UC();sayFx[f.cid]={text:'화면 너머를 바라보듯 정면을 가만히 응시하는 중',until:Date.now()+110000};const s=ucSlide();if(s)drawChars(s);setTimeout(()=>ucGlitch(f.cid,1,200),300)}
+  else if(f.k==='misread'){if(selChar!==f.cid)return;const t=q('#vvDetail h3,#vvDetail .vx-head h3');if(!t||t.dataset.uc)return;const c=Viv.char(f.cid);if(!c)return;
+    const orig=t.textContent;t.dataset.uc='1';t.textContent=ucGarble(orig,Date.now()%997);const dd=qa('#vvDetail dd').slice(0,2).map(e=>[e,e.textContent]);dd.forEach(([e])=>{e.textContent='ENTITY STATUS: UNKNOWN'});
+    setTimeout(()=>{if(t.dataset.uc){t.textContent=orig;delete t.dataset.uc;dd.forEach(([e,v])=>{if(e.isConnected)e.textContent=v})}},calmMotion()?1500:2200)}
+  else if(f.k==='clock'){clockFx=Date.now()+5000;tick();setTimeout(tick,5100)}
+  else if(f.k==='sky'){const st=q('.vv-stage',ucSlide()||document);if(st){st.classList.add('unc-sky');setTimeout(()=>st.classList.remove('unc-sky'),calmMotion()?4000:22000)}}
+  else if(f.k==='shift'){const s=ucSlide(),im=s&&q('.vv-bg',s);if(!im||calmMotion())return;const gh=im.cloneNode(false);gh.removeAttribute('id');gh.className='vv-bg vv-ucghost';gh.style.cssText=`position:absolute;inset:0;width:100%;height:100%;opacity:.18;mix-blend-mode:multiply;transform:scaleX(-1);pointer-events:none;z-index:2`;
+    im.parentNode.appendChild(gh);setTimeout(()=>{gh.style.opacity='.0'},1100);setTimeout(()=>gh.remove(),1700)}}
+/* 틱마다: 심리 상태 갱신 → 화면 연출 */
+function uncStep(h){
+  const U=UC();if(!U)return;
+  try{const st=U.store.get(),now=Date.now(),chars=humansIn(h.id);if(!chars.length)return;
+    const env={now,chars:chars.map(c=>{const p=Viv.getPlace(c.id);return {id:c.id,A:Sim.analyze(c.profile,c.name,chars),home:p.mode==='home',sleeping:p.action==='sleep',verb:p.verb}}),emo:ucEmo,watch:ucWatch()};
+    const r=U.update(st,env);if(r.dirty||r.fx.length)U.store.save();else U.store.save();
+    r.fx.forEach(ucFx)}catch(e){console.error('[viv unc]',e)}}
+/* 존재 오류 상태의 캐릭터 표시(도면): 원래 자리에 오류 문구 상자. 클릭하면 선택됨 */
+function makeMiss(c,p,geo,ov,slide,L1,v){
+  const b=charBox(c,p,geo),fs=Math.max(8,geo.W/80),g=mkv('g',{class:'vv-ucx'+(selChar===c.id?' sel':''),'data-id':c.id,style:'cursor:pointer'},L1);
+  const w=Math.max(b.w,fs*9),x=b.x-w/2,y=-b.e-b.h;
+  mkv('rect',{x,y,width:w,height:b.h,fill:'rgba(12,12,14,.88)',stroke:'#7c7c7c','stroke-width':Math.max(1,geo.W/800),'stroke-dasharray':`${geo.W/220} ${geo.W/330}`},g);
+  const words=String(v.miss.msgStage).split(/(?<= )|(?<=—)/),lines=[];let cur='';words.forEach(wd=>{if((cur+wd).length*fs*.62>w-fs){if(cur)lines.push(cur.trim());cur=wd}else cur+=wd});if(cur)lines.push(cur.trim());
+  const ty=y+b.h/2-(lines.length-1)*fs*.6;
+  lines.forEach((l,i)=>{const t=mkv('text',{x:b.x,y:ty+i*fs*1.25,'text-anchor':'middle','font-family':'ui-monospace,Menlo,Consolas,monospace','font-size':fs,fill:'#d7d7d2'},g);t.textContent=l});
+  const er=mkv('text',{x:x+fs*.4,y:y+fs*1.1,'font-family':'ui-monospace,Menlo,Consolas,monospace','font-size':fs*.8,fill:'#b0443c'},g);er.textContent='ERR';
+  mkv('rect',{x,y,width:w,height:b.h,fill:'url(#vvucscan)'},g);
+  /* 계속 흔들리는 표시: 글씨의 빨강·청록 색 분리, 가로 찢김 막대, 깜빡이는 픽셀 블록 (CSS 애니메이션만 사용 — 눌러볼 수 있는 동작은 그대로) */
+  {const o=(fs*.16).toFixed(2),rr=(()=>{let a=(v.miss.nid|0)+3;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}})();
+   g.style.setProperty('--o',o+'px');
+   [['ucx-r','#ff2a55'],['ucx-c','#18e0d0']].forEach(([k,col])=>lines.forEach((l,i)=>{const t=mkv('text',{x:b.x,y:ty+i*fs*1.25,'text-anchor':'middle','font-family':'ui-monospace,Menlo,Consolas,monospace','font-size':fs,fill:col,class:'ucx-ch '+k},g);t.textContent=l}));
+   for(let i=0;i<5;i++){const bh=Math.max(1,b.h*(.02+rr()*.05)),by=y+rr()*(b.h-bh);const bar=mkv('rect',{x:x-w*.05,y:by,width:w*(.5+rr()*.6),height:bh,class:'ucx-bar',fill:rr()<.5?'#ff2a55':'#18e0d0'},g);bar.style.animationDelay=(rr()*3).toFixed(2)+'s'}
+   const px=Math.max(2,Math.min(w,b.h)/9);for(let i=0;i<16;i++){const sq=mkv('rect',{x:x+Math.floor(rr()*(w/px))*px,y:y+Math.floor(rr()*(b.h/px))*px,width:px,height:px,class:'ucx-px',fill:['#d7d7d2','#ff2a55','#18e0d0','#444'][Math.floor(rr()*4)]},g);sq.style.animationDelay=(rr()*2.4).toFixed(2)+'s'}}
+  g.addEventListener('click',()=>{if(selChar!==c.id){selChar=c.id;qa('.vv-ucx.sel',ov).forEach(n=>n.classList.remove('sel'));g.classList.add('sel');renderList();renderDetail()}})}
+
 /* ---------- v16 감정·관계·기억 (viv-mind.js · 도면/캐릭터/시뮬레이션 상태와 별도 저장소 viv.mind.v1) ---------- */
 const MD=()=>window.Mind||null;
 function mindSnap(hid){const o={};inHouse(hid).filter(c=>!petOfChar(c)).forEach(c=>{const st=Viv.getSim(c.id);o[c.id]={n:st.n||0,outAt:st.outAt||0}});return o}
 function mindStep(h,snap,prev){
   const M=MD();if(!M||!snap||!snap.world)return;
-  try{const chars=humansIn(h.id);if(!chars.length)return;
+  try{const chars=humansIn(h.id).filter(c=>!isMiss(c.id));if(!chars.length)return;
     const W=snap.world,cur={};
     chars.forEach(c=>{const p=Viv.getPlace(c.id),st=Viv.getSim(c.id),sg=p.mode==='home'?W.segAt(p.f|0,p.x==null?W.mid:p.x):null;
       cur[c.id]={mode:p.mode,action:p.action,verb:p.verb,seg:sg?sg.id:null,segName:sg?sg.name:'',partner:chars.some(o=>o.id===p.partner)?p.partner:null,say:p.say||'',n:st.n||0,outAt:st.outAt||0}});
     const sp=Viv.seoul(new Date()),A=c=>Sim.analyze(c.profile,c.name,chars);
-    M.update(M.store.get(),{now:Date.now(),hour:sp.hour+sp.minute/60,day:`${sp.year}-${sp.month}-${sp.day}`,chars,A,cur,prev:prev||{}});
+    M.update(M.store.get(),{now:Date.now(),hour:sp.hour+sp.minute/60,day:`${sp.year}-${sp.month}-${sp.day}`,chars,A,cur,prev:prev||{},unc:cid=>{const U2=UC();return U2&&U2.mood?U2.mood(U2.store.get(),cid,Date.now()):null}});
     /* v19: 고백·프로포즈 결과가 새로 생기면 한 번 알려 준다(관계 상태는 직접 확인하기 전에는 바뀌지 않음) */
     try{const st=M.store.get(),ids=new Set(chars.map(c=>c.id));
       for(const k of Object.keys(st.rev||{})){const rv=st.rev[k],g=rv&&rv.sug;if(!g||g.shown)continue;const [x,y]=k.split('|');if(!ids.has(x)||!ids.has(y))continue;g.shown=1;note(g.text+' (캐릭터를 누르고 관계에서 확인할 수 있어요)')}}catch(e){}
@@ -482,7 +635,7 @@ function runSimNow(i,animate){
   const h=houses[i],slide=qa('.vv-slide')[i];if(!h||!slide||!slide._snap||!slide._snap.world)return false;
   const outSig=()=>Viv.chars().map(c=>{const p=Viv.getPlace(c.id);return p.mode==='out'?c.id+p.say:''}).join('|'),sig0=outSig();   // 외출 중 문구만 바뀐 경우에도 화면을 갱신
   const mprev=mindSnap(h.id);let moves;try{const go=()=>Sim.stepHouse(simCtx(h,slide._snap));moves=h.shared?SH().auto(go):go()}catch(e){console.error('[viv sim]',e);return false}
-  mindStep(h,slide._snap,mprev);
+  mindStep(h,slide._snap,mprev);uncStep(h);
   if(!moves.length){if(outSig()!==sig0){drawChars(slide);return true}return false}
   if(animate&&!REDUCE){drawChars(slide);moves.forEach(m=>walk(slide,m))}
   drawChars(slide);return true}
@@ -493,7 +646,6 @@ function simTick(){if(mode!=='viv'||document.hidden||!houses.length)return;tick(
 /* ---------- 목록·상세 패널 ---------- */
 function houseOf(id){return houses.find(h=>h.id===id)||null}
 function snapOf(hid){const i=houses.findIndex(h=>h.id===hid);if(i<0)return null;const s=qa('.vv-slide')[i];return s&&s._snap?s._snap:null}
-function geoOf(hid){const s=snapOf(hid);return s?s.geo:null}
 function visibleChars(){const sh=curShare();return Viv.chars().filter(c=>!c.remote||(sh&&c.hid===sh.hid))}
 function addState(){   // 캐릭터 등록 버튼 상태(공유 집이면 서버의 인원 규칙)
   const sh=curShare();if(!sh){const n=Viv.localChars().length;return {n,max:Viv.MAX_CHARS,ok:n<Viv.MAX_CHARS}}
@@ -502,9 +654,9 @@ function addState(){   // 캐릭터 등록 버튼 상태(공유 집이면 서버
   return {n:cs.length,max,ok:cs.length<max&&(sh.role==='owner'||mine<per),why:cs.length>=max?`이 집에는 캐릭터를 ${max}명까지 둘 수 있어요`:`한 사람이 ${per}명까지 등록할 수 있어요`}}
 function renderList(){
   const cs=visibleChars(),as=addState();q('#vvCount').textContent=`${as.n}/${as.max}`;q('#vvAdd').disabled=!as.ok;q('#vvAdd').title=as.ok?'':(as.why||'');
-  q('#vvChars').innerHTML=cs.length?cs.map(c=>{const p=Viv.getPlace(c.id),h=houseOf(p.house);
+  q('#vvChars').innerHTML=cs.length?cs.map(c=>{const p=Viv.getPlace(c.id),h=houseOf(p.house),mv=ucView(c.id).miss;
     const pt=petOfChar(c),st=(p.mode==='out'?'외출 중':(h?`${esc(h.name)} · ${esc(G[p.action]||'')}`:'미배치'))+(h&&!pt?esc(mindEmoTag(c.id)):'')+(pt?` · ${esc(Sim.SPECIES[pt.sp].n)}`:'');
-    return `<button class="vv-chip${selChar===c.id?' on':''}" data-id="${c.id}">${IMG[c.id]?`<img src="${IMG[c.id]}" alt="">`:`<span class="vv-ini">${esc([...c.name][0]||'?')}</span>`}<span><b>${esc(c.name)}</b><small>${st}</small></span></button>`}).join(''):`<p class="hint">아직 등록한 캐릭터가 없어요.</p>`;
+    return `<button class="vv-chip${selChar===c.id?' on':''}${mv?' unc-miss':''}" data-id="${c.id}">${IMG[c.id]?`<img src="${IMG[c.id]}" alt="" onerror="VivUI.imgBad('${esc(c.id)}')">`:`<span class="vv-ini">${esc([...c.name][0]||'?')}</span>`}<span><b>${esc(mv?ucGarble(c.name,mv.nid):c.name)}</b><small>${mv?'ENTITY STATUS: UNKNOWN':st}</small></span></button>`}).join(''):`<p class="hint">아직 등록한 캐릭터가 없어요.</p>`;
   qa('.vv-chip').forEach(b=>b.onclick=()=>selectChar(b.dataset.id))}
 function selectChar(id){selChar=id;const p=Viv.getPlace(id),i=houses.findIndex(h=>h.id===p.house);
   if(i>=0&&i!==activeIdx&&p.mode==='home'){scrollTo(i)}else{const s=qa('.vv-slide')[activeIdx];s&&drawChars(s);renderList();renderDetail()}}
@@ -550,25 +702,80 @@ function anHtml(A){
   return `<div class="hint">프로필에 적힌 사실</div><div class="vv-an">${facts}</div>
   <div class="hint">규칙 추정 (행동 확률만 조정)</div><div class="vv-an">${traits}</div>
   ${cls?`<div class="hint">문장별로 읽은 행동 패턴</div><ul class="vv-cl">${cls}</ul>`:''}
-  ${A.status?`<div class="hint">일하기 규칙</div><div class="vv-an"><span class="vv-tag fact">${esc(({student:'학생',jobseeker:'취준생',jobless:'백수',unemployed:'무직'})[A.status.kind])}: 「알바하러 가기」를 누르면 아르바이트를 하러 나가요 (프리랜서·직장인으로 보지 않아요)</span></div>`:A.job?`<div class="hint">일하기 규칙</div><div class="vv-an"><span class="vv-tag fact">${A.job.kind==='freelance'?'프리랜서: 집에서 컴퓨터·책상으로 일하는 모습이 나와요':'평일(공휴일 제외) 오전 9시~오후 6시에 일하러 나가요'}${A.job.night?' · 밤·새벽 근무 단어가 있어 18시 이후에도 일할 수 있어요':''}</span></div>`:''}
+  ${(!A.status&&A.job&&A.job.kind==='parttime')?`<div class="hint">일하기 규칙</div><div class="vv-an"><span class="vv-tag fact">알바: 「알바하러 가기」를 누르면 아르바이트를 하러 나가요</span></div>`:A.status?`<div class="hint">일하기 규칙</div><div class="vv-an"><span class="vv-tag fact">${esc(({student:'학생',jobseeker:'취준생',jobless:'백수',unemployed:'무직'})[A.status.kind])}: 「알바하러 가기」를 누르면 아르바이트를 하러 나가요 (프리랜서·직장인으로 보지 않아요)</span></div>`:A.job?`<div class="hint">일하기 규칙</div><div class="vv-an"><span class="vv-tag fact">${A.job.kind==='freelance'?'프리랜서: 집에서 컴퓨터·책상으로 일하는 모습이 나와요':'평일(공휴일 제외) 오전 9시~오후 6시에 일하러 나가요'}${A.job.night?' · 밤·새벽 근무 단어가 있어 18시 이후에도 일할 수 있어요':''}</span></div>`:''}
   ${hob.length?`<div class="hint">가구 없이도 즐길 수 있는 취미·좋아하는 것</div><div class="vv-an">${hob.map(w=>`<span class="vv-tag">${esc(w)}</span>`).join('')}</div>`:''}`}
+/* 존재 오류(NOT FOUND) 상태의 상세 화면: 글자가 깨지고 error 문구가 군데군데 섞여 보임. 표시만 손상(원본 데이터는 그대로)이며, 눌러볼 수 있는 것은 '삭제'뿐 */
+const UC_GL='█▓▒░#?¿Ω§¤ǝʇ■□@%&';
+const UC_ERR=['errorr','ERR0R','err_0x80004005','NULL','undefined','[404]','FAULT','nan','⟨corrupt⟩','0xDEAD'];
+function ucCorruptText(t,rnd,heavy){return String(t).split(/(\s+)/).map(w=>{if(!w.trim())return w;let o=[...w].map(ch=>rnd()<(heavy?.34:.2)?UC_GL[Math.floor(rnd()*UC_GL.length)]:ch).join('');if(rnd()<(heavy?.26:.14))o+=' '+UC_ERR[Math.floor(rnd()*UC_ERR.length)];return o}).join('')}
+/* 존재 오류 이미지 효과(픽셀 단위): 가로 조각 밀림, RGB 채널 분리(빨강·파랑이 따로 어긋남), 모자이크 블록, 누락 블록, 주사선.
+   원본 이미지 파일·캐릭터 데이터는 바꾸지 않고 화면의 임시 <canvas>/그림만 쓴다. 상세 서랍 이미지와 단면도 위 캐릭터가 같은 함수를 쓴다. */
+const ucRng=()=>{let seed=(Date.now()&0xffff)|1;return()=>{seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}};
+function ucPixFrame(cx,src,W,H,burst,r){
+  cx.clearRect(0,0,W,H);cx.drawImage(src,0,0);
+  const nS=burst?3+Math.floor(r()*5):Math.floor(r()*2);
+  for(let i=0;i<nS;i++){const y=Math.floor(r()*H*.95),h=Math.max(2,Math.floor(H*(.02+r()*.09))),dx=Math.round((r()-.5)*W*(burst?.5:.12));cx.clearRect(0,y,W,h);cx.drawImage(src,0,y,W,h,dx,y,W,h)}
+  const nB=burst?2+Math.floor(r()*4):0;cx.imageSmoothingEnabled=false;
+  for(let i=0;i<nB;i++){const bw=Math.floor(W*(.12+r()*.28)),bh=Math.floor(H*(.05+r()*.12)),bx=Math.floor(r()*(W-bw)),by=Math.floor(r()*(H-bh)),k=6+Math.floor(r()*8),t=document.createElement('canvas');t.width=Math.max(1,Math.floor(bw/k));t.height=Math.max(1,Math.floor(bh/k));
+    t.getContext('2d').drawImage(cx.canvas,bx,by,bw,bh,0,0,t.width,t.height);cx.clearRect(bx,by,bw,bh);cx.drawImage(t,0,0,t.width,t.height,bx,by,bw,bh)}
+  cx.imageSmoothingEnabled=true;
+  const d=Math.max(2,Math.round(W*(burst?.025+r()*.03:.012))),id=cx.getImageData(0,0,W,H),a=id.data,o=new Uint8ClampedArray(a);
+  for(let y=0;y<H;y++){const row=y*W*4;for(let x=0;x<W;x++){const i=row+x*4,xr=Math.max(0,x-d),xb=Math.min(W-1,x+d);o[i]=a[row+xr*4];o[i+2]=a[row+xb*4+2];o[i+3]=Math.max(a[i+3],a[row+xr*4+3],a[row+xb*4+3])}}
+  id.data.set(o);cx.putImageData(id,0,0);
+  if(burst){const nD=1+Math.floor(r()*3);for(let i=0;i<nD;i++){const bw=Math.floor(W*(.05+r()*.14)),bh=Math.floor(H*(.02+r()*.05));cx.clearRect(Math.floor(r()*(W-bw)),Math.floor(r()*(H-bh)),bw,bh)}
+    cx.globalCompositeOperation='source-atop';cx.fillStyle=`rgba(${r()<.5?255:0},${r()<.5?255:0},${r()<.5?255:0},.22)`;cx.fillRect(0,Math.floor(r()*H),W,Math.floor(H*.05));cx.globalCompositeOperation='source-over'}
+  cx.globalCompositeOperation='source-atop';cx.fillStyle='rgba(0,0,0,.16)';for(let y=0;y<H;y+=3)cx.fillRect(0,y,W,1);cx.globalCompositeOperation='source-over'}
+function ucPicGlitch(img){
+  if(!img||img.dataset.ucg)return;img.dataset.ucg='1';
+  const go=()=>{const W=Math.min(260,img.naturalWidth||200),H=Math.round(W*(img.naturalHeight||250)/(img.naturalWidth||200));if(!(W>8&&H>8))return;
+    const src=document.createElement('canvas');src.width=W;src.height=H;src.getContext('2d').drawImage(img,0,0,W,H);
+    const cv=document.createElement('canvas');cv.width=W;cv.height=H;cv.className='vv-ucg';cv.style.cssText='display:block;width:100%;height:auto';cv.setAttribute('role','img');cv.setAttribute('aria-label',img.alt||'');
+    const cx=cv.getContext('2d',{willReadFrequently:true});img.replaceWith(cv);const r=ucRng();
+    ucPixFrame(cx,src,W,H,true,r);if(calmMotion())return;
+    let last=0,hold=0;const loop=t=>{if(!cv.isConnected)return;if(t-last>=90){last=t;if(hold>0)hold--;else{const b=r()<.32;ucPixFrame(cx,src,W,H,b,r);if(!b)hold=Math.floor(r()*4)}}requestAnimationFrame(loop)};requestAnimationFrame(loop)};
+  if(img.complete&&img.naturalWidth)go();else img.addEventListener('load',go,{once:true})}
+/* 단면도 위 캐릭터: 같은 픽셀 효과를 ms 동안 프레임마다 바꿔 끼움(끝나면 원래 그림으로 복구). sev 가 클수록 더 자주·세게 */
+function ucPixStage(imgEl,ms,sev){
+  if(!imgEl||calmMotion())return;const href=imgEl.getAttribute('href');if(!href)return;
+  const hold=new Image();hold.onload=()=>{const W=Math.min(260,hold.naturalWidth||200),H=Math.round(W*(hold.naturalHeight||250)/(hold.naturalWidth||200));if(!(W>8&&H>8))return;
+    const src=document.createElement('canvas');src.width=W;src.height=H;src.getContext('2d').drawImage(hold,0,0,W,H);
+    const cv=document.createElement('canvas');cv.width=W;cv.height=H;const cx=cv.getContext('2d',{willReadFrequently:true}),r=ucRng();let t0=performance.now(),last=0;
+    const loop=t=>{if(!imgEl.isConnected)return;if(t-t0>=ms){imgEl.setAttribute('href',href);return}
+      if(t-last>=80){last=t;ucPixFrame(cx,src,W,H,r()<.4+sev*.15,r);imgEl.setAttribute('href',cv.toDataURL('image/png'))}requestAnimationFrame(loop)};requestAnimationFrame(loop)};
+  hold.src=href}
+function ucCorruptDetail(el,c,mm){
+  const r=(()=>{let a=((mm.nid|0)+11)|0;return()=>{a=a+0x6D2B79F5|0;let x=Math.imul(a^a>>>15,1|a);x=x+Math.imul(x^x>>>7,61|x)^x;return((x^x>>>14)>>>0)/4294967296}})();
+  const box=q('#vvMind',el);
+  if(box)box.innerHTML=`<h4>현재 감정</h4><div class="vm-box"><p>EMO_STATE = undefined</p><p>errorr 0x80004005 — 감정 데이터를 읽을 수 없습니다</p><p>관계: ░▒▓ NULL_REF[?] / 기억: RECORD CORRUPTED</p><p>SEGMENT FAULT (core dumped)</p></div>`;
+  qa('textarea',el).forEach(t=>{const d=document.createElement('div');d.className='vv-ucprof';d.textContent=t.value||' ';t.replaceWith(d)});
+  const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT,{acceptNode:n=>(n.nodeValue.trim().length>1&&!/ENTITY STATUS|CHARACTER DATA UNAVAILABLE|RECORD CORRUPTED/.test(n.nodeValue)&&!(n.parentElement&&n.parentElement.closest('#vdDel,script,style')))?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT}),ns=[];while(w.nextNode())ns.push(w.currentNode);
+  ns.forEach((n,i)=>{n.nodeValue=ucCorruptText(n.nodeValue,r,i%3===0)});
+  qa('button,input,select,textarea',el).forEach(b=>{if(b.id!=='vdDel')b.disabled=true});
+  if(!document.getElementById('ucTearSvg')){const s=document.createElement('div');s.id='ucTearSvg';s.setAttribute('aria-hidden','true');s.style.cssText='position:absolute;width:0;height:0;overflow:hidden';
+    s.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"><filter id="ucTear" x="-5%" y="-10%" width="110%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="0 0.7" numOctaves="1" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="0" xChannelSelector="R" yChannelSelector="G"><animate attributeName="scale" dur="3.4s" repeatCount="indefinite" values="0;0;0;0;16;0;0;26;0;0;0;10;0" keyTimes="0;.2;.4;.5;.52;.54;.7;.72;.74;.85;.9;.92;1"/></feDisplacementMap></filter></svg>';document.body.appendChild(s)}
+  ucPicGlitch(q('.vv-pic img',el));
+  el.classList.add('vv-uc-corrupt');qa('h3,h4,dt,dd,p,.vv-tag,.vm-box',el).forEach((n,i)=>{if(i%2===0)n.style.setProperty('--ucd',(r()*3).toFixed(2)+'s')})}
 function renderDetail(){
-  const el=q('#vvDetail'),c=selChar&&Viv.char(selChar);
+  const el=q('#vvDetail'),c=selChar&&Viv.char(selChar);el.classList.remove('vv-uc-corrupt');
   if(!c){el.innerHTML=`<h3>상세</h3><p class="hint">캐릭터를 선택하면 이름, 프로필, 현재 위치와 행동을 볼 수 있어요.<br><br>도면 위의 캐릭터는 끌어서 옮기고, 오른쪽 위 동그라미를 끌면 비율을 유지한 채 크기가 바뀌어요. 직접 옮기면 20분 동안 그 자리에서 쉬다가 다시 스스로 움직여요.</p>`;return}
   const p=Viv.getPlace(c.id),h=houseOf(p.house),snap=h?snapOf(h.id):null,d=describe(c,p,snap,h?h.name:'');
   const pet=petOfChar(c),placed=!!h,out=p.mode==='out',A=Sim.analyze(profText(c),c.name,humansIn(p.house)),st=Viv.getSim(c.id);
+  const UVw=ucView(c.id),mm=UVw.miss;let dispName=c.name;
+  if(mm){dispName=ucGarble(c.name,mm.nid);d.phrase=mm.msgProfile;d.loc='UNKNOWN';d.act='ENTITY STATUS: UNKNOWN'}   // 존재 오류: 표시만 손상(원본 프로필·관계·위치 데이터는 그대로)
   const ro=!canEdit(c),isRem=!!c.remote,owner=isRem?((SH().info(c.hid)||{members:[]}).members.find(m=>m.pid===c.owner)||{}).nick:'';
   const hopts=(isRem?'':`<option value="">미배치</option>`)+houses.filter(x=>isRem?x.id===p.house:!x.shared).map(x=>`<option value="${esc(x.id)}" ${x.id===p.house?'selected':''}>${esc(x.name)}</option>`).join('');
   let wishHtml='<p class="hint">집에 배치하면 행동 방향을 고를 수 있어요.</p>';
-  if(ro)wishHtml='<p class="hint">다른 참여자의 캐릭터예요. 볼 수만 있고, 직접 행동 지정하기·이동·수정은 등록한 사람과 집 주인만 할 수 있어요.</p>';
+  if(mm)wishHtml='<p class="vv-ucmono">CHARACTER DATA UNAVAILABLE</p>';
+  else if(ro)wishHtml='<p class="hint">다른 참여자의 캐릭터예요. 볼 수만 있고, 직접 행동 지정하기·이동·수정은 등록한 사람과 집 주인만 할 수 있어요.</p>';
   else if(placed&&out)wishHtml='<p class="hint">외출 중에는 행동 방향을 고를 수 없어요. 돌아오면 다시 고를 수 있어요.</p><div class="vv-btns"><button type="button" id="vvRecall" class="vv-primary">집으로 돌아오게 하기</button></div>';
   else if(placed&&snap){const opts=Sim.wishOptions(simCtx(h,snap),toSimChar(c));
     const wb=o=>`<button data-w="${o.id}" ${o.ok?'':'disabled'} title="${esc(o.ok?'':o.why)}">${esc(o.label)}</button>`,care=opts.filter(o=>/^care:/.test(o.id)),base=opts.filter(o=>!/^care:/.test(o.id));
     wishHtml=`<div class="vv-wishes">${base.map(wb).join('')}</div>${care.length?`<div class="hint vv-carehd">반려동물 돌보기</div><div class="vv-wishes">${care.map(wb).join('')}</div>`:''}<div id="vvWmsg" class="vv-wmsg"></div>`+opts.filter(o=>!o.ok).map(o=>`<div class="vv-why">· ${esc(o.label)}: ${esc(o.why)}</div>`).join('')}
   const facts=A.factList.map(f=>`<span class="vv-tag fact">${esc(f.label)}: ${esc(f.text)}</span>`).join('')||'<span class="hint">명시된 사실이 없어요</span>';
   const traits=A.traitList.map(t=>`<span class="vv-tag${t.v<0?' neg':''}" title="찾은 단어: ${esc(t.words.join(', '))}">${esc(t.label)} <small>${esc(t.words.slice(0,2).join('·'))}</small></span>`).join('')||'<span class="hint">읽어 낼 단서가 없어 기본 생활 규칙으로 움직여요</span>';
-  el.innerHTML=`<h3>${esc(c.name)}</h3>
-  <div class="vv-pic">${IMG[c.id]?`<img src="${IMG[c.id]}" alt="${esc(c.name)}">`:'<span>이미지 없음</span>'}</div>
+  const canPen=!ro&&!mm;
+  el.innerHTML=`<h3><span class="vv-nm">${esc(dispName)}</span>${canPen?'<button type="button" class="vv-pen" id="vdPenN" title="이름 수정" aria-label="이름 수정">✎</button>':''}</h3>
+  <div class="vv-pic${mm?' vv-uc-bad':(UVw.st==='damaged'?' vv-uc-dmg':'')}">${IMG[c.id]?`<img src="${IMG[c.id]}" alt="${esc(c.name)}" onerror="VivUI.imgBad('${esc(c.id)}')">`:'<span>이미지 없음</span>'}</div>${canPen?'<button type="button" class="vv-pen vv-pen-img" id="vdPenI" title="이미지 수정" aria-label="이미지 수정">✎</button><input type="file" id="vdImgF" accept="image/png,image/jpeg,image/webp,image/gif" hidden>':''}
   <p class="vv-phrase">${esc(d.phrase)}</p>
   <dl><dt>현재 위치</dt><dd>${esc(d.loc)}</dd><dt>현재 행동</dt><dd>${esc(d.act)}</dd><dt>다음 행동</dt><dd id="vvNextAct">${placed?esc(nextText(st)):'-'}</dd>${isRem?`<dt>등록한 사람</dt><dd>${esc(owner||'참여자')}${c.mine?' (나)':''}</dd>`:''}<dt>프로필</dt><dd class="vv-prof">${ro?(profText(c)?esc(profText(c)):'<span class="hint">프로필이 비어 있어요</span>'):`<textarea id="vdProf" rows="5" maxlength="${Viv.PROFILE_MAX}" placeholder="성격·직업·취미·생활 습관을 적어 주세요. 고치면 아래 해석이 바로 바뀌고 자동 저장돼요.">${esc(profText(c))}</textarea><span class="hint" id="vdProfSt">고치면 자동으로 저장돼요</span>`}</dd></dl>
   ${pet?'':'<div id="vvMind"></div>'}${pet?petPanel(c,pet):petCarePanel(c)}
@@ -576,12 +783,23 @@ function renderDetail(){
   <p class="hint">고르면 가능한 조건(가구·길·서울 시각)을 확인해 바로 반영하고, 이후 한동안 그 방향이 조금 더 자주 나와요. 고르지 않아도 자율 행동은 계속돼요.</p>
   ${pet?'':`<h4>프로필 해석 <small>키워드 규칙 · AI 아님</small></h4>
   <div id="vdAn">${anHtml(A)}</div>`}
-  <h4>배치</h4>
-  <label>집 <select id="vdHouse" ${ro||isRem?'disabled':''}>${hopts}</select></label>
+  ${canPen?kindEditHtml(c,pet):''}
   <label>크기(높이 cm) <span class="row"><input type="range" id="vdSz" min="${HMIN}" max="${HMAX}" value="${Math.round(p.h)}" ${placed&&!out&&!ro?'':'disabled'}><input type="number" id="vdSzN" min="${HMIN}" max="${HMAX}" value="${Math.round(p.h)}" ${placed&&!out&&!ro?'':'disabled'}></span></label>
-  <div class="vv-btns"><button id="vdEdit" ${ro?'disabled':''}>프로필 수정</button><button id="vdDel" class="vv-danger" ${ro?'disabled':''}>삭제</button></div>`;
-  if(!pet)mindFill(q('#vvMind',el),c);
-  q('#vdEdit').onclick=()=>openForm(c.id);
+  <div class="vv-btns"><button id="vdDel" class="vv-danger" ${ro?'disabled':''}>삭제</button></div>`;
+  if(mm)ucCorruptDetail(el,c,mm);else if(!pet)mindFill(q('#vvMind',el),c);
+  /* 이름·이미지는 상세 머리말의 연필로 바로 고침(수정 대화상자 없이 같은 저장 경로 사용) */
+  const quick=async(d,prep)=>{if(c.remote)await SH().updateChar(c.id,Viv.validate?Viv.validate(d):d,prep);else await Viv.saveChar(d,prep,c.id);
+    if(prep){delete IMG[c.id];const u=await Viv.imageUrl(c.id);if(u)IMG[c.id]=u}
+    const s2=qa('.vv-slide')[activeIdx];s2&&drawChars(s2);renderList();renderDetail()};
+  {const pn=q('#vdPenN',el);if(pn)pn.onclick=()=>{const nm=q('.vv-nm',el);if(!nm||q('input',nm))return;
+    const inp=document.createElement('input');inp.className='vv-nmin';inp.maxLength=Viv.NAME_MAX;inp.value=c.name;nm.textContent='';nm.appendChild(inp);inp.focus();inp.select();pn.hidden=true;
+    let done=false;const end=async ok=>{if(done)return;done=true;const v2=inp.value.trim();
+      if(!ok||!v2||v2===c.name){renderDetail();return}
+      try{await quick({name:v2,profile:withTag(c,profText(c))},null)}catch(ex){note(ex.message||String(ex),'warn');renderDetail()}};
+    inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();end(true)}else if(e.key==='Escape'){e.stopPropagation();end(false)}};inp.onblur=()=>end(true)}}
+  {const pi2=q('#vdPenI',el),fi=q('#vdImgF',el);if(pi2&&fi){pi2.onclick=()=>fi.click();
+    fi.onchange=async()=>{const f=fi.files[0];if(!f)return;
+      try{const prep=await Viv.prepareImage(f,c.remote?{bytes:1100*1024}:undefined);await quick({name:c.name,profile:withTag(c,profText(c))},prep)}catch(ex){note(ex.message||String(ex),'warn')}}}}
   {const ta=q('#vdProf',el);if(ta){let tm=0,last=profText(c);const stEl=q('#vdProfSt',el);
     ta.oninput=()=>{   // 입력하는 즉시 해석을 새로 읽어 보여 주고, 잠시 멈추면 자동 저장
       const an=q('#vdAn',el);if(an)an.innerHTML=anHtml(Sim.analyze(ta.value,c.name,humansIn(p.house)));
@@ -592,8 +810,9 @@ function renderDetail(){
       catch(ex){stEl.textContent='저장하지 못했어요: '+(ex.message||ex)}}
     ta.onblur=()=>{clearTimeout(tm);if(ta.value!==last)save()}}}
   q('#vdDel').onclick=async()=>{if(!confirm(c.remote?`'${c.name}' 캐릭터를 삭제할까요? 서버에서 이미지와 프로필이 지워져요.`:`'${c.name}' 캐릭터를 삭제할까요? 이미지와 프로필이 이 브라우저에서 지워져요.`))return;
-    try{if(c.remote)await SH().removeChar(c.id);else await Viv.removeChar(c.id)}catch(e){note(e.message,'warn');return}if(MD()){MD().forget(MD().store.get(),c.id);MD().store.save()}if(mindSel===c.id)mindSel=null;selChar=null;delete IMG[c.id];const s=qa('.vv-slide')[activeIdx];s&&drawChars(s);renderList();renderDetail()};
-  q('#vdHouse').onchange=e=>{const v=e.target.value;
+    try{if(c.remote)await SH().removeChar(c.id);else await Viv.removeChar(c.id)}catch(e){note(e.message,'warn');return}if(MD()){MD().forget(MD().store.get(),c.id);MD().store.save()}if(UC()){UC().forget(UC().store.get(),c.id);UC().store.save()}if(mindSel===c.id)mindSel=null;selChar=null;delete IMG[c.id];const s=qa('.vv-slide')[activeIdx];s&&drawChars(s);renderList();renderDetail()};
+  kindEditBind(el,c,pet,quick);
+  const hsel=q('#vdHouse');if(hsel)hsel.onchange=e=>{const v=e.target.value;
     if(!v)Viv.setPlace(c.id,{house:null,mode:'home',say:'',tgt:null,verb:'',pose:'stand',dy:0,e:null});
     else{Viv.setPlace(c.id,{house:v,x:null,f:0,mode:'home',say:'',tgt:null,verb:'',pose:'stand',dy:0,e:null});Viv.setSim(c.id,{decideAt:0,then:null,outUntil:0})}
     refreshStage(v)};
@@ -674,7 +893,6 @@ function shareLabel(){hoodUi();const b=q('#vvShare');if(!b)return;
   const i=SH().info(sh.hid);b.textContent=`공유 중 · ${i?i.members.length:'?'}명 · ${sh.role==='owner'?'관리':'공유·정보'}`}
 
 const dlgOf=()=>q('#vvDlg');
-const errBox=d=>q('.vv-err',d);
 const waitMsg=e=>e.status===429?`${e.message}${e.retryAfter?` (약 ${Math.max(1,Math.ceil(e.retryAfter/60))}분 뒤 다시 시도)`:''}`:e.message;
 function notReady(){const d=dlgOf();d.innerHTML=`<form class="vv-form" method="dialog"><h3>공유 서버가 아직 연결되지 않았어요</h3><p class="hint">초대 코드로 집을 함께 쓰려면 공유 서버가 필요해요. 사이트 주소 설정(config.js 의 <code>VIV_API</code>)에 서버 주소를 넣으면 이 기능이 켜져요. 설정 방법은 README 의 「집 공유 서버」를 보세요.<br><br>서버가 없어도 지금처럼 이 브라우저에서 혼자 쓰는 기능은 그대로 동작해요.</p><div class="vv-btns"><button class="vv-primary">확인</button></div></form>`;d.showModal()}
 
@@ -779,7 +997,7 @@ function visitorsOf(hid){return Viv.chars().filter(c=>{const p=Viv.getPlace(c.id
 function renderGuests(slide,wrap){let box=q('.vv-guests',wrap);const gs=visitorsOf(slide.dataset.house);
   if(!gs.length){if(box)box.remove();return}
   if(!box){box=document.createElement('div');box.className='vv-outtop vv-guests';wrap.appendChild(box)}
-  box.innerHTML=gs.map(c=>{const p=Viv.getPlace(c.id),img=IMG[c.id],hn=houseOf(p.house);return `<div class="vv-out1" data-id="${esc(c.id)}">${img?`<img src="${img}" alt="">`:`<span class="ph">${esc([...c.name][0]||'?')}</span>`}<div class="bub"><b>${esc(c.name)}</b>${esc((hn?hn.name+'에서 ':'')+'놀러 왔어요')}</div></div>`}).join('')}
+  box.innerHTML=gs.map(c=>{const p=Viv.getPlace(c.id),img=IMG[c.id],hn=houseOf(p.house);return `<div class="vv-out1" data-id="${esc(c.id)}">${img?`<img src="${img}" alt="" onerror="VivUI.imgBad('${esc(c.id)}')">`:`<span class="ph">${esc([...c.name][0]||'?')}</span>`}<div class="bub"><b>${esc(c.name)}</b>${esc((hn?hn.name+'에서 ':'')+'놀러 왔어요')}</div></div>`}).join('')}
 /* 동네 보기: 이웃 집들을 같은 축척으로, 땅 높이를 맞춰 작은 간격으로 나란히 보여 줌 (눌러서 그 집으로 이동) */
 async function renderHood(slide){
   const wrap=q('.vv-stagewrap',slide);if(!wrap)return;let box=q('.vv-hood',wrap);
@@ -921,10 +1139,10 @@ function init(){
   const nav=document.createElement('nav');nav.className='vnav';nav.innerHTML='<button data-m="viv">비바리움 관찰</button><button data-m="edit" class="on">단면도 편집</button><button class="vjoin" id="vvJoin" title="초대 코드로 다른 사람의 집에 들어가기">입장하기</button><button class="vjoin vnb" id="vvNb" title="초대 코드를 등록한 집과 이웃이 되어 서로 놀러 가기">이웃하기</button>';
   q('#top .logo').after(nav);qa('button[data-m]',nav).forEach(b=>b.onclick=()=>go(b.dataset.m));q('#vvJoin',nav).onclick=()=>{if(!booted){booted=true;build()}openJoin()};q('#vvNb',nav).onclick=()=>{if(!booted){booted=true;build()}openNb()};if(SH())SH().onChange(onShareChange);
   const sec=document.createElement('section');sec.id='viv';document.body.appendChild(sec);
-  window.addEventListener('hashchange',()=>go(location.hash==='#viv'?'viv':'edit'));
+  window.addEventListener('hashchange',()=>go(location.hash==='#edit'?'edit':'viv'));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)simTick()});
-  if(location.hash==='#viv')go('viv');
-  window.VivUI={nbFor:id=>nbFor(id).map(h=>h.name),nbDump:()=>({srv:nbSrv,houses:houses.map(h=>h.id+"|"+h.name),idx:activeIdx}),go,isBlank,getHouses,drawDoc,describe,runSim,simTick,note};
+  go(location.hash==='#edit'?'edit':'viv');   // v23.15 처음 열면 「비바리움 관찰」 탭(집이 없으면 「아직 내 집이 없어요!」 안내)
+  window.VivUI={nbFor:id=>nbFor(id).map(h=>h.name),nbDump:()=>({srv:nbSrv,houses:houses.map(h=>h.id+"|"+h.name),idx:activeIdx}),go,isBlank,getHouses,drawDoc,describe,runSim,simTick,note,imgBad,uc:{fx:ucFx,view:ucView,isMiss,refresh:ucRefresh,garble:ucGarble}};
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

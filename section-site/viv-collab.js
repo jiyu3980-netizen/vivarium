@@ -35,7 +35,7 @@ function paint(){
   ensureUi();try{B.slotBtn&&B.slotBtn()}catch(e){}const hid=curLink(),btn=$('#bSave');
   if(!hid){bar.hidden=true;toast.hidden=true;btn.textContent='저장';btn.disabled=false;btn.title='이름을 정해 저장';return}
   const st=status(hid),r=regOf(hid);
-  bar.hidden=false;bar.className='sh-'+st;
+  bar.hidden=st!=='failed';bar.className='sh-'+st;   // 평소에는 상태 문구를 숨기고, 저장 실패일 때만 보여 줌
   bar.innerHTML=`<b>공유 집 · ${esc(houseName(hid))}</b> <span class="sh-dot"></span><span class="sh-lab">${LAB[st]}</span> <small>v${r.baseRev||'?'}</small>${st==='failed'?` <button id="shRetry">다시 시도</button> <small class="sh-e">${esc(err[hid])}</small>`:''}`;
   btn.textContent=st==='saving'?'저장 중…':'저장 (공유)';btn.disabled=st==='saving';
   btn.title='저장하면 이 집의 모든 참여자에게 반영돼요. 저장 전의 변경은 나만 볼 수 있어요';

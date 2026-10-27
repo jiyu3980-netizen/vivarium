@@ -62,6 +62,7 @@ body.mode-viv #msg{display:none}
 .vx-empty{color:var(--vx-mut);font-size:12.5px;padding:8px 2px}
 #viv .vv-detail button,#viv .vv-detail select{border-color:var(--vx-ln);border-radius:10px}
 #viv .vv-btns button{background:#fff}
+#viv .vv-btns button.vv-primary{background:var(--ink);color:#fff}#viv .vv-btns button.vv-primary:hover{background:#333}
 /* ── 하단 알림 ── */
 #viv #vvNote{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:30;max-width:min(560px,calc(100vw - 28px));margin:0;padding:10px 40px 10px 16px;border-radius:14px;background:var(--vx-card);color:var(--vx-ink);border:1px solid var(--vx-ln);box-shadow:0 8px 26px rgba(40,40,35,.2);font-size:13px;line-height:1.45;animation:vxUp .25s ease-out}
 #viv #vvNote.warn{background:#f7ecd9;color:#6b4a14}#viv #vvNote.ok{background:#e3eee3;color:#24502e}
@@ -81,3 +82,12 @@ body.mode-viv #msg{display:none}
  #viv #vvNote{bottom:76px}
 }
 .vv-guests img,.vv-guests .ph{display:none}
+
+/* v23.12 머리말 연필(이름·이미지 바로 수정) */
+.vv-pen{border:0;background:transparent;color:var(--vx-mut,#777);cursor:pointer;font-size:13px;line-height:1;padding:2px 4px;margin-left:4px;vertical-align:middle}
+.vv-pen:hover{color:var(--vx-ink,#111)}
+.vx-picw{position:relative;flex:none}
+.vx-picw .vv-pen-img{position:absolute;right:-6px;bottom:-4px;margin:0;width:20px;height:20px;border-radius:50%;background:#fff;border:1px solid var(--vx-ln,#ccc);color:#333;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0}
+.vv-nmin{font:inherit;width:calc(100% - 28px);min-width:80px;padding:2px 6px;border:1px solid var(--vx-ln,#ccc);background:#fff;color:#111}
+
+#viv .vv-bar .vv-roomsel{border:1px solid var(--vx-ln);background:var(--vx-card);border-radius:999px;padding:4px 10px;font-size:12.5px;color:var(--vx-ink);margin-left:2px}

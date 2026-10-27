@@ -1,13 +1,14 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>사이버 비바리움</title><link rel="icon" href="data:,"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="viv.css"><link rel="stylesheet" href="viv-ux.css"></head><body>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>사이버 비바리움</title><link rel="icon" href="data:,"><link rel="preload" href="assets.web.json" as="fetch" crossorigin="anonymous"><link rel="preload" href="../section-assets/catalog/category-config.json" as="fetch" crossorigin="anonymous"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="viv.css"><link rel="stylesheet" href="viv-ux.css"><link rel="stylesheet" href="edit-ux.css"><link rel="stylesheet" href="viv-uncanny.css"></head><body>
 <header id="top">
  <b class="logo">사이버 비바리움</b>
  <div class="grp"><button id="undo" title="되돌리기 (Ctrl+Z)">↶</button><button id="redo" title="다시 실행 (Ctrl+Y)">↷</button></div>
- <div class="grp"><button id="zout">−</button><button id="zfit">맞춤</button><button id="zin">＋</button></div>
+ <div id="tools">
+ <div class="grp"><button id="zout">−</button><button id="zfit">맞춤</button><button id="zin">＋</button><button id="vlock" title="화면을 움직일 때 가구가 선택되지 않도록 잠가요" aria-pressed="false">🔓<span class="t"> 보기 잠금</span></button><select id="zroom" title="방별 확대" aria-label="방별 확대"><option value="">전체 보기</option></select></div>
  <div class="grp"><label class="sm"><input type="checkbox" id="optGrid"> 격자</label><label class="sm"><input type="checkbox" id="optFill" checked> 흰 채움</label><label class="sm"><input type="checkbox" id="optDims"> 방 치수</label></div>
- <div class="grp"><label>추가 층 <select id="curFloor"></select></label></div>
  <div class="grp"><button id="bSlots" title="내가 만든 단면도 (이 브라우저에 자동 저장)">내 집 (1)</button><button id="bSlotsJ" title="초대 코드로 입장한 공유 집 — 여기서도 고칠 수 있어요">더부살이 집 (0)</button><button id="bSave" title="이름을 정해 저장">저장</button><button id="bNew">새로 만들기</button></div>
  <div class="grp"><button id="bSvg" title="도면을 SVG 로 저장">SVG 저장</button><button id="bPng" title="도면을 PNG 로 저장">PNG 저장</button></div>
+ </div>
  <span id="msg"></span>
 </header>
 <main>
@@ -26,8 +27,19 @@
    <label>바닥 슬래브(cm) <input type="number" id="bs" min="10" max="60" step="5"></label>
    <label>외벽 두께(cm) <input type="number" id="bt" min="10" max="60" step="5"></label>
    <label>지붕 <select id="br"><option value="gable">박공</option><option value="flat">평지붕</option><option value="none">없음</option></select></label>
-   <label class="chk"><input type="checkbox" id="bgo"> 박공 지붕 안쪽까지 벽 (천장 슬래브 없이)</label>
-   <label>지붕 높이(cm) <input type="number" id="brh" min="30" max="400" step="10"></label>
+   <label class="chk" id="rowGo"><input type="checkbox" id="bgo"> 지붕 안쪽까지 벽 (천장 슬래브 없이)</label>
+   <label id="rowRH">지붕 높이(cm) <input type="number" id="brh" min="30" max="400" step="10"></label>
+   <label id="rowRR">정점 위치 <span class="row"><input type="range" id="brr" min="10" max="90" step="5"><span id="brrv" class="hint"></span></span></label>
+   <label id="rowRC">왼쪽 · 오른쪽 따로 자르기(cm) <span class="row"><input type="number" id="brcl" min="0" step="5" title="왼쪽 끝에서 자를 길이"><input type="number" id="brcr" min="0" step="5" title="오른쪽 끝에서 자를 길이"></span></label>
+   <button id="rowRF" class="wide" title="비대칭 박공이 잘리기 전의 기준 폭을 가장 넓은 층 폭으로 다시 잡아요">기준 지붕 폭 다시 맞추기</button>
+   <label id="rowRD">높은 쪽 <select id="brd"><option value="R">오른쪽</option><option value="L">왼쪽</option></select></label>
+   <label id="rowRO">처마 돌출(cm) <input type="number" id="bro" min="0" max="250" step="5"></label>
+   <label class="chk" id="rowRK"><input type="checkbox" id="brk"> 최상층 폭을 줄여도 지붕 크기 유지 (끝 점은 지붕 핸들로 조절)</label>
+   <div id="roofInfo" class="hint"></div>
+   <div class="hint" style="margin-top:8px"><b>아래층 노출부 지붕 · 굴뚝</b></div>
+   <div class="row2"><select id="xrSide"><option value="L">왼쪽 노출부</option><option value="R">오른쪽 노출부</option></select><select id="xrType"><option value="shed">외쪽지붕</option><option value="flat">평지붕</option><option value="gable">박공</option></select></div>
+   <button id="xrAdd" class="wide">노출부에 지붕 추가</button><div id="xrList"></div>
+   <button id="chAdd" class="wide">굴뚝 추가</button><div id="chList"></div>
    <h4>내벽 · 방</h4>
    <div class="row"><select id="pFloor"></select><input type="number" id="pX" placeholder="위치 x(cm) · 비우면 자동"><button id="pAdd">벽 추가</button></div>
    <button id="pDraw" class="wide">도면에서 클릭해 벽 추가</button>
@@ -48,9 +60,11 @@
    <h4>문 · 창문</h4>
    <div class="row2"><select id="oKind"><option value="door">문</option><option value="window">창문</option></select><select id="oFloor"></select><select id="oOn"></select><button id="oAdd">추가</button></div>
    <div id="oList"></div>
-   <h4>계단</h4>
+   <h4>계단 — 외벽 안</h4>
    <div class="row2"><select id="sType"><option value="straight">직선</option><option value="L">ㄱ자</option><option value="U">U자</option><option value="spiral">그랜드 나선형</option><option value="glass">유리 난간 (U자형)</option></select><select id="sFloor"></select><button id="sAdd">추가</button></div>
-   <div class="row2"><select id="oxFloor"></select><select id="oxSide"><option value="R">오른쪽 바깥</option><option value="L">왼쪽 바깥</option></select><button id="oxAdd">건물 밖 계단 추가</button></div>
+   <h4>계단 — 외벽 밖</h4>
+   <div class="row2"><select id="oxType"><option value="porch">현관 계단 (문 앞)</option><option value="emerg">외부계단 (지그재그)</option></select><select id="oxFloor"></select></div>
+   <div class="row2"><select id="oxSide"><option value="R">오른쪽 바깥</option><option value="L">왼쪽 바깥</option></select><button id="oxAdd">추가</button></div>
    <div id="sList"></div>
    <label class="chk"><input type="checkbox" id="optVoid"> 계단 위 바닥에 개구부 뚫기 (끄면 바닥이 이어지고 계단은 바닥 뒤에 그려져요)</label>
    <p class="hint">계단은 선택한 층에서 위층으로 이어지고, 위층 슬래브에 계단실 개구부가 자동으로 뚫립니다. 가구는 가까운 층 바닥에 자동으로 붙습니다(Alt 누르면 해제).</p>
@@ -85,4 +99,4 @@
  <aside id="insp"><h4>선택한 객체</h4><div id="inspBody" class="hint">가구·벽·문·창문·계단을 클릭하거나 왼쪽에서 추가하세요.</div></aside>
 </main>
 <dialog id="dlg"></dialog>
-<script src="config.js"></script><script src="app.js"></script><script src="viv-data.js"></script><script src="viv-share.js"></script><script src="doc-merge.js"></script><script src="sim.js"></script><script src="viv-mind.js"></script><script src="viv-love.js"></script><script src="viv.js"></script><script src="viv-collab.js"></script><script src="viv-ux.js"></script></body></html>
+<script src="config.js"></script><script src="app.js"></script><script src="viv-data.js"></script><script src="viv-share.js"></script><script src="doc-merge.js"></script><script src="sim.js"></script><script src="viv-mind.js"></script><script src="viv-love.js"></script><script src="viv-uncanny.js"></script><script src="viv.js"></script><script src="viv-collab.js"></script><script src="viv-ux.js"></script><script src="edit-mobile.js"></script><script src="bgm.js"></script></body></html>
