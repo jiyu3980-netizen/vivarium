@@ -50,7 +50,10 @@ body.mode-viv #tools{display:none}
  body:not(.mode-viv) #top>.grp{grid-area:2/1}
  body:not(.mode-viv) #tools{grid-area:2/2;display:flex;min-width:0;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:0 0 2px}
  body:not(.mode-viv) #tools::-webkit-scrollbar{display:none}
- body:not(.mode-viv) #tools .grp{flex:none;gap:6px}
+ body:not(.mode-viv) #tools{align-items:center;max-height:44px}
+ body:not(.mode-viv) #tools>*{flex:none;white-space:nowrap}   /* 공유 집 상태표시(#shStat)가 좁은 줄에서 여러 줄로 접혀 상단이 커지던 문제 */
+ body:not(.mode-viv) #tools .grp{gap:6px}
+ body:not(.mode-viv) #shStat:not([hidden]){flex-wrap:nowrap;white-space:nowrap}
  body:not(.mode-viv) #top .grp button,body:not(.mode-viv) #top .grp select{min-height:38px;padding:4px 13px;white-space:nowrap}
  body:not(.mode-viv) #top label.sm{min-height:38px;padding:0 4px;white-space:nowrap;font-size:13px}
  body:not(.mode-viv) #top label.sm input{width:18px;height:18px}

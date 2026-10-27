@@ -324,7 +324,7 @@ function paperDefs(defs){
 const WP0=[['plain','흰색 (기본)'],['grain','회색 입자'],['wood','나무 벽'],['floral','꽃무늬'],['metal','철제'],['tile','네모 타일']];
 const WPL=()=>WP0.concat(Object.entries(S.wpu||{}).map(([id,u])=>['u_'+id,'내 벽지 · '+u.n]));
 const wpFill=k=>k==='grain'?'url(#wallg)':k==='plain'?'#ffffff':(typeof k==='string'&&k.startsWith('u_'))?((S.wpu||{})[k.slice(2)]?`url(#wpu_${k.slice(2)})`:'#ffffff'):`url(#wp_${k})`;
-function render(){const b=S.b,N=b.f,E=EH(),t=b.t,s=b.s,W=b.w,INK='#1c1c1c',L=S.lw,LY=S.layers,B=BB();svg.innerHTML='';
+function render(){try{fillRoomSel()}catch(e){}const b=S.b,N=b.f,E=EH(),t=b.t,s=b.s,W=b.w,INK='#1c1c1c',L=S.lw,LY=S.layers,B=BB();svg.innerHTML='';
  const BN=bounds();const WT=weights();LASTW=WT;const Wp=Math.min(L.out,Math.max(WT._o,.3)),Wi=WT._i;
  const defs=mk('defs',{},svg);hatchDefs(defs,b.hsc||1,INK,b.hang||0,b.hw||1);paperDefs(defs);
  grainPattern(defs,'wallg','#e6e6e6',45,7);grainPattern(defs,'groundg','#8d8d89',90,11);
@@ -542,6 +542,7 @@ function inspItem(it,body,H){H.textContent='선택한 가구';
 /* ---------- 포인터 ---------- */
 let drag=null,tool=null;
 const pxcm=()=>VP.w/(svg.getBoundingClientRect().width||800); // 화면 1px = 몇 cm
+function rerenderItem(it){const old=svg.querySelector(`.itm[data-uid="${it.uid}"]`);if(!old||!old.parentNode){render();return}const gp=old.parentNode,nx=old.nextSibling;gp.removeChild(old);const W=Object.assign({},LASTW||{});delete W[it.uid];renderItem(it,gp,W);const ng=gp.lastChild;if(nx&&ng!==nx)gp.insertBefore(ng,nx);drawSel()} // 크기 조절 중에는 그 가구 하나만 다시 그림
 const busy=on=>svg.classList.toggle('drag',on); // 움직이는 동안 무거운 손그림 필터를 잠시 끔
 let busyT=0;
 function floorAt(y){const e=-y;for(let k=S.b.f-1;k>=0;k--)if(e>=lvl(k)&&e<lvl(k+1))return k;return -1}
@@ -568,16 +569,16 @@ const pinchMove=()=>{if(!pinch||ptrs.size<2)return;const [a,b]=[...ptrs.values()
 svg.addEventListener('pointerdown',ev=>{if(ev.pointerType==='touch'){ptrs.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});if(ptrs.size===2){if(drag){if(drag.m==='pan'){drag=null;busy(false)}else endDrag()}pinchStart();return}if(ptrs.size>2)return}
  if(ev.button>1)return;const p=toWorld(ev);
  if(tool==='wall'){placeWall(p);return}
- const bhn=ev.target.closest('[data-bh]');if(bhn){drag={m:'bh',id:bhn.dataset.bh,moved:true};busy(true);return}
- const hnd=ev.target.closest('[data-h]');const g=ev.target.closest('.itm');const og=ev.target.closest('[data-id]');svg.setPointerCapture(ev.pointerId);const pxs=pxcm();
+ const bhn=ev.target.closest('[data-bh]');if(bhn){if(drag)endDrag();try{svg.setPointerCapture(ev.pointerId)}catch(e){}dpid=ev.pointerId;drag={m:'bh',id:bhn.dataset.bh,moved:true};busy(true);return}
+ if(drag)endDrag();const hnd=ev.target.closest('[data-h]');const g=ev.target.closest('.itm');const og=ev.target.closest('[data-id]');try{svg.setPointerCapture(ev.pointerId)}catch(e){}const pxs=pxcm();dpid=ev.pointerId;
  const startMv=it=>{sel=it.uid;drag={m:'mv',it,dx:p.x-it.x,dy:p.y-(-it.e),p0:p,x0:it.x,e0:it.e,sx:ev.clientX,sy:ev.clientY,moved:false};busy(true);drawSel();inspector()};
  if(hnd){const it=cur();if(!it)return;drag={m:'rs',it,s:{w:it.w,h:it.h},off:p.x-(it.x+it.w/2)};busy(true);return}
  if(g){startMv(S.items.find(i=>i.uid===g.dataset.uid));return}
  if(og){sel=og.dataset.id;const ob=findObj(sel);drag={m:'og',ob,p0:p,s:clone(ob.o),moved:false};busy(true);drawSel();inspector();return}
  const si=cur();if(si&&p.x>=si.x-si.w/2&&p.x<=si.x+si.w/2&&-p.y>=si.e&&-p.y<=si.e+si.h){startMv(si);return} // 선택한 가구는 상자 안 어디를 잡아도 옮겨짐
  sel=null;drawSel();inspector();drag={m:'pan',sx:ev.clientX,sy:ev.clientY,vx:VP.x,vy:VP.y};busy(true)});
-let pmEv=null,pmRaf=0;
-svg.addEventListener('pointermove',ev=>{if(ptrs.has(ev.pointerId)){ptrs.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});if(pinch){pinchMove();return}}pmEv=ev;if(pmRaf)return;pmRaf=requestAnimationFrame(()=>{pmRaf=0;handleMove(pmEv)})});
+let pmEv=null,pmRaf=0,dpid=null;
+svg.addEventListener('pointermove',ev=>{if(ptrs.has(ev.pointerId)){ptrs.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});if(pinch){pinchMove();return}}if(drag&&dpid!==null&&ev.pointerId!==dpid)return;pmEv=ev;if(pmRaf)return;pmRaf=requestAnimationFrame(()=>{pmRaf=0;handleMove(pmEv)})});
 function handleMove(ev){const p=toWorld(ev);
  if(!drag){if(tool==='wall'){svg.querySelectorAll('.guide').forEach(g=>g.remove());const w=wallPos(p);if(w&&w.x!==null)mk('line',{class:'guide',x1:w.x,y1:-lvl(w.k),x2:w.x,y2:-(lvl(w.k+1)-sl(w.k+1))},svg)}return}
  if(drag.m==='mv'){const it=drag.it,r=pxcm();if(!drag.moved&&Math.hypot(ev.clientX-drag.sx,ev.clientY-drag.sy)<3)return;drag.moved=true;
@@ -592,10 +593,11 @@ function handleMove(ev){const p=toWorld(ev);
   else if(k==='op'){o.sill=clamp(sn(s0.sill-dy),0,fh(o.f)-s_(o.f)-o.h);if(o.on==='back')o.x=clamp(sn(s0.x+dx),bounds().l,bounds().r)}
   render()}
  else if(drag.m==='bh')bhMove(p)
- else if(drag.m==='rs'){const it=drag.it;const w=Math.max(5,2*(p.x-drag.off-it.x));const r=drag.s.w/drag.s.h;it.w=+w.toFixed(1);it.h=+(w/r).toFixed(1);render()}
+ else if(drag.m==='rs'){const it=drag.it;const w=Math.max(5,2*(p.x-drag.off-it.x));const r=drag.s.w/drag.s.h;it.w=+w.toFixed(1);it.h=+(w/r).toFixed(1);rerenderItem(it)}
  else if(drag.m==='pan'){const r=svg.getBoundingClientRect(),k=VP.w/r.width;VP.x=drag.vx-(ev.clientX-drag.sx)*k;VP.y=drag.vy-(ev.clientY-drag.sy)*k;applyVP()}}
 const endDrag=()=>{if(!drag)return;if(pmRaf){cancelAnimationFrame(pmRaf);pmRaf=0;if(pmEv)handleMove(pmEv)}const d=drag;drag=null;busy(false);svg.querySelectorAll('.guide').forEach(g=>g.remove());if((d.m==='mv'||d.m==='og')&&d.moved){commit();if(d.m==='og')sync();inspector()}else if(d.m==='rs'){commit()}else if(d.m==='bh'){commit();sync()}};
-const ptrEnd=ev=>{const was=pinch;ptrs.delete(ev.pointerId);if(was){if(ptrs.size<2)pinch=null;return}endDrag()};
+const ptrEnd=ev=>{const was=pinch;ptrs.delete(ev.pointerId);if(was){if(ptrs.size<2)pinch=null;return}if(drag&&dpid!==null&&ev.pointerId!==dpid)return;dpid=null;endDrag()};
+svg.addEventListener('lostpointercapture',ev=>{if(drag&&!pinch&&ev.pointerId===dpid){dpid=null;endDrag()}});
 svg.addEventListener('pointerup',ptrEnd);svg.addEventListener('pointercancel',ptrEnd);
 svg.addEventListener('wheel',ev=>{ev.preventDefault();busy(true);clearTimeout(busyT);busyT=setTimeout(()=>{if(!drag)busy(false)},160);const p=toWorld(ev);const f=ev.deltaY>0?1.12:1/1.12;const nw=Math.min(8000,Math.max(150,VP.w*f));const k=nw/VP.w;VP.x=p.x-(p.x-VP.x)*k;VP.y=p.y-(p.y-VP.y)*k;VP.w=nw;applyVP()},{passive:false});
 svg.addEventListener('dragover',e=>e.preventDefault());svg.addEventListener('drop',e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(!id.startsWith('asset:'))return;const p=toWorld(e);addAsset(id.slice(6),p.x,p.y)});
@@ -617,7 +619,7 @@ function roomsOf(f){const b=S.b;const ps=S.parts.filter(p=>p.f===f).sort((a,c)=>
  return lefts.map((l,i)=>({key:f+':'+l.id,left:l.x,right:i<ps.length?ps[i].x-ps[i].t/2:XR(f)-b.t,rightPart:i<ps.length?ps[i]:null}))}
 function defaultWallX(f){const rs=roomsOf(f);let best=rs[0];for(const r of rs)if(r.right-r.left>best.right-best.left)best=r;return Math.round((best.left+best.right)/2/5)*5}
 /* ---------- 건물 설정 ---------- */
-function sync(){const b=S.b,B=BB();{const br=$('#br');if(!br.dataset.f){br.innerHTML=ROOFS.map(([v,t])=>`<option value="${v}">${t}</option>`).join('');br.dataset.f='1'}
+function sync(){const b=S.b,B=BB();try{fillRoomSel()}catch(e){}{const br=$('#br');if(!br.dataset.f){br.innerHTML=ROOFS.map(([v,t])=>`<option value="${v}">${t}</option>`).join('');br.dataset.f='1'}
   const RG1=roofGeo(),gb=GABLEISH.includes(b.roof),vis=(id,on)=>{$(id).hidden=!on};
   vis('#rowRH',b.roof!=='flat'&&b.roof!=='none');vis('#rowGo',b.roof!=='flat'&&b.roof!=='none');vis('#rowRR',b.roof==='asym');vis('#rowRF',b.roof==='asym'&&!b.rfx);vis('#rowRC',b.roof==='asym'&&!b.rfx);vis('#rowRD',b.roof==='shed');vis('#rowRO',b.roof!=='none'&&!(gb&&b.rfx));vis('#rowRK',gb);
   $('#brr').value=Math.round(b.rr*100);$('#brrv').textContent=Math.round(b.rr*100)+'%';$('#brcl').value=b.rcl||0;$('#brcr').value=b.rcr||0;$('#brd').value=b.rd;$('#bro').value=b.ro;$('#brk').checked=!!b.rfx;
@@ -883,6 +885,15 @@ function exportSvg(){const b=S.b,RG0=roofGeo(),top=EH()+topExtra();const dep=-lv
  return {text:'<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(c),w,h,x0,y0}}
 $('#bSvg').onclick=async()=>{const n=await askName('파일 이름 (SVG 도면)',baseName(),'svg');if(!n)return;const r=exportSvg();dl(new Blob([r.text],{type:'image/svg+xml'}),n+'.svg');msg('SVG 로 저장했어요')};
 $('#bPng').onclick=async()=>{const n=await askName('파일 이름 (PNG 도면)',baseName(),'png');if(!n)return;const r=exportSvg();const img=new Image();img.onload=()=>{const k=1.6,cv=document.createElement('canvas');cv.width=Math.round(r.w*k);cv.height=Math.round(r.h*k);const cx=cv.getContext('2d');cx.drawImage(img,0,0,cv.width,cv.height);cv.toBlob(b2=>{dl(b2,n+'.png');msg('PNG 로 저장했어요')},'image/png')};img.onerror=()=>msg('PNG 변환에 실패했어요. SVG 로 저장해 보세요');img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(r.text)};
+/* 방별 확대: 방을 고르면 그 방이 화면에 꽉 차게 카메라가 부드럽게 이동 (선택 상태·데이터는 건드리지 않음) */
+let camT=0;
+function camTo(x,y,w){cancelAnimationFrame(camT);const a={x:VP.x,y:VP.y,w:VP.w},t0=performance.now(),D=matchMedia('(prefers-reduced-motion:reduce)').matches?0:260;
+ const step=n=>{const u=D?1:Math.min(1,(n-t0)/D),e=u<1?1-Math.pow(1-u,3):1;VP.x=a.x+(x-a.x)*e;VP.y=a.y+(y-a.y)*e;VP.w=a.w+(w-a.w)*e;applyVP();if(u<1)camT=requestAnimationFrame(step)};camT=requestAnimationFrame(step)}
+function zoomRoom(key){const sel_=$('#zroom');if(!key){fit();return}const f=+key.split(':')[0];const r=roomsOf(f).find(q=>q.key===key);if(!r){fit();return}
+ const top=-(lvl(f+1)-sl(f+1)),bot=-lvl(f),mx=60,rw=r.right-r.left+mx*2,rh=bot-top+mx*2;const rc=svg.getBoundingClientRect();const k=Math.max(rw/(rc.width||800),rh/(rc.height||600));const w=k*(rc.width||800),h=k*(rc.height||600);
+ camTo((r.left+r.right)/2-w/2,(top+bot)/2-h/2,w)}
+let RSIG='';function fillRoomSel(){const z=$('#zroom');if(!z)return;let sg=S.b.f+'|';for(let k=0;k<S.b.f;k++)sg+=roomsOf(k).map(r=>r.key+S.rooms[r.key]).join(',')+';';if(sg===RSIG)return;RSIG=sg;const cur=z.value;let h='<option value="">전체 보기</option>';for(let k=S.b.f-1;k>=0;k--)roomsOf(k).forEach((r,i)=>{h+=`<option value="${esc(r.key)}">${fnameKo(k)} · ${esc(S.rooms[r.key]||'방 '+(i+1))}</option>`});z.innerHTML=h;z.value=[...z.options].some(o=>o.value===cur)?cur:''}
+$('#zroom').onchange=e=>zoomRoom(e.target.value);$('#zfit').addEventListener('click',()=>{const z=$('#zroom');if(z)z.value=''});
 $('#undo').onclick=undo;$('#redo').onclick=redo;$('#zfit').onclick=fit;$('#zin').onclick=()=>{const c=VP.x+VP.w/2;VP.w/=1.25;VP.x=c-VP.w/2;applyVP()};$('#zout').onclick=()=>{const c=VP.x+VP.w/2;VP.w*=1.25;VP.x=c-VP.w/2;applyVP()};
 $('#optGrid').checked=OPT.grid;$('#optFill').checked=OPT.fill;$('#optDims').checked=OPT.dims;
 const saveOpt=()=>{try{localStorage.setItem('sectionSite.opt',JSON.stringify(OPT))}catch(e){}};

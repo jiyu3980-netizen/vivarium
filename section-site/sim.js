@@ -236,13 +236,16 @@ const KNAME={bed:'침대',sofa:'소파',chair:'의자',bench:'벤치',desk:'책�
    ===================================================================== */
 function buildWorld(geo){
   const segs=geo.rooms.map((r,i)=>({id:i,key:r.key,f:r.f,left:r.left,right:r.right,uname:r.name||'',partX:r.partX,doorRight:!!r.doorRight}));
+  /* v23.17: 외벽 밖 마당 — 지면에 놓인 외벽 밖 에셋(벤치·화단·텃밭 등)이 있는 쪽마다 구역을 만든다. 문으로 이어지고, 방과 같은 방식으로 행동 후보가 된다 */
+  const g0=geo.g0!=null?geo.g0:0,gEl=geo.groundE||0;
+  if(geo.yard)['L','R'].forEach(sd=>{const y=geo.yard[sd];if(y)segs.push({id:segs.length,key:'yard:'+sd,f:g0,left:y.l,right:y.r,uname:'마당',partX:null,doorRight:false,yard:true,side:sd,e:gEl,name:'마당',named:true})});
   const byFloor={};segs.forEach(s=>(byFloor[s.f]=byFloor[s.f]||[]).push(s));
   Object.values(byFloor).forEach(a=>a.sort((p,q)=>p.left-q.left));
   const segAt=(f,x)=>{const a=byFloor[f];if(!a||!a.length)return null;let best=a[0],bd=1e9;for(const s of a){const d=x<s.left?s.left-x:x>s.right?x-s.right:0;if(d<bd){bd=d;best=s}}return best};
   const segIn=(f,x)=>{const a=byFloor[f];return a?a.find(s=>x>=s.left&&x<=s.right)||null:null};
   const adj=new Map();segs.forEach(s=>adj.set(s.id,[]));
   const floorE=k=>(geo.floors[k]||{e:0}).e;
-  Object.values(byFloor).forEach(a=>{for(let i=0;i<a.length-1;i++)if(a[i].partX!=null){   // 내벽은 통과할 수 있음(문이 없어도). 외벽만 막힘
+  Object.values(byFloor).forEach(a=>{for(let i=0;i<a.length-1;i++)if(a[i].partX!=null&&!a[i].yard&&!a[i+1].yard){   // 내벽은 통과할 수 있음(문이 없어도). 외벽만 막힘
     adj.get(a[i].id).push({to:a[i+1].id,wp:[{f:a[i].f,x:a[i].partX,e:floorE(a[i].f)}]});adj.get(a[i+1].id).push({to:a[i].id,wp:[{f:a[i].f,x:a[i].partX,e:floorE(a[i].f)}]})}});
   (geo.stairs||[]).forEach(st=>{const A=segAt(st.f,st.xb),B=segAt(st.f+1,st.xt);if(!A||!B)return;
     const up=[{f:st.f,x:st.xb,e:floorE(st.f)},{f:st.f+1,x:st.xt,e:floorE(st.f+1)}];
@@ -252,8 +255,9 @@ function buildWorld(geo){
   (geo.items||[]).forEach(it=>{const s=segIn(it.f,it.x);if(!s)return;items.push({...it,kinds:kindsOf(it),seg:s.id})});
   const bySeg=new Map();segs.forEach(s=>bySeg.set(s.id,[]));items.forEach(it=>bySeg.get(it.seg).push(it));
   /* 방 이름: 사용자가 붙인 이름 > 가구로 추정 > 층 이름 */
-  const multi={};segs.forEach(s=>multi[s.f]=(multi[s.f]||0)+1);
+  const multi={};segs.forEach(s=>{if(!s.yard)multi[s.f]=(multi[s.f]||0)+1});
   segs.forEach(s=>{
+    if(s.yard)return;
     if(s.uname){s.name=s.uname;s.named=true;return}
     const c={};(bySeg.get(s.id)||[]).forEach(it=>it.kinds.forEach(k=>c[k]=(c[k]||0)+1));
     const sc={침실:(c.bed||0)*4,욕실:((c.toilet||0)+(c.bathtub||0)+(c.shower||0)+(c.bsink||0))*3,주방:((c.fridge||0)+(c.stove||0)+(c.counter||0)+(c.ksink||0))*2.5+(c.dining||0)*.5,
@@ -261,7 +265,7 @@ function buildWorld(geo){
     let best='',bv=1.9,second=0;for(const k in sc)if(sc[k]>bv){second=bv>1.9?bv:second;bv=sc[k];best=k}else if(sc[k]>second&&sc[k]>1.9)second=sc[k];
     if(best&&second>0&&bv<second*1.35)best='';   // 여러 용도가 섞인 공간이면 억지로 이름 붙이지 않고 층 이름을 쓴다
     const fn=(geo.floors[s.f]||{}).name||'';
-    s.name=best||(multi[s.f]>1?`${fn} ${byFloor[s.f].indexOf(s)+1}번 방`:fn||'집 안');
+    s.name=best||(multi[s.f]>1?`${fn} ${byFloor[s.f].filter(q=>!q.yard).indexOf(s)+1}번 방`:fn||'집 안');
     s.inferred=!!best});
   const windows=(geo.windows||[]).map(w=>{const s=segAt(w.f,w.x);return s?{...w,seg:s.id}:null}).filter(Boolean);
   const route=(from,to)=>{   // from/to: {f,x} → 경유 지점 목록 {f,x,e} (시작점 제외, 도착점 포함). 막혀 있으면 null
@@ -271,12 +275,21 @@ function buildWorld(geo){
     if(!prev.has(B.id))return null;
     const chain=[];let c=B.id;while(prev.get(c)){chain.unshift(prev.get(c).e);c=prev.get(c).from}
     const out=[];chain.forEach(e=>e.wp.forEach(w=>out.push({...w})));
-    out.push({f:to.f,x:to.x,e:to.e!=null?to.e:floorE(to.f)});return out};
+    out.push({f:to.f,x:to.x,e:to.e!=null?to.e:standE(B,to.f)});return out};
   const reach=segId=>{const seen=new Set([segId]),q=[segId];while(q.length){const u=q.shift();for(const e of adj.get(u))if(!seen.has(e.to)){seen.add(e.to);q.push(e.to)}}return seen};
   const clampX=(s,x,pad)=>{const lo=s.left+pad,hi=s.right-pad;return lo<=hi?Math.min(hi,Math.max(lo,x)):(s.left+s.right)/2};
   const exits=(geo.exits||[]).slice();   // 문 에셋이 놓인 층이면 외벽에 문이 없어도 그 문으로 나갈 수 있음
   items.forEach(it=>{if(it.kinds.includes('door')&&!exits.some(e=>e.f===it.f&&Math.abs(e.x-it.x)<30))exits.push({f:it.f,x:it.x,side:'door:'+it.uid,item:it.uid})});
-  return {geo,segs,segAt,segIn,items,bySeg,route,reach,floorE,clampX,windows,exits,byFloor,adj,
+  const standE=(s,f)=>s&&s.yard?s.e:floorE(f!=null?f:(s?s.f:0));
+  /* 마당 ↔ 방: 외벽 문(L/R) 또는 외벽 자리에 놓인 문 에셋으로 이어진다. 연결할 문이 없으면 마당은 닫혀 있다 */
+  const tw=geo.t||20,E0=(geo.ext&&geo.ext[g0])||{l:geo.in0-tw,r:geo.in1+tw};
+  segs.filter(s=>s.yard).forEach(y=>{
+    const wallX=y.side==='L'?E0.l:E0.r,edge=y.side==='L'?y.right-18:y.left+18;
+    let ex=exits.find(e=>e.f===g0&&e.side===y.side)||exits.filter(e=>e.f===g0&&/^door:/.test(String(e.side))&&Math.abs(e.x-wallX)<=tw+95).sort((p,q)=>Math.abs(p.x-wallX)-Math.abs(q.x-wallX))[0];
+    if(!ex)return;const room=segAt(g0,ex.x);if(!room||room.yard)return;
+    const inn={f:g0,x:ex.x,e:floorE(g0)},outP={f:g0,x:edge,e:y.e};
+    adj.get(room.id).push({to:y.id,wp:[inn,outP]});adj.get(y.id).push({to:room.id,wp:[{...outP},{...inn}]});y.door=ex});
+  return {geo,segs,segAt,segIn,items,bySeg,route,reach,floorE,standE,clampX,windows,exits,byFloor,adj,
     segOf:id=>segs[id],mid:geo.mid!=null?geo.mid:geo.W/2,edgeOut:(f,x)=>{const E=geo.ext&&geo.ext[f];if(!E)return x<geo.W/2?geo.in0-60:geo.in1+60;return x<(E.l+E.r)/2?E.l-60:E.r+60}}}
 
 /* =====================================================================
@@ -696,7 +709,7 @@ function exitSpot(W,rng){const ex=W.exits;if(!ex.length)return null;return ex.le
 function spotFor(W,it,pose,rng,slot){
   const s=W.segOf(it.seg),fl=W.geo.floors[it.f],off=(rng()-.5)*Math.min(it.w*.5,60)+(slot||0)*Math.max(40,it.w*.28);
   let dy=0;if(pose==='sit')dy=Math.min(it.h*.3,35);if(pose==='lie')dy=it.kinds.includes('bed')?Math.max(30,Math.min(52,it.h*.4)):Math.min(it.h*.85,it.kinds.includes('sofa')?it.h*.55:it.h*.85);   // v23.4 침대: 머리판·캐노피까지 잰 전체 높이가 아니라 매트리스·이불선 높이(약 30~52cm)에 맞춰 눕힘
-  return {f:it.f,x:W.clampX(s,it.x+off,pose==='lie'?Math.min(60,(s.right-s.left)/2-1):20),e:(it.e||fl.e)+dy,dy:it.e>fl.e+3&&pose==='stand'?0:dy,pose,uid:it.uid,seg:s.id}}
+  return {f:it.f,x:W.clampX(s,it.x+off,pose==='lie'?Math.min(60,(s.right-s.left)/2-1):20),e:(s.yard?(it.e!=null?it.e:s.e):(it.e||fl.e))+dy,dy:it.e>fl.e+3&&pose==='stand'?0:dy,pose,uid:it.uid,seg:s.id}}
 function occupancy(ctx,exceptId){const occ={};for(const o of ctx.chars){if(o.id===exceptId||o.pet)continue;const p=ctx.getPlace(o.id);if(p.mode==='home'&&p.tgt)occ[p.tgt]=(occ[p.tgt]||0)+1}return occ}
 const isCouple=(A,B)=>A.facts.partners.includes(B.name);
 function coupleOf(ctx,c,A){return ctx.chars.find(o=>o.id!==c.id&&!o.pet&&A.facts.partners.includes(o.name))||null}
@@ -751,6 +764,7 @@ function uncCandidates(ctx,c,A,st,pos,R,itemsR,winOps,others,out){
     else if(E.kind==='rep'){const again=lastNormal&&out.find(x=>x.v.id===lastNormal&&!x.v.unc&&!x.v.care&&!x.v.pair&&x.v.g!=='sleep'&&x.v.g!=='p_sleep');if(again)out.push({v,seg:pos.seg,rep:again,dist:0})}}}
 function candidates(ctx,c,A,st,pos,hm,opts){
   opts=opts||{};const W=ctx.world,R=(c.pet&&SPECIES[c.pet.sp].room&&pos.seg)?new Set([pos.seg.id]):W.reach(pos.seg?pos.seg.id:0),H=Math.floor(hm),out=[];   // v17: 작은 반려동물(햄스터·새·물고기)은 있는 방 안에서만 움직임
+  {const st0=ctx.getSim(c.id);if(H<7||H>=21||(st0.yardSince&&ctx.now-st0.yardSince>150*60000))W.segs.forEach(sg=>{if(sg.yard)R.delete(sg.id)})}   // 마당은 서울 07~21시에만, 한 번에 2시간 반까지만 후보
   const myPs=c.pet?(ctx.getSim(c.id).pet||{}):null;
   const others=ctx.chars.filter(o=>o.id!==c.id&&!o.pet&&ctx.getPlace(o.id).mode==='home'&&ctx.getPlace(o.id).house===ctx.houseId);
   const occ=occupancy(ctx,c.id);
@@ -855,7 +869,7 @@ function decide(ctx,c,p,st,reason){
       ctx.setSim(c.id,{decideAt:Math.min(st.outUntil,qd(now,30))});return null}
     const ex=W.exits[0];if(!ex){ctx.setPlace(c.id,{mode:'home',f:0,x:W.mid});pos=posOf(W,{f:0,x:W.mid})}
     else{const e=(st.outFrom&&W.exits.find(x=>x.side===st.outFrom))||ex;pos=posOf(W,{f:e.f,x:e.x});ctx.setPlace(c.id,{mode:'home',f:e.f,x:pos.x,pose:'stand',dy:0,tgt:null});returned=true;moves.push({id:c.id,from:{f:e.f,x:W.edgeOut(e.f,e.x),e:W.floorE(e.f)},route:[{f:e.f,x:pos.x,e:W.floorE(e.f)}],enter:true})}}
-  const from={f:pos.f,x:pos.x,e:p.mode==='out'||returned?W.floorE(pos.f):(p.e!=null?p.e:W.floorE(pos.f))};
+  const from={f:pos.f,x:pos.x,e:p.mode==='out'||returned?W.standE(pos.seg,pos.f):(p.e!=null?p.e:W.standE(pos.seg,pos.f))};
   const recent=(st.recent||[]).slice(-4);
   const bias=st.bias&&st.bias.until>now?st.bias:null;
   /* 대기 중인 후속 행동(외출 준비 → 외출) */
@@ -891,11 +905,11 @@ function decide(ctx,c,p,st,reason){
     if(mate){const {cp,pp,pPos,rt2}=mate;
       ctx.setPlace(cp.id,{mode:'out',action:'out',verb:'out_'+why.id,tgt:null,pose:'stand',dy:0,f:ex.f,x:ex.x,say:wa(c.name)+' 함께 '+dsay,e:null});
       ctx.setSim(cp.id,{outAt:now,decideAt:dur>40?qd(now,30):qd(now,dur),outUntil:qd(now,dur),outFrom:ex.side,then:null,wish:null,updatedAt:now,dirty:false,recent:[...((ctx.getSim(cp.id).recent)||[]),'out'].slice(-5)});
-      moves.push({id:cp.id,from:{f:pPos.f,x:pPos.x,e:pp.e!=null?pp.e:W.floorE(pPos.f)},route:rt2,leave:true})}
+      moves.push({id:cp.id,from:{f:pPos.f,x:pPos.x,e:pp.e!=null?pp.e:W.standE(pPos.seg,pPos.f)},route:rt2,leave:true})}
     if(pm){const {pe,pp,pPos,rt2}=pm,pdsay=why.pd[why.seq?0:hash('out_'+why.id+'|'+now)%why.pd.length],pst0=ctx.getSim(pe.id);
       ctx.setPlace(pe.id,{mode:'out',action:'out',verb:'out_'+why.id,tgt:null,pose:'stand',dy:0,f:ex.f,x:ex.x,say:wa(c.name)+' 함께 '+pdsay,e:null});
       ctx.setSim(pe.id,{...pst0,outAt:now,decideAt:dur>40?qd(now,30):qd(now,dur),outUntil:qd(now,dur),outFrom:ex.side,then:null,wish:null,updatedAt:now,dirty:false,pet:applyCare(pst0.pet,'walk',now)});
-      moves.push({id:pe.id,from:{f:pPos.f,x:pPos.x,e:pp.e!=null?pp.e:W.floorE(pPos.f)},route:rt2,leave:true})}
+      moves.push({id:pe.id,from:{f:pPos.f,x:pPos.x,e:pp.e!=null?pp.e:W.standE(pPos.seg,pPos.f)},route:rt2,leave:true})}
     return true};
   const pickWhy=(forced)=>{const off=isOffDay(now),inSlot=!!jobSlot(A,now);
     if(!forced&&inSlot)return OUT_WHY.find(o=>o.id==='job');   // 일하는 시간에는 일하러 가는 것이 우선
@@ -1005,15 +1019,15 @@ function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepW
   let spot,partner=ch.partner||null,roomSeg;
   const standSeg=ch.seg||(pos.seg);
   if(v.special==='wander'){const s=ch.seg;const its=W.bySeg.get(s.id).filter(i=>!i.kinds.includes('window'));const it=its.length?pick(rng,its):null;
-    const x=it?it.x+(rng()-.5)*Math.min(it.w,80):(s.left+s.right)/2;spot={f:s.f,x:W.clampX(s,x,24),e:W.floorE(s.f),dy:0,pose:'stand',uid:null,seg:s.id};roomSeg=s}
+    const x=it?it.x+(rng()-.5)*Math.min(it.w,80):(s.left+s.right)/2;spot={f:s.f,x:W.clampX(s,x,24),e:W.standE(s),dy:0,pose:'stand',uid:null,seg:s.id};roomSeg=s}
   else if(ch.win){const w=ch.win,s=W.segOf(w.seg);spot={f:w.f,x:W.clampX(s,w.x,40),e:W.floorE(w.f),dy:0,pose:'stand',uid:null,seg:s.id};roomSeg=s}
   else if(ch.item){const it=ch.seat||ch.item;
     let slot=0;if(v.pair&&partner)slot=1;
     spot=spotFor(W,it,v.pose,rng,ch.couple&&v.pose==='lie'?-.9:slot*0);roomSeg=W.segOf(it.seg);
     if(ch.seat&&v.seatKind){spot.pose=v.pose;}
     if(!ch.seat&&v.pose==='stand'&&it.kinds.includes('tv')){/* TV 앞에서 서기: 방 안쪽에서 TV를 바라봄 */spot.x=W.clampX(roomSeg,it.x+(it.x<(roomSeg.left+roomSeg.right)/2?1:-1)*(it.w/2+70),24)}}
-  else{spot={f:standSeg.f,x:pos.x,e:W.floorE(standSeg.f),dy:0,pose:'stand',uid:null,seg:standSeg.id};roomSeg=standSeg;
-    if(partner&&v.pair){const pp=ctx.getPlace(partner.id);const ps=posOf(W,pp);roomSeg=ps.seg;spot={f:ps.f,x:W.clampX(ps.seg,ps.x-70*(ps.x>W.mid?-1:1)*0-70,20),e:W.floorE(ps.f),dy:0,pose:'stand',uid:null,seg:ps.seg.id}}}
+  else{spot={f:standSeg.f,x:pos.x,e:W.standE(standSeg),dy:0,pose:'stand',uid:null,seg:standSeg.id};roomSeg=standSeg;
+    if(partner&&v.pair){const pp=ctx.getPlace(partner.id);const ps=posOf(W,pp);roomSeg=ps.seg;spot={f:ps.f,x:W.clampX(ps.seg,ps.x-70*(ps.x>W.mid?-1:1)*0-70,20),e:W.standE(ps.seg,ps.f),dy:0,pose:'stand',uid:null,seg:ps.seg.id}}}
   const rt=W.route({f:pos.f,x:pos.x},{f:spot.f,x:spot.x,e:spot.e});
   if(!rt&&(spot.f!==pos.f||spot.seg!==(pos.seg&&pos.seg.id))){   // 막혀 있으면 이 방에서 서성임
     const idle=idleOf(c);return startVerb(ctx,c,A,p,st,pos,from,moves,{v:idle,seg:pos.seg,dist:0},rng,stUp,hm,recent,{})}
@@ -1048,7 +1062,7 @@ function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepW
   /* v22: 행동 갱신은 서울 시계의 :00/:15/:30/:45 마다. 평소 행동은 다음 15분 눈금(5분 미만이 남으면 그다음 눈금)까지만 하고 다시 정함 — 밤잠·낮잠·준비 동작·직접 지정 시간은 예외로 길게 유지 */
   const longKeep=v.g==='sleep'||v.g==='p_sleep'||!v.dur||v.internal||v.special==='prep'||(extra&&extra.dur)||(extra&&extra.then);
   const QM=15*MIN,nextMark=(()=>{let t=(Math.floor(now/QM)+1)*QM;if(t-now<5*MIN)t+=QM;return t})();
-  const nxt={...stUp,decideAt:longKeep?qd(now,dur):nextMark,recent:[...recent,uv?uv.id:v.id].slice(-5),prevSeg:(roomSeg&&pos.seg&&roomSeg.id!==pos.seg.id)?pos.seg.id:(st.prevSeg!=null?st.prevSeg:null),lastBack:(p.mode==='out'?now:st.lastBack),then:extra&&extra.then?extra.then:null,outUntil:0,outTo:null,outNb:null};
+  const nxt={...stUp,decideAt:longKeep?qd(now,dur):nextMark,recent:[...recent,uv?uv.id:v.id].slice(-5),prevSeg:(roomSeg&&pos.seg&&roomSeg.id!==pos.seg.id)?pos.seg.id:(st.prevSeg!=null?st.prevSeg:null),lastBack:(p.mode==='out'?now:st.lastBack),then:extra&&extra.then?extra.then:null,outUntil:0,outTo:null,outNb:null,yardSince:(roomSeg&&roomSeg.yard)?(st.yardSince||now):null};
   if(!keepWish&&st.wish&&!st.wish.done)nxt.wish={...st.wish,done:true};
   ctx.setSim(c.id,nxt);
   moves.push({id:c.id,from,route:rt||[],final:patch});
@@ -1056,7 +1070,7 @@ function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepW
   if(partner&&v.pair){
     const pst=ctx.getSim(partner.id),pp=ctx.getPlace(partner.id),ppos=posOf(W,pp);
     const B=ctx.analysis(partner);let ps;
-    if(ch.item){ps=spotFor(W,ch.seat||ch.item,v.pose,mulberry(hash(partner.id+now)),1.4)}else{ps={f:spot.f,x:W.clampX(W.segOf(spot.seg),spot.x+80,20),e:W.floorE(spot.f),dy:0,pose:'stand',uid:null,seg:spot.seg}}
+    if(ch.item){ps=spotFor(W,ch.seat||ch.item,v.pose,mulberry(hash(partner.id+now)),1.4)}else{ps={f:spot.f,x:W.clampX(W.segOf(spot.seg),spot.x+80,20),e:W.standE(W.segOf(spot.seg),spot.f),dy:0,pose:'stand',uid:null,seg:spot.seg}}
     const prt=W.route({f:ppos.f,x:ppos.x},{f:ps.f,x:ps.x,e:ps.e});
     if(prt||ps.seg===(ppos.seg&&ppos.seg.id)){
       const tp=partner.pet&&v.care?careTexts(v,partner,'p'):((ch.couple&&v.cp&&rng()<.6)?v.cp:v.t);let psay0=fillSay(pick(rng,tp),room,c.name);if(partner.pet){const fd=SPECIES[partner.pet.sp].food;psay0=psay0.replace(/\{f\}을\(를\)/g,eul(fd)).replace(/\{f\}/g,fd)}const psay=fillExtra(psay0,rng,B,H,partner.profile,partner?mulberry(hash([c.id,partner.id].sort().join('|')+'bg'+Math.floor(now/(15*MIN)))):null);
@@ -1064,7 +1078,7 @@ function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepW
       if(!partner.pet&&!c.pet&&ctx.mind&&ctx.mind.romLine){try{
         if(evB)psayF=evB;
         else{const rl2=ctx.mind.romLine(partner.id,c.id,B,A,rng,partner.name,c.name,room,!!v.rom);if(rl2)psayF=rl2}}catch(e){}}
-      const pfrom={f:ppos.f,x:ppos.x,e:pp.e!=null?pp.e:W.floorE(ppos.f)};
+      const pfrom={f:ppos.f,x:ppos.x,e:pp.e!=null?pp.e:W.standE(ppos.seg,ppos.f)};
       ctx.setPlace(partner.id,{mode:'home',action:v.g,verb:v.id,tgt:ps.uid||null,pose:ps.pose,dy:ps.dy||0,f:ps.f,x:Math.round(ps.x),say:psayF,e:ps.e,partner:c.id,seg:ps.seg});
       ctx.setSim(partner.id,{...pst,n:(pst.n||0)+1,updatedAt:now,decideAt:nxt.decideAt,recent:[...(pst.recent||[]),v.id].slice(-5),then:null,...(v.care&&partner.pet?{pet:applyCare(pst.pet,v.care,now)}:{})});
       moves.push({id:partner.id,from:pfrom,route:prt||[],final:ctx.getPlace(partner.id)})}}

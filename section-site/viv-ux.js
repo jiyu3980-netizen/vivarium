@@ -21,6 +21,7 @@
         if(n.classList.contains('vv-pic')){pic=n;return}
         if(n.classList.contains('vv-pen-img')){picPen=n;return}
         if(n.tagName==='INPUT'&&n.id==='vdImgF'){picPen&&(picPen.dataset.f='1');fileIn=n;return}
+        if(n.id==='vdKind'){P.log.push(n);return}   // 종류(사람/반려동물)도 프로필 탭으로
         if(n.tagName==='LABEL'&&q('#vdSz',n)){P.log.push(n);return}   // 크기(높이 cm)는 프로필 탭으로
         if(!hasChar){P.act.push(n);return}
         if(n.tagName==='H4'){seenH4=true;const t=n.textContent;cur=/직접 행동/.test(t)?'act':/프로필 해석/.test(t)?'log':/배치/.test(t)?'mov':(cur||'more');P[cur].push(n);return}

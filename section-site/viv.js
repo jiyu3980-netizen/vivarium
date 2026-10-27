@@ -54,8 +54,15 @@ function buildGeo(S,b){
     if(g.asset){const A=g.asset;if(a.type==='spiral'){xb=xt=A.x+A.w*.5}else{xb=dir>0?A.x+A.w*.12:A.x+A.w*.88;xt=dir>0?A.x+A.w*.88:A.x+A.w*.12}}
     else{xb=a.x;if(a.type==='U')xt=a.x;else if(g.land&&a.type!=='straight')xt=dir>0?g.land[1]:g.land[0];else xt=g.xt}
     geo.stairs.push({f:a.f,xb,xt})});
+  /* v23.17: 외벽 밖 마당 — 1층(지면) 외벽 바깥, 지면 높이에 놓인 에셋이 있는 쪽마다 구역을 만든다(캐릭터가 문으로 나가 상호작용) */
+  const gE=-(b.rz||0),X0=XL_(g0),X1=XR_(g0);geo.groundE=gE;geo.g0=g0;
+  const yl=[],yr=[],isYard=i=>Math.abs((+i.e||0)-gE)<=14&&(i.x+(i.w||0)/2<=X0-2||i.x-(i.w||0)/2>=X1+2);
+  S.items.forEach(i=>{if(!isYard(i))return;(i.x<X0?yl:yr).push(i)});
+  if(yl.length||yr.length){geo.yard={};
+    if(yl.length)geo.yard.L={l:Math.max(X0-3000,Math.min(X0-262,...yl.map(i=>i.x-(i.w||0)/2-80))),r:X0-2};
+    if(yr.length)geo.yard.R={l:X1+2,r:Math.min(X1+3000,Math.max(X1+262,...yr.map(i=>i.x+(i.w||0)/2+80)))}}
   S.items.forEach(i=>{const a=B.AM[i.assetId]||{},fv=a.views&&a.views.front;
-    let f=0;geo.floors.forEach(fl=>{if(fl.e<=i.e+3)f=fl.k});
+    let f=0;geo.floors.forEach(fl=>{if(fl.e<=i.e+3)f=fl.k});if(isYard(i))f=g0;
     geo.items.push({uid:i.uid,aid:i.assetId,x:i.x,e:i.e,w:i.w,h:i.h,f,name:a.nameKo||'가구',en:a.nameEn||'',cat:a.categoryId||'',sub:a.subcategoryId||'',tags:a.tags||[],sb:(fv&&fv.sourceBlock)||''})});
   return geo}
 /* ---------- 색감 팔레트 (보는 사람 개인 설정: 이 브라우저에만 저장, 공유·서버·도면 원본과 무관) ---------- */
@@ -179,11 +186,13 @@ async function activate(i,silent){
   runSim(i,false);   // 이 집을 열 때: 지금 서울 시각에 맞는 행동으로 한 번 갱신(오프라인 동안의 행동은 재생하지 않음)
   drawChars(slide);renderList();renderDetail();shareLabel();
   (window.requestIdleCallback||setTimeout)(()=>{if(my!==token)return;[i+1,i-1].forEach(j=>{const h2=houses[j],sl2=qa('.vv-slide')[j];if(h2&&sl2&&!sl2._snap)ensureStage(sl2,h2)})},{timeout:2500})}   // 옆 집도 미리 그려 둠(넘길 때 기다리지 않게)
+const YARD_WARNED=new Set();
 async function ensureStage(slide,h){
   if(slide._key===h.key&&slide._snap)return;
   const wrap=q('.vv-stagewrap',slide);
   try{
     await preload(h.doc);const snap=drawDoc(h.doc);snap.world=Sim.buildWorld(snap.geo);
+    if(!h.shared&&snap.world.segs.some(sg=>sg.yard&&!sg.door)&&!YARD_WARNED.has(h.id)){YARD_WARNED.add(h.id);setTimeout(()=>note('외벽 밖에 놓인 에셋이 있지만 1층 외벽에 문이 없어서 캐릭터가 나갈 수 없어요. 단면도 편집에서 1층 외벽에 문을 달아 주세요.','warn'),700)}
     if(slide._url)URL.revokeObjectURL(slide._url);if(slide._rast){URL.revokeObjectURL(slide._rast);slide._rast=null}
     const url=palUrl(snap);slide._url=url;slide._snap=snap;slide._key=h.key;
     wrap.innerHTML=`<div class="vv-stage" style="--ar:${snap.w/snap.h};aspect-ratio:${snap.w}/${snap.h}"><div class="vv-gnd" style="top:${((snap.gy-snap.y0)/snap.h*100).toFixed(3)}%"></div><img class="vv-bg" alt="${esc(h.name)} 단면도" src="${url}" draggable="false" decoding="async"><svg class="vv-ov" viewBox="${snap.x0} ${snap.y0} ${snap.w} ${snap.h}" xmlns="${NSV}"></svg></div>`;
@@ -277,7 +286,7 @@ function wrapText(t,max){const out=[];let cur='';for(const w of String(t).split(
   if(out.length>1&&[...out[out.length-1]].length<=3){const l=out.pop();out[out.length-1]+=' '+l}return out.slice(0,3)}
 function charBox(c,p,geo){const fl=floorOf(geo,p.f),ar=c.img?c.img.w/c.img.h:.6,h=p.h,w=h*ar,an=ANIM[c.id];
   const pose=an?'stand':(p.pose||'stand');let x=an?an.x:(p.x==null?geo.mid:p.x),e=an?an.e:(p.e!=null?p.e:fl.e);
-  if(!an){const half=(pose==='lie'?h:w)/2,E=geo.ext&&geo.ext[fl.k],lo=(E?E.l+geo.t:geo.in0)+half,hi=(E?E.r-geo.t:geo.in1)-half;x=lo<=hi?Math.min(Math.max(x,lo),hi):geo.mid}
+  if(!an){const half=(pose==='lie'?h:w)/2,E=geo.ext&&geo.ext[fl.k],Y=geo.yard&&fl.k===geo.g0?geo.yard:null,lo=(Y&&Y.L?Y.L.l:(E?E.l+geo.t:geo.in0))+half,hi=(Y&&Y.R?Y.R.r:(E?E.r-geo.t:geo.in1))-half;x=lo<=hi?Math.min(Math.max(x,lo),hi):geo.mid}
   return {x,w,h,e:e+(an?an.bob:0),f:fl.k,pose,vw:pose==='lie'?h:w,vh:pose==='lie'?w:h}}
 /* v22 이웃집 손님: 위치는 (손님 id + 방문 시작 시각)으로 정해 둬서, 같은 방문은 보는 사람마다 같은 자리에 보임. 방문 시작 90초 이내에 처음 그려질 때만 현관에서 걸어 들어오는 모습을 보여 줌 */
 const GUEST_SEEN=new Set();
@@ -336,7 +345,7 @@ function makeChar(c,p,geo,ov,slide,L1,L2,guest){
     if(!say){bub.setAttribute('visibility','hidden');return b}
     bub.setAttribute('visibility','visible');
     const lh=fs*1.3,pad=fs*.55,w=Math.max(tw(c.name,fs),...lines.map(l=>tw(l,fs)))+pad*2,h=lh*(1+lines.length)+pad*1.1,tail=fs*.75;
-    const bx=Math.min(Math.max(b.x-w/2,geo.in0-30),geo.in1+30-w),by=vt-tail-h-2,tx=Math.min(Math.max(b.x,bx+pad+fs*.4),bx+w-pad-fs*.4);
+    const yL=geo.yard&&geo.yard.L?geo.yard.L.l:geo.in0,yR=geo.yard&&geo.yard.R?geo.yard.R.r:geo.in1,bx=Math.min(Math.max(b.x-w/2,Math.min(geo.in0,yL)-30),Math.max(geo.in1,yR)+30-w),by=vt-tail-h-2,tx=Math.min(Math.max(b.x,bx+pad+fs*.4),bx+w-pad-fs*.4);
     {const r=4,x2=bx+w,y2=by+h,t1=tx-fs*.4,t2=tx+fs*.4;   // 말풍선과 꼬리를 하나의 윤곽선으로 그려 꼬리 밑에 가로선이 남지 않게 함
      bR.setAttribute('d',`M${bx+r} ${by}H${x2-r}Q${x2} ${by} ${x2} ${by+r}V${y2-r}Q${x2} ${y2} ${x2-r} ${y2}H${t2}L${b.x} ${y2+tail}L${t1} ${y2}H${bx+r}Q${bx} ${y2} ${bx} ${y2-r}V${by+r}Q${bx} ${by} ${bx+r} ${by}Z`)}
     nm.setAttribute('font-size',fs);nm.setAttribute('x',bx+pad);nm.setAttribute('y',by+pad*.55+lh*.85);
@@ -384,6 +393,28 @@ function loop(now){rafId=0;
 const toSimChar=c=>{const t=Sim.parsePet(c.profile||'');return {id:c.id,name:c.name,profile:t.profile,pet:t.pet}};
 const petOfChar=c=>Sim.parsePet(c.profile||'').pet;
 const profText=c=>Sim.parsePet(c.profile||'').profile;
+/* 프로필 탭의 「종류」: 사람 ↔ 반려동물, 동물 종, 반려인을 바로 고친다(프로필 앞머리의 [반려:종|반려인] 표시를 바꾸는 방식이라 기존 저장 경로·서버 공유 그대로) */
+function kindEditHtml(c,pet){
+  const owners=(c.remote?Viv.chars().filter(x=>x.remote&&x.hid===c.hid):Viv.localChars()).filter(x=>!petOfChar(x)&&x.id!==c.id);
+  return `<div class="vv-kind vd-kind" id="vdKind"><div class="vv-kindrow"><span>종류</span><label class="inl"><input type="radio" name="vdKindR" value="person" ${pet?'':'checked'}> 사람</label><label class="inl"><input type="radio" name="vdKindR" value="pet" ${pet?'checked':''}> 반려동물</label></div>
+  <div id="vdPetOpt" ${pet?'':'hidden'}><label>동물 종 <select id="vdSp">${Sim.SPECIES_IDS.map(k=>`<option value="${k}" ${pet&&pet.sp===k?'selected':''}>${esc(Sim.SPECIES[k].n)}</option>`).join('')}</select></label>
+  <label>반려인 <select id="vdOwner"><option value="">(아직 정하지 않음)</option>${owners.map(o=>`<option value="${esc(o.id)}" ${pet&&pet.owner===o.id?'selected':''}>${esc(o.name)}</option>`).join('')}</select></label></div></div>`}
+function kindEditBind(el,c,pet,quick){
+  const box=q('#vdKind',el);if(!box)return;
+  const apply=async(toPet,spChanged)=>{
+    const sp=q('#vdSp',box).value,ow=q('#vdOwner',box).value||null;
+    if(toPet&&!pet){const mine=Viv.chars().filter(o=>{const t=petOfChar(o);return t&&t.owner===c.id}).length;
+      if(mine&&!confirm(`'${c.name}'을(를) 반려인으로 둔 반려동물이 ${mine}마리 있어요. 반려동물로 바꾸면 그 연결이 사라져요. 계속할까요?`)){renderDetail();return}}
+    try{await quick({name:c.name,profile:(toPet?Sim.petTag(sp,ow):'')+profText(c)},null);
+      if(toPet&&(!pet||spChanged))Viv.setPlace(c.id,{h:Sim.SPECIES[sp].h});   // 사람→동물, 종 변경이면 그 종의 기본 크기로
+      else if(!toPet&&pet)Viv.setPlace(c.id,{h:120});                          // 동물→사람이면 사람 기본 크기로
+      if(!toPet||!pet)Viv.setSim(c.id,{decideAt:0,then:null,wish:null,outUntil:0});
+      const i=houses.findIndex(h2=>h2.id===Viv.getPlace(c.id).house);if(i>=0)runSim(i,false);
+      const s2=qa('.vv-slide')[activeIdx];s2&&drawChars(s2);renderList();renderDetail()}
+    catch(ex){note(ex.message||String(ex),'warn');renderDetail()}};
+  qa('input[name=vdKindR]',box).forEach(r=>r.onchange=()=>{const toPet=q('input[name=vdKindR]:checked',box).value==='pet';q('#vdPetOpt',box).hidden=!toPet;apply(toPet,false)});
+  q('#vdSp',box).onchange=()=>{if(q('input[name=vdKindR]:checked',box).value==='pet')apply(true,true)};
+  q('#vdOwner',box).onchange=()=>{if(q('input[name=vdKindR]:checked',box).value==='pet')apply(true,false)}}
 const withTag=(c,text)=>{const t=petOfChar(c);return t?Sim.petTag(t.sp,t.owner)+text:text};
 const humansIn=hid=>inHouse(hid).map(toSimChar).filter(c=>!c.pet);
 const inHouse=hid=>Viv.chars().filter(c=>Viv.getPlace(c.id).house===hid);
@@ -677,6 +708,7 @@ function renderDetail(){
   <p class="hint">고르면 가능한 조건(가구·길·서울 시각)을 확인해 바로 반영하고, 이후 한동안 그 방향이 조금 더 자주 나와요. 고르지 않아도 자율 행동은 계속돼요.</p>
   ${pet?'':`<h4>프로필 해석 <small>키워드 규칙 · AI 아님</small></h4>
   <div id="vdAn">${anHtml(A)}</div>`}
+  ${canPen?kindEditHtml(c,pet):''}
   <label>크기(높이 cm) <span class="row"><input type="range" id="vdSz" min="${HMIN}" max="${HMAX}" value="${Math.round(p.h)}" ${placed&&!out&&!ro?'':'disabled'}><input type="number" id="vdSzN" min="${HMIN}" max="${HMAX}" value="${Math.round(p.h)}" ${placed&&!out&&!ro?'':'disabled'}></span></label>
   <div class="vv-btns"><button id="vdDel" class="vv-danger" ${ro?'disabled':''}>삭제</button></div>`;
   if(!pet)mindFill(q('#vvMind',el),c);
@@ -704,6 +736,7 @@ function renderDetail(){
     ta.onblur=()=>{clearTimeout(tm);if(ta.value!==last)save()}}}
   q('#vdDel').onclick=async()=>{if(!confirm(c.remote?`'${c.name}' 캐릭터를 삭제할까요? 서버에서 이미지와 프로필이 지워져요.`:`'${c.name}' 캐릭터를 삭제할까요? 이미지와 프로필이 이 브라우저에서 지워져요.`))return;
     try{if(c.remote)await SH().removeChar(c.id);else await Viv.removeChar(c.id)}catch(e){note(e.message,'warn');return}if(MD()){MD().forget(MD().store.get(),c.id);MD().store.save()}if(UC()){UC().forget(UC().store.get(),c.id);UC().store.save()}if(mindSel===c.id)mindSel=null;selChar=null;delete IMG[c.id];const s=qa('.vv-slide')[activeIdx];s&&drawChars(s);renderList();renderDetail()};
+  kindEditBind(el,c,pet,quick);
   const hsel=q('#vdHouse');if(hsel)hsel.onchange=e=>{const v=e.target.value;
     if(!v)Viv.setPlace(c.id,{house:null,mode:'home',say:'',tgt:null,verb:'',pose:'stand',dy:0,e:null});
     else{Viv.setPlace(c.id,{house:v,x:null,f:0,mode:'home',say:'',tgt:null,verb:'',pose:'stand',dy:0,e:null});Viv.setSim(c.id,{decideAt:0,then:null,outUntil:0})}
