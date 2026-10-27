@@ -1,0 +1,19 @@
+/* 위화감 연출 — 임시 요소·클래스만 사용. 도면·가구·캐릭터 이미지 자체는 건드리지 않음. prefers-reduced-motion 이면 애니메이션 없이 정지 표시만. */
+.vv-ucx text{pointer-events:none;user-select:none}.vv-ucx.sel rect:first-child{stroke:#d7d7d2}
+.vv-ucnoise{position:absolute;inset:0;z-index:5;pointer-events:none;opacity:.0;mix-blend-mode:overlay;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.14) 0 1px,rgba(0,0,0,.18) 1px 3px),
+  linear-gradient(90deg,rgba(255,40,40,.09),rgba(40,255,255,.09));animation:ucnoise .9s steps(7,end) 1}
+@keyframes ucnoise{0%{opacity:0;transform:translateX(0)}12%{opacity:.75;transform:translateX(-6px)}30%{opacity:.35;transform:translateX(5px)}48%{opacity:.8;transform:translateX(-3px)}70%{opacity:.4;transform:translateX(2px)}100%{opacity:0;transform:translateX(0)}}
+.vv-stage.unc-sky{background:linear-gradient(#b4d0ec,#c6dbef)}
+.vv-ucghost{image-rendering:auto}
+/* 목록·상세: 존재 오류 */
+.vv-chip.unc-miss img,.vv-chip.unc-miss .vv-ini{filter:grayscale(1) contrast(1.4) brightness(.8);opacity:.55}
+.vv-chip.unc-miss b,.vv-chip.unc-miss small{font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.02em}
+.vv-chip.unc-miss small{color:#b0443c}
+.vv-pic.vv-uc-bad{position:relative;filter:grayscale(1) contrast(1.35) brightness(.7)}
+.vv-pic.vv-uc-bad::after,.vv-pic.vv-uc-dmg::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.08) 0 1px,transparent 1px 3px)}
+.vv-pic.vv-uc-dmg{position:relative;box-shadow:inset 0 0 0 1px rgba(176,68,60,.25)}
+.vv-pic.vv-uc-bad img{clip-path:polygon(0 0,100% 0,100% 38%,86% 38%,86% 44%,100% 44%,100% 100%,0 100%,0 71%,12% 71%,12% 64%,0 64%)}
+.vv-ucmono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;color:#b0443c;border:1px dashed #b0443c55;border-radius:8px;padding:8px 10px;margin:6px 0}
+#vvDetail .vv-pic.vv-uc-bad~.vv-phrase,#vvDetail .vx-head .vv-uc-bad~*{font-family:ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-reduced-motion:reduce){.vv-ucnoise{display:none}}

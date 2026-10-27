@@ -1,0 +1,97 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>사이버 비바리움</title><link rel="icon" href="data:,"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="viv.css"><link rel="stylesheet" href="viv-ux.css"><link rel="stylesheet" href="edit-ux.css"><link rel="stylesheet" href="viv-uncanny.css"></head><body>
+<header id="top">
+ <b class="logo">사이버 비바리움</b>
+ <div class="grp"><button id="undo" title="되돌리기 (Ctrl+Z)">↶</button><button id="redo" title="다시 실행 (Ctrl+Y)">↷</button></div>
+ <div class="grp"><button id="zout">−</button><button id="zfit">맞춤</button><button id="zin">＋</button></div>
+ <div class="grp"><label class="sm"><input type="checkbox" id="optGrid"> 격자</label><label class="sm"><input type="checkbox" id="optFill" checked> 흰 채움</label><label class="sm"><input type="checkbox" id="optDims"> 방 치수</label></div>
+ <div class="grp"><button id="bSlots" title="내가 만든 단면도 (이 브라우저에 자동 저장)">내 집 (1)</button><button id="bSlotsJ" title="초대 코드로 입장한 공유 집 — 여기서도 고칠 수 있어요">더부살이 집 (0)</button><button id="bSave" title="이름을 정해 저장">저장</button><button id="bNew">새로 만들기</button></div>
+ <div class="grp"><button id="bSvg" title="도면을 SVG 로 저장">SVG 저장</button><button id="bPng" title="도면을 PNG 로 저장">PNG 저장</button></div>
+ <span id="msg"></span>
+</header>
+<main>
+ <aside id="lib"><div class="tabs"><button data-t="lib" class="on">가구</button><button data-t="house">건물</button><button data-t="draw">표현</button></div>
+  <section id="tLib"><div id="err" hidden></div><input id="q" placeholder="이름 검색 (예: 침대, sofa)"><select id="fcat"><option value="">대분류 전체</option></select>
+   <label class="chk"><input type="checkbox" id="onlySide"> 측면도 있는 것만</label><button id="uaAdd" class="wide">＋ 내 에셋 등록 (SVG·PNG)</button><div id="count"></div><div id="grid"></div><button id="more" hidden>더 보기</button></section>
+  <section id="tHouse" hidden>
+   <h4>건물 크기</h4>
+   <label>폭(cm) <input type="number" id="bw" min="300" max="3000" step="10"></label>
+   <label>1층 바닥이 지면보다 높은 정도(cm) <input type="number" id="brz" min="0" max="300" step="5"></label>
+   <label>바닥 아래 <select id="bfnd"><option value="wall">막힌 기초 벽</option><option value="posts">기둥만 (한옥·일본 목조, 바닥 밑 열림)</option></select></label>
+   <label>지상 층수 <input type="number" id="bf" min="1" max="6"></label>
+   <label>지하 층수 <input type="number" id="bb" min="0" max="3"></label>
+   <label>층고 일괄(cm) <input type="number" id="bh" min="220" max="500" step="5"></label>
+   <div id="fhList"></div>
+   <label>바닥 슬래브(cm) <input type="number" id="bs" min="10" max="60" step="5"></label>
+   <label>외벽 두께(cm) <input type="number" id="bt" min="10" max="60" step="5"></label>
+   <label>지붕 <select id="br"><option value="gable">박공</option><option value="flat">평지붕</option><option value="none">없음</option></select></label>
+   <label class="chk" id="rowGo"><input type="checkbox" id="bgo"> 지붕 안쪽까지 벽 (천장 슬래브 없이)</label>
+   <label id="rowRH">지붕 높이(cm) <input type="number" id="brh" min="30" max="400" step="10"></label>
+   <label id="rowRR">정점 위치 <span class="row"><input type="range" id="brr" min="10" max="90" step="5"><span id="brrv" class="hint"></span></span></label>
+   <button id="rowRF" class="wide" title="비대칭 박공이 잘리기 전의 기준 폭을 가장 넓은 층 폭으로 다시 잡아요">기준 지붕 폭 다시 맞추기</button>
+   <label id="rowRD">높은 쪽 <select id="brd"><option value="R">오른쪽</option><option value="L">왼쪽</option></select></label>
+   <label id="rowRO">처마 돌출(cm) <input type="number" id="bro" min="0" max="250" step="5"></label>
+   <label class="chk" id="rowRK"><input type="checkbox" id="brk"> 최상층 폭을 줄여도 지붕 크기 유지 (끝 점은 지붕 핸들로 조절)</label>
+   <div id="roofInfo" class="hint"></div>
+   <div class="hint" style="margin-top:8px"><b>아래층 노출부 지붕 · 굴뚝</b></div>
+   <div class="row2"><select id="xrSide"><option value="L">왼쪽 노출부</option><option value="R">오른쪽 노출부</option></select><select id="xrType"><option value="shed">외쪽지붕</option><option value="flat">평지붕</option><option value="gable">박공</option></select></div>
+   <button id="xrAdd" class="wide">노출부에 지붕 추가</button><div id="xrList"></div>
+   <button id="chAdd" class="wide">굴뚝 추가</button><div id="chList"></div>
+   <h4>내벽 · 방</h4>
+   <div class="row"><select id="pFloor"></select><input type="number" id="pX" placeholder="위치 x(cm) · 비우면 자동"><button id="pAdd">벽 추가</button></div>
+   <button id="pDraw" class="wide">도면에서 클릭해 벽 추가</button>
+   <div id="pList"></div>
+   <div id="rmList"></div>
+   <p class="hint">벽을 추가하면 층마다 벽 사이가 방으로 나뉩니다. 방 이름·폭은 아래에서 고치고, 벽은 도면에서 끌어 옮길 수 있어요.</p>
+   <h4>층별 폭 · 방 붙이기</h4>
+   <div class="row2"><select id="wxFloor"></select><span id="wxInfo" class="hint"></span></div>
+   <label>새 폭(cm) <input type="number" id="wxW" min="100" max="4000" step="10"></label>
+   <label>기준 <select id="wxAnchor"><option value="L">왼쪽 고정 (오른쪽이 늘고 줄어요)</option><option value="R">오른쪽 고정 (왼쪽이 늘고 줄어요)</option><option value="C">가운데 기준 (양쪽 균등)</option></select></label>
+   <button id="wxApply" class="wide">이 층 폭 바꾸기</button>
+   <div class="row2"><select id="raFloor"></select><select id="raSide"><option value="R">오른쪽 바깥</option><option value="L">왼쪽 바깥</option></select><input type="number" id="raW" value="300" step="10" style="width:70px" title="새 방 폭(cm)"><button id="raAdd">방 붙이기</button></div>
+   <p class="hint">'방 붙이기'는 사각형 방을 외벽 바깥에 붙여요. 기존 외벽은 내벽이 되고(문·창 유지), 새 방의 바깥 둘레가 외벽이 됩니다. 건물 안쪽 방은 위 '내벽'으로 나눠 만들어요.</p>
+   <h4>테라스 (바닥 + 난간)</h4>
+   <div class="row2"><select id="tfFloor"></select><select id="tfSide"><option value="R">오른쪽 바깥</option><option value="L">왼쪽 바깥</option></select><input type="number" id="tfW" value="250" step="10" style="width:70px" title="폭(cm)"></div>
+   <div class="row2"><select id="tfRail"><option value="iron">철제 난간</option><option value="vict">빅토리안 대리석 난간</option><option value="brick">벽돌 난간</option></select><button id="tfAdd">테라스 추가</button></div>
+   <div id="tList"></div>
+   <h4>문 · 창문</h4>
+   <div class="row2"><select id="oKind"><option value="door">문</option><option value="window">창문</option></select><select id="oFloor"></select><select id="oOn"></select><button id="oAdd">추가</button></div>
+   <div id="oList"></div>
+   <h4>계단</h4>
+   <div class="row2"><select id="sType"><option value="straight">직선</option><option value="L">ㄱ자</option><option value="U">U자</option><option value="spiral">그랜드 나선형</option><option value="glass">유리 난간 (U자형)</option><option value="emerg">외부계단 (지그재그)</option></select><select id="sFloor"></select><button id="sAdd">추가</button></div>
+   <div class="row2"><select id="oxFloor"></select><select id="oxSide"><option value="R">오른쪽 바깥</option><option value="L">왼쪽 바깥</option></select><button id="oxAdd">계단 추가</button></div>
+   <div id="sList"></div>
+   <label class="chk"><input type="checkbox" id="optVoid"> 계단 위 바닥에 개구부 뚫기 (끄면 바닥이 이어지고 계단은 바닥 뒤에 그려져요)</label>
+   <p class="hint">계단은 선택한 층에서 위층으로 이어지고, 위층 슬래브에 계단실 개구부가 자동으로 뚫립니다. 가구는 가까운 층 바닥에 자동으로 붙습니다(Alt 누르면 해제).</p>
+  </section>
+  <section id="tDraw" hidden>
+   <h4>선 굵기 (cm, 도면 단위)</h4>
+   <label>외곽선 <input type="number" id="lwOut" min="0.3" max="6" step="0.1"></label>
+   <label>내부선 <input type="number" id="lwInn" min="0.1" max="3" step="0.1"></label>
+   <label>절단선 <input type="number" id="lwCut" min="0.5" max="8" step="0.1"></label>
+   <label class="chk"><input type="checkbox" id="lwAuto"> 자동 통일 (가장 작은 가구 기준)</label>
+   <div class="hint" id="lwInfo"></div>
+   <p class="hint">가구 외곽선은 가구 크기(긴 변)의 4%를, 내부선은 외곽선의 절반을 넘지 않습니다. 절단선은 벽·슬래브·계단 단면과 '절단'으로 지정한 가구에 쓰입니다.</p>
+   <h4>벽지 (실내 뒷벽면)</h4>
+   <div id="wpList"></div>
+   <div class="btns"><button id="wpuAdd">＋ 내 벽지 등록 (SVG·PNG)</button><input type="file" id="wpuFile" accept=".svg,.png,image/svg+xml,image/png,image/jpeg,image/webp" hidden></div>
+   <div id="wpuList"></div><div class="hint">타일처럼 반복되는 무늬를 올리세요(최대 4개). 용량 한도 때문에 PNG는 256px 이하로 줄여 저장돼요. 등록하면 위 벽지 목록에 '내 벽지'로 나타납니다.</div>
+   <h4>재질 · 해칭</h4>
+   <label>외벽·내벽 <select id="mWall"></select></label>
+   <label>슬래브 <select id="mSlab"></select></label>
+   <label>지붕 <select id="mRoof"></select></label>
+   <label>해칭 크기 <input type="number" id="hsc" min="0.4" max="4" step="0.1"></label>
+   <label>해칭 각도(°) <input type="number" id="hang" min="-90" max="90" step="5"></label>
+   <label>해칭 선 굵기 배율 <input type="number" id="hw" min="0.2" max="4" step="0.1"></label>
+   <p class="hint">개별 내벽·계단 재질은 도면에서 선택하면 오른쪽에서 바꿀 수 있어요.</p>
+   <h4>'원경' 가구 표현 (멀리 있어 연하게 보이는 가구)</h4>
+   <label>불투명도 <input type="number" id="bOp" min="0.1" max="1" step="0.05"></label>
+   <label class="chk"><input type="checkbox" id="bDash"> 점선으로 표시</label>
+   <h4>레이어 (보기 켜기/끄기)</h4>
+   <div id="layList"></div>
+  </section></aside>
+ <div id="stage"><button id="tgL" class="tg tgL" title="왼쪽 도구창 접기">◀</button><button id="tgR" class="tg tgR" title="오른쪽 속성창 접기">▶</button><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg><div id="hud"></div><div id="capBar"><div class="rule"></div><div class="t"><span id="capL"></span><span id="capR"></span></div></div></div>
+ <aside id="insp"><h4>선택한 객체</h4><div id="inspBody" class="hint">가구·벽·문·창문·계단을 클릭하거나 왼쪽에서 추가하세요.</div></aside>
+</main>
+<dialog id="dlg"></dialog>
+<script src="config.js"></script><script src="app.js"></script><script src="viv-data.js"></script><script src="viv-share.js"></script><script src="doc-merge.js"></script><script src="sim.js"></script><script src="viv-mind.js"></script><script src="viv-love.js"></script><script src="viv-uncanny.js"></script><script src="viv.js"></script><script src="viv-collab.js"></script><script src="viv-ux.js"></script></body></html>
