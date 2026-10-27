@@ -28,6 +28,7 @@
    <label class="chk" id="rowGo"><input type="checkbox" id="bgo"> 지붕 안쪽까지 벽 (천장 슬래브 없이)</label>
    <label id="rowRH">지붕 높이(cm) <input type="number" id="brh" min="30" max="400" step="10"></label>
    <label id="rowRR">정점 위치 <span class="row"><input type="range" id="brr" min="10" max="90" step="5"><span id="brrv" class="hint"></span></span></label>
+   <label id="rowRC">왼쪽 · 오른쪽 따로 자르기(cm) <span class="row"><input type="number" id="brcl" min="0" step="5" title="왼쪽 끝에서 자를 길이"><input type="number" id="brcr" min="0" step="5" title="오른쪽 끝에서 자를 길이"></span></label>
    <button id="rowRF" class="wide" title="비대칭 박공이 잘리기 전의 기준 폭을 가장 넓은 층 폭으로 다시 잡아요">기준 지붕 폭 다시 맞추기</button>
    <label id="rowRD">높은 쪽 <select id="brd"><option value="R">오른쪽</option><option value="L">왼쪽</option></select></label>
    <label id="rowRO">처마 돌출(cm) <input type="number" id="bro" min="0" max="250" step="5"></label>
@@ -57,9 +58,11 @@
    <h4>문 · 창문</h4>
    <div class="row2"><select id="oKind"><option value="door">문</option><option value="window">창문</option></select><select id="oFloor"></select><select id="oOn"></select><button id="oAdd">추가</button></div>
    <div id="oList"></div>
-   <h4>계단</h4>
-   <div class="row2"><select id="sType"><option value="straight">직선</option><option value="L">ㄱ자</option><option value="U">U자</option><option value="spiral">그랜드 나선형</option><option value="glass">유리 난간 (U자형)</option><option value="emerg">외부계단 (지그재그)</option></select><select id="sFloor"></select><button id="sAdd">추가</button></div>
-   <div class="row2"><select id="oxFloor"></select><select id="oxSide"><option value="R">오른쪽 바깥</option><option value="L">왼쪽 바깥</option></select><button id="oxAdd">계단 추가</button></div>
+   <h4>계단 — 외벽 안</h4>
+   <div class="row2"><select id="sType"><option value="straight">직선</option><option value="L">ㄱ자</option><option value="U">U자</option><option value="spiral">그랜드 나선형</option><option value="glass">유리 난간 (U자형)</option></select><select id="sFloor"></select><button id="sAdd">추가</button></div>
+   <h4>계단 — 외벽 밖</h4>
+   <div class="row2"><select id="oxType"><option value="porch">현관 계단 (문 앞)</option><option value="emerg">외부계단 (지그재그)</option></select><select id="oxFloor"></select></div>
+   <div class="row2"><select id="oxSide"><option value="R">오른쪽 바깥</option><option value="L">왼쪽 바깥</option></select><button id="oxAdd">추가</button></div>
    <div id="sList"></div>
    <label class="chk"><input type="checkbox" id="optVoid"> 계단 위 바닥에 개구부 뚫기 (끄면 바닥이 이어지고 계단은 바닥 뒤에 그려져요)</label>
    <p class="hint">계단은 선택한 층에서 위층으로 이어지고, 위층 슬래브에 계단실 개구부가 자동으로 뚫립니다. 가구는 가까운 층 바닥에 자동으로 붙습니다(Alt 누르면 해제).</p>

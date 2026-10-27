@@ -22,6 +22,7 @@ function norm(o){o.v=2;o.b={...DEF_B,...(o.b||{})};const b=o.b;
  o.lw={...DEF_LW,...(o.lw||{})};o.layers={ground:1,back:1,roof:1,struct:1,open:1,stairs:1,items:1,terr:1,labels:1,levels:0,...(o.layers||{})};
  b.rz=Math.max(0,Math.min(300,+b.rz||0));b.fnd=b.fnd==='posts'?'posts':'wall';b.go=b.go!==false;
  b.roof=ROOF_IDS.includes(b.roof)?b.roof:'gable';b.rr=clamp(isFinite(+b.rr)&&+b.rr?+b.rr:.5,.1,.9);b.rd=b.rd==='L'?'L':'R';b.ro=(b.ro==null||!isFinite(+b.ro))?30:clamp(+b.ro,0,250);
+ b.rcl=Math.max(0,Math.min(2000,+b.rcl||0));b.rcr=Math.max(0,Math.min(2000,+b.rcr||0));
  b.rref=(b.rref&&isFinite(+b.rref.l)&&isFinite(+b.rref.r)&&+b.rref.r-+b.rref.l>=60)?{l:+b.rref.l,r:+b.rref.r}:null;
  b.rfx=(b.rfx&&isFinite(+b.rfx.l)&&isFinite(+b.rfx.r)&&+b.rfx.r-+b.rfx.l>=60)?{l:+b.rfx.l,r:+b.rfx.r}:null;   // 옵션 B(지붕 크기 유지): 지붕 좌우 끝을 최상층 외벽과 따로 저장
  const ex=Array.isArray(b.ext)?b.ext:[];b.ext=Array.from({length:b.f},(_,k)=>{const e=ex[k];return e&&isFinite(+e.l)&&isFinite(+e.r)&&+e.r-+e.l>=100?{l:+e.l,r:+e.r}:{l:0,r:b.w}});
@@ -47,6 +48,7 @@ function roofGeo(){const b=S.b,N=b.f;if(!N||b.roof==='none')return null;
   let fl=1e9,fr=-1e9;for(let k=0;k<N;k++){fl=Math.min(fl,XL(k));fr=Math.max(fr,XR(k))}
   const rf=b.rref&&isFinite(+b.rref.l)&&isFinite(+b.rref.r)?b.rref:null;
   const L=Math.min(rf?rf.l:1e9,fl-ov,l),R=Math.max(rf?rf.r:-1e9,fr+ov,r);b.rref={l:L,r:R};
+  l=Math.min(l+(+b.rcl||0),r-60);r=Math.max(r-(+b.rcr||0),l+60);   // v23.9 비대칭은 왼쪽·오른쪽 끝을 따로 잘라 조절(대칭 박공과 무관)
   const axx=L+(R-L)*b.rr,hA=x=>x<=axx?h*(x-L)/Math.max(1,axx-L):h*(R-x)/Math.max(1,R-axx);
   pts=[[l,Math.max(0,hA(l))]];if(axx>l&&axx<r)pts.push([axx,h]);pts.push([r,Math.max(0,hA(r))])}
  else{const ax=l+W*((b.roof==='asym')?b.rr:.5);
@@ -490,7 +492,9 @@ const opt=(lab,id,opts,val)=>`<label>${lab}<select id="${id}">${opts.map(([v,t])
 const floorOpts=()=>Array.from({length:S.b.f},(_,k)=>[k,fnameKo(k)]);
 const RAIL_TYPES=[['iron','철제 난간'],['vict','빅토리안 대리석 난간'],['brick','벽돌 난간']];
 const terrFloorOpts=()=>[...Array.from({length:S.b.f},(_,k)=>[k,fnameKo(k)+' 바닥']),[S.b.f,'옥상 (최상층 위)']];
-const STAIR_TYPES=[['straight','직선'],['L','ㄱ자'],['U','U자'],['spiral','그랜드 나선형'],['glass','유리 난간 (U자형)'],['outer','건물 밖 계단 (현관·테라스)']];
+const STAIR_TYPES=[['straight','직선'],['L','ㄱ자'],['U','U자'],['spiral','그랜드 나선형'],['glass','유리 난간 (U자형)']];   // 외벽 안 계단
+const OUT_TYPES=[['porch','현관 계단 (외벽 밖 · 문 앞)'],['emerg','외부계단 (지그재그 · 외벽 밖)']];   // 외벽 밖 계단
+const stairName=a=>a.type==='outer'?(a.kind==='zig'?'외부계단 (지그재그)':'현관 계단'):(STAIR_TYPES.find(q=>q[0]===a.type)||[0,a.type])[1];
 const stairFloorOpts=()=>Array.from({length:Math.max(1,S.b.f-1)},(_,k)=>[k,fnameKo(k)+' → '+fnameKo(k+1)]);
 const onOpts=f=>[['L','왼쪽 외벽'],['R','오른쪽 외벽'],...S.parts.filter(p=>p.f===f).map(p=>[p.id,`내벽 x ${p.x}`]),['back','뒷벽(입면)']];
 const bind=(id,fn)=>{const e=$(id);if(e)e.onchange=ev=>{fn(ev.target.type==='number'?(+ev.target.value):ev.target.value,ev);commit();sync();render()}};
@@ -504,10 +508,9 @@ function inspector(){const ob=findObj(sel),body=$('#inspBody'),H=$('#insp h4');
  else if(ob.k==='op'){H.textContent=o.kind==='door'?'문':'창문';const back=o.on==='back';
   body.innerHTML=`${opt('종류','ok',[['door','문'],['window','창문']],o.kind)}${opt('층','of',floorOpts(),o.f)}${opt('붙는 곳','oo',onOpts(o.f),o.on)}${back?fld('중심 x(cm)','ox',o.x,0,5)+fld('폭(cm)','ow',o.w,20,5):''}${fld('바닥에서 높이(cm)','os',o.sill,0,5)}${fld('개구부 높이(cm)','oh',o.h,20,5)}${stdBtns}<div class="hint" style="margin-top:6px">${back?'뒷벽 개구부는 입면으로 보이는 문·창문이에요.':'벽에 뚫린 단면 개구부예요 (벽 두께만큼).'} 도면에서 위아래로 끌 수 있어요.</div>`;
   bind('#ok',v=>o.kind=v);bind('#of',v=>{o.f=+v;if(o.on!=='back'&&o.on!=='L'&&o.on!=='R')o.on='back'});bind('#oo',v=>o.on=v);bind('#ox',v=>o.x=clamp(v,bounds().l,bounds().r));bind('#ow',v=>o.w=Math.max(20,v));bind('#os',v=>o.sill=clamp(v,0,fh(o.f)-s_(o.f)-20));bind('#oh',v=>o.h=clamp(v,20,fh(o.f)-s_(o.f)-o.sill))}
- else if(ob.k==='stair'&&o.type==='outer'){H.textContent='건물 밖 계단';
-  const ZG=o.kind==='zig';if(ZG)H.textContent='외부계단 (지그재그)';
-  body.innerHTML=`${opt('도착 층 (문·테라스가 있는 층)','of',floorOpts(),o.f)}${opt('출발','ofrom',[[-1,'지면'],...floorOpts().filter(([k])=>k!==o.f).map(([k,t])=>[k,t+' 바닥'])],o.from>=0?o.from:-1)}${opt('붙는 쪽','oside',[['R','오른쪽 바깥'],['L','왼쪽 바깥']],o.side||'R')}${fld(ZG?'계단 한 줄의 수평 길이(cm, 0=자동)':'수평 길이(cm, 0=자동)','orun',o.run||0,0,10)}${fld(ZG?'한 줄 단 수(0=자동)':'단 수(0=자동)','on_',o.n||0,0,1)}${ZG?fld('참(승강장) 길이(cm)','olnd',o.land||70,50,10)+fld('참(승강장) 두께(cm)','olt',o.lt||12,6,2)+fld('정면 구간 폭(cm, 0=자동)','ofw',o.fw||0,0,10):''}${opt('재질','omat',MATS,o.mat||'concrete')}${stdBtns}<div class="hint" style="margin-top:6px">${ZG?'건물 바깥에 붙은 비상계단이에요. 한 층만 오르면 승강장과 한 줄 계단, 여러 층이면 바깥 계단실에 층마다 방향이 번갈아 이어져요. ':''}외벽 바깥쪽에 붙어 지면(또는 다른 층)과 문턱을 이어요. 지면보다 낮은 지하 현관이면 아래로 내려가는 계단이 돼요. 1층 바닥이 지면보다 높아야 현관 계단이 생겨요(건물 탭의 '1층 바닥 높이').</div>`;
-  bind('#of',v=>o.f=+v);bind('#ofrom',v=>o.from=+v);bind('#oside',v=>o.side=v);bind('#orun',v=>o.run=v>=60?v:0);bind('#on_',v=>o.n=v>=3?Math.min(60,Math.round(v)):0);bind('#omat',v=>o.mat=v);if(ZG){bind('#olnd',v=>o.land=Math.max(50,v));bind('#olt',v=>o.lt=clamp(v,6,60));bind('#ofw',v=>o.fw=v>=40?v:0)}}
+ else if(ob.k==='stair'&&o.type==='outer'){const ZG=o.kind==='zig';H.textContent=stairName(o);
+  body.innerHTML=`${opt('종류','otype',OUT_TYPES,ZG?'emerg':'porch')}${opt('도착 층 (문·테라스가 있는 층)','of',floorOpts(),o.f)}${opt('출발','ofrom',[[-1,'지면'],...floorOpts().filter(([k])=>k!==o.f).map(([k,t])=>[k,t+' 바닥'])],o.from>=0?o.from:-1)}${opt('붙는 쪽','oside',[['R','오른쪽 바깥'],['L','왼쪽 바깥']],o.side||'R')}${fld(ZG?'계단 한 줄의 수평 길이(cm, 0=자동)':'수평 길이(cm, 0=자동)','orun',o.run||0,0,10)}${fld(ZG?'한 줄 단 수(0=자동)':'단 수(0=자동)','on_',o.n||0,0,1)}${ZG?fld('참(승강장) 길이(cm)','olnd',o.land||70,50,10)+fld('참(승강장) 두께(cm)','olt',o.lt||12,6,2)+fld('정면 구간 폭(cm, 0=자동)','ofw',o.fw||0,0,10):''}${opt('재질','omat',MATS,o.mat||'concrete')}${stdBtns}<div class="hint" style="margin-top:6px">${ZG?'건물 바깥에 붙은 비상계단이에요. 한 층만 오르면 승강장과 한 줄 계단, 여러 층이면 바깥 계단실에 층마다 방향이 번갈아 이어져요. ':''}외벽 바깥쪽에 붙어 지면(또는 다른 층)과 문턱을 이어요. 지면보다 낮은 지하 현관이면 아래로 내려가는 계단이 돼요. 1층 바닥이 지면보다 높아야 현관 계단이 생겨요(건물 탭의 '1층 바닥 높이').</div>`;
+  bind('#otype',v=>{if(v==='emerg'){o.kind='zig';o.mat='steel';o.land=o.land||70}else{delete o.kind;o.mat='concrete'}});bind('#of',v=>o.f=+v);bind('#ofrom',v=>o.from=+v);bind('#oside',v=>o.side=v);bind('#orun',v=>o.run=v>=60?v:0);bind('#on_',v=>o.n=v>=3?Math.min(60,Math.round(v)):0);bind('#omat',v=>o.mat=v);if(ZG){bind('#olnd',v=>o.land=Math.max(50,v));bind('#olt',v=>o.lt=clamp(v,6,60));bind('#ofw',v=>o.fw=v>=40?v:0)}}
  else if(ob.k==='terr'){H.textContent='테라스';
   body.innerHTML=`${opt('바닥 높이(층)','tf',terrFloorOpts(),o.f)}${fld('왼쪽 끝 x(cm)','tx0',o.x0,undefined,5)}${fld('오른쪽 끝 x(cm)','tx1',o.x1,undefined,5)}${opt('난간','tr',RAIL_TYPES,o.rail)}${opt('구성','ts',[['1','바닥 + 난간'],['0','난간만 (이미 바닥이 있는 곳)']],o.slab===false?'0':'1')}${stdBtns}<div class="hint" style="margin-top:6px">도면에서 좌우로 끌어 옮길 수 있어요. 난간은 왼쪽·오른쪽 끝 사이 전체에 그려져요.</div>`;
   bind('#tf',v=>o.f=clamp(+v,0,S.b.f));bind('#tx0',v=>o.x0=Math.min(v,o.x1-20));bind('#tx1',v=>o.x1=Math.max(v,o.x0+20));bind('#tr',v=>o.rail=v);bind('#ts',v=>o.slab=v==='1')}
@@ -621,8 +624,8 @@ function defaultWallX(f){const rs=roomsOf(f);let best=rs[0];for(const r of rs)if
 /* ---------- 건물 설정 ---------- */
 function sync(){const b=S.b,B=BB();{const br=$('#br');if(!br.dataset.f){br.innerHTML=ROOFS.map(([v,t])=>`<option value="${v}">${t}</option>`).join('');br.dataset.f='1'}
   const RG1=roofGeo(),gb=GABLEISH.includes(b.roof),vis=(id,on)=>{$(id).hidden=!on};
-  vis('#rowRH',b.roof!=='flat'&&b.roof!=='none');vis('#rowGo',b.roof!=='flat'&&b.roof!=='none');vis('#rowRR',b.roof==='asym');vis('#rowRF',b.roof==='asym'&&!b.rfx);vis('#rowRD',b.roof==='shed');vis('#rowRO',b.roof!=='none'&&!(gb&&b.rfx));vis('#rowRK',gb);
-  $('#brr').value=Math.round(b.rr*100);$('#brrv').textContent=Math.round(b.rr*100)+'%';$('#brd').value=b.rd;$('#bro').value=b.ro;$('#brk').checked=!!b.rfx;
+  vis('#rowRH',b.roof!=='flat'&&b.roof!=='none');vis('#rowGo',b.roof!=='flat'&&b.roof!=='none');vis('#rowRR',b.roof==='asym');vis('#rowRF',b.roof==='asym'&&!b.rfx);vis('#rowRC',b.roof==='asym'&&!b.rfx);vis('#rowRD',b.roof==='shed');vis('#rowRO',b.roof!=='none'&&!(gb&&b.rfx));vis('#rowRK',gb);
+  $('#brr').value=Math.round(b.rr*100);$('#brrv').textContent=Math.round(b.rr*100)+'%';$('#brcl').value=b.rcl||0;$('#brcr').value=b.rcr||0;$('#brd').value=b.rd;$('#bro').value=b.ro;$('#brk').checked=!!b.rfx;
   $('#roofInfo').textContent=RG1&&!RG1.flat?`지붕 폭 ${Math.round(RG1.r-RG1.l)}cm · 최대 경사 ${Math.round(Math.max(...RG1.pts.slice(1).map((p,i)=>Math.abs(Math.atan2(p[1]-RG1.pts[i][1],p[0]-RG1.pts[i][0]))*180/Math.PI)))}°`:'';}
  $('#bw').value=b.w;$('#bf').value=b.f-B;$('#bb').value=B;$('#bh').value=b.h;$('#bs').value=b.s;$('#bt').value=b.t;$('#br').value=b.roof;$('#brh').value=b.rh;
  const opts=floorOpts().map(([k,t])=>`<option value="${k}">${t}</option>`).join('');curF=Math.min(Math.max(curF,0),b.f-1);
@@ -655,7 +658,7 @@ function sync(){const b=S.b,B=BB();{const br=$('#br');if(!br.dataset.f){br.inner
  for(const [id,key] of [['#mWall','wall'],['#mSlab','slab'],['#mRoof','roof']]){const sel_=$(id);sel_.innerHTML=MATS.map(([v,t])=>`<option value="${v}">${t}</option>`).join('');if(key==='roof')sel_.insertAdjacentHTML('afterbegin','<option value="roof">지붕 사선</option>');sel_.value=b.mat[key]}
  const lst=(arr,fn)=>arr.length?arr.map(fn).join(''):'<div class="hint">없음</div>';
  $('#oList').innerHTML=lst(S.ops,o=>`<div class="li ${sel===o.id?'on':''}" data-pick="${o.id}"><span>${o.kind==='door'?'문':'창'} · ${fnameKo(o.f)} · ${({L:'왼쪽 외벽',R:'오른쪽 외벽',back:'뒷벽'})[o.on]||'내벽'}</span><button data-rm="${o.id}">삭제</button></div>`);
- $('#sList').innerHTML=lst(S.stairs,a=>`<div class="li ${sel===a.id?'on':''}" data-pick="${a.id}"><span>${a.kind==='zig'?'외부계단':(STAIR_TYPES.find(q=>q[0]===a.type)||[0,a.type])[1]} · ${a.type==='outer'?(a.from>=0?fnameKo(a.from):'지면')+'→'+fnameKo(a.f)+' ('+(a.side==='L'?'왼쪽':'오른쪽')+' 바깥)':fnameKo(a.f)+'→'+fnameKo(a.f+1)}</span><button data-rm="${a.id}">삭제</button></div>`);
+ $('#sList').innerHTML=lst(S.stairs,a=>`<div class="li ${sel===a.id?'on':''}" data-pick="${a.id}"><span>${stairName(a)} · ${a.type==='outer'?(a.from>=0?fnameKo(a.from):'지면')+'→'+fnameKo(a.f)+' ('+(a.side==='L'?'왼쪽':'오른쪽')+' 바깥)':fnameKo(a.f)+'→'+fnameKo(a.f+1)}</span><button data-rm="${a.id}">삭제</button></div>`);
  $('#pList').innerHTML=S.parts.length?S.parts.map(p=>`<div class="li ${sel===p.id?'on':''}" data-pick="${p.id}"><span>${fnameKo(p.f)} · x ${p.x}cm</span><button data-rm="${p.id}">삭제</button></div>`).join(''):'<div class="hint">내벽 없음</div>';
  document.querySelectorAll('#tHouse [data-pick]').forEach(d=>d.onclick=e=>{if(e.target.closest('[data-rm]'))return;sel=d.dataset.pick;drawSel();inspector();sync()});
  document.querySelectorAll('#tHouse [data-rm]').forEach(bt=>bt.onclick=()=>{sel=bt.dataset.rm;del()})}
@@ -676,7 +679,8 @@ const num=(id,key,min,max)=>$(id).addEventListener('change',e=>{let v=+e.target.
 num('#bw','w',300,3000);num('#brz','rz',0,300);$('#bfnd').onchange=e=>{S.b.fnd=e.target.value==='posts'?'posts':'wall';if(S.b.fnd==='posts'&&!S.b.rz){S.b.rz=90}commit();sync();render()};$('#bgo').onchange=e=>{S.b.go=e.target.checked;commit();render()};num('#bh','h',220,500);num('#bs','s',10,60);num('#bt','t',10,60);num('#brh','rh',30,400);
 $('#bf').onchange=e=>{setFloors(+e.target.value,BB());commit();sync();render();fit()};
 $('#bb').onchange=e=>{setFloors(S.b.f-BB(),+e.target.value);commit();sync();render();fit()};
-$('#br').onchange=e=>{S.b.roof=e.target.value;S.b.rref=null;if(!GABLEISH.includes(S.b.roof))S.b.rfx=null;commit();sync();render();fit()};
+$('#br').onchange=e=>{S.b.roof=e.target.value;S.b.rref=null;S.b.rcl=0;S.b.rcr=0;if(!GABLEISH.includes(S.b.roof))S.b.rfx=null;commit();sync();render();fit()};
+for(const [id,k] of [['#brcl','rcl'],['#brcr','rcr']])$(id).addEventListener('change',e=>{S.b[k]=clamp(isNaN(+e.target.value)?0:Math.round(+e.target.value/5)*5,0,2000);commit();sync();render();fit()});
 $('#rowRF').onclick=()=>{S.b.rref=null;commit();sync();render();fit();msg('가장 넓은 층 폭을 기준 지붕으로 다시 잡았어요')};
 $('#brr').oninput=e=>{S.b.rr=clamp(+e.target.value/100,.1,.9);$('#brrv').textContent=e.target.value+'%';render()};$('#brr').onchange=()=>{commit();sync()};
 $('#brd').onchange=e=>{S.b.rd=e.target.value==='L'?'L':'R';commit();render()};
@@ -690,11 +694,7 @@ $('#oFloor').onchange=()=>sync();
 $('#oAdd').onclick=()=>{const kind=$('#oKind').value,f=+$('#oFloor').value,on=$('#oOn').value;const dr=kind==='door';
  const o={id:uid(),kind,f,on,x:Math.round(S.b.w/2),w:dr?90:120,sill:dr?0:90,h:dr?210:120};if(o.sill+o.h>fh(f)-sl(f+1)-10){o.h=Math.max(40,fh(f)-sl(f+1)-10-o.sill)}
  S.ops.push(o);sel=o.id;commit();sync();render()};
-$('#sAdd').onclick=()=>{if($('#sType').value==='emerg'){   // 외부계단: 목록의 'N층→M층'에서 도착 층(M층)을 쓰고, 출발은 지면, 붙는 쪽은 바로 아래 '쪽' 선택값
-  const f=Math.min(S.b.f-1,(+$('#sFloor').value||0)+1);if(!(f>=0)){msg('이 건물에는 외부계단을 붙일 층이 없어요');return}
-  const a={id:uid(),type:'outer',kind:'zig',f,from:-1,side:$('#oxSide').value,run:0,n:0,mat:'steel',dir:1,x:0,land:70};S.stairs.push(a);sel=a.id;commit();sync();render();fit();
-  msg(stairGeo(a)?'외부계단을 추가했어요. 붙는 쪽·출발·구간 길이는 오른쪽 속성창에서 바꿀 수 있어요.':'이 층은 지면과 높이가 같아 계단이 보이지 않아요. 속성창에서 출발을 다른 층으로 바꿔 주세요.');return}
- if(S.b.f<2){msg('계단은 2개 층 이상일 때 만들 수 있어요');return}const f=+$('#sFloor').value;const type=$('#sType').value;const a={id:uid(),type,f,x:Math.round(S.b.t+60),run:Math.min(300,S.b.w/3),dir:1,land:100,mat:'concrete',w:0};S.stairs.push(a);sel=a.id;commit();sync();render()};
+$('#sAdd').onclick=()=>{ if(S.b.f<2){msg('계단은 2개 층 이상일 때 만들 수 있어요');return}const f=+$('#sFloor').value;const type=$('#sType').value;const a={id:uid(),type,f,x:Math.round(S.b.t+60),run:Math.min(300,S.b.w/3),dir:1,land:100,mat:'concrete',w:0};S.stairs.push(a);sel=a.id;commit();sync();render()};
 $('#wxFloor').onchange=()=>{$('#wxW').value='';sync()};
 $('#wxApply').onclick=()=>{const f=+$('#wxFloor').value,t=S.b.t,nw=Math.round((+$('#wxW').value||0)/5)*5,an=$('#wxAnchor').value;
  if(!(nw>=Math.max(100,2*t+60))){msg(`폭은 ${Math.max(100,2*t+60)}cm 이상이어야 해요`);return}if(nw>4000){msg('폭은 4000cm 이하로 해 주세요');return}
@@ -722,9 +722,13 @@ $('#tfAdd').onclick=()=>{const f=+$('#tfFloor').value,side=$('#tfSide').value,w=
  const q={id:uid(),f,x0:side==='R'?XR(fk):XL(fk)-w,x1:side==='R'?XR(fk)+w:XL(fk),rail:$('#tfRail').value,slab:true};
  S.terr.push(q);sel=q.id;commit();sync();render();fit();msg('테라스를 추가했어요 (난간 모양은 오른쪽 속성창에서 바꿀 수 있어요)')};
 $('#oxAdd').onclick=()=>{const f=+$('#oxFloor').value,side=$('#oxSide').value;let note='';
+ if($('#oxType').value==='emerg'){   // 외부계단(지그재그): 도착 층 = 고른 층, 출발은 지면
+  if(!(f>=0&&f<=S.b.f-1)){msg('붙일 층을 골라 주세요');return}
+  const z={id:uid(),type:'outer',kind:'zig',f,from:-1,side,run:0,n:0,mat:'steel',dir:1,x:0,land:70};S.stairs.push(z);sel=z.id;commit();sync();render();fit();
+  msg(stairGeo(z)?'외부계단을 추가했어요. 구간 길이·참 길이·재질은 오른쪽 속성창에서 바꿀 수 있어요.':'이 층은 지면과 높이가 같아 계단이 보이지 않아요. 속성창에서 출발을 다른 층으로 바꿔 주세요.');return}
  if(f===BB()&&Math.abs(lvl(f)-gE())<8){S.b.rz=Math.max(S.b.rz||0,45);note=' 현관 앞 계단을 만들려고 1층 바닥을 지면보다 45cm 높였어요(건물 탭에서 조절)'}
  const a={id:uid(),type:'outer',f,from:-1,side,run:0,n:0,mat:'concrete',dir:1,x:0};S.stairs.push(a);sel=a.id;commit();sync();render();fit();
- msg((stairGeo(a)?'건물 밖 계단을 추가했어요.':'이 층은 지면과 높이가 같아 계단이 보이지 않아요. 속성창에서 출발을 다른 층으로 바꾸거나 건물 탭의 1층 바닥 높이를 올려 주세요.')+note)};
+ msg((stairGeo(a)?'현관 계단을 추가했어요.':'이 층은 지면과 높이가 같아 계단이 보이지 않아요. 속성창에서 출발을 다른 층으로 바꾸거나 건물 탭의 1층 바닥 높이를 올려 주세요.')+note)};
 $('#optVoid').onchange=e=>{S.b.void=e.target.checked;commit();render()};
 /* 표현 탭 */
 const lwSet=(id,key,min,max)=>$(id).addEventListener('change',e=>{S.lw[key]=clamp(+e.target.value||S.lw[key],min,max);commit();sync();render()});
