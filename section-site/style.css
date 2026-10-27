@@ -72,3 +72,6 @@ main.noanim{transition:none}
 .fold-h .car{font-style:normal;font-size:11px;padding:0 4px}
 .fold-h:hover{background:var(--paper2)}
 .fold-b[hidden]{display:none}
+
+.bh-hit{fill:transparent;stroke:none;cursor:ew-resize}.bh-dot{fill:#fff;stroke:var(--ink);stroke-width:1.5;vector-effect:non-scaling-stroke;pointer-events:none}.bh-hit[data-bh=ra]{cursor:move}
+.rm{flex-wrap:wrap}.rm input:first-child{min-width:90px}.rm select{flex:1 0 100%;font-size:12px}

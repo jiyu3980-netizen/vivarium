@@ -1,0 +1,35 @@
+/* 단면도 편집 탭 톤앤매너 — 비바리움 관찰 탭(viv-ux.css)과 같은 헤더·패널·버튼 스타일.
+   도면 캔버스(#svg)와 그 안의 그림은 건드리지 않음. */
+body:not(.mode-viv){--ex-bg:#f4f3ee;--ex-card:#fbfaf7;--ex-ink:#2b2b2a;--ex-mut:#7c7b75;--ex-ln:#d9d8d2;--ex-acc:#8d8c85}
+body:not(.mode-viv) #top{box-shadow:none;border-bottom:1px solid var(--ex-ln);background:#fbfaf7;padding:7px 14px;gap:8px}
+body:not(.mode-viv) #top .logo{font-style:normal;letter-spacing:.06em;font-size:14px;font-weight:700;text-transform:none}
+body:not(.mode-viv) .vnav{display:flex;gap:2px;background:#eeede8;border-radius:999px;padding:3px}
+body:not(.mode-viv) .vnav button{white-space:nowrap;border:0;border-radius:999px;background:transparent;padding:5px 14px;font-weight:600;font-size:13px;color:#55554f}
+body:not(.mode-viv) .vnav button.on{background:#fff;color:#222;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+body:not(.mode-viv) .vnav .vjoin{margin-left:6px;border:1px solid #cfcec7;background:#fff;color:#2b2b2a;border-radius:999px;font-size:13px}
+body:not(.mode-viv) .vnav .vjoin:hover{background:#f4f3ee}
+body:not(.mode-viv) #top .grp button,body:not(.mode-viv) #top .grp select{border:1px solid var(--ex-ln);background:var(--ex-card);border-radius:999px;padding:4px 12px;font-size:12.5px;color:var(--ex-ink)}
+body:not(.mode-viv) #top .grp button:hover:not(:disabled){background:#fff;border-color:var(--ex-acc)}
+body:not(.mode-viv) #top label.sm{font-size:12.5px;color:var(--ex-mut)}
+body:not(.mode-viv) #msg{font-size:12.5px;color:var(--ex-mut)}
+/* 좌·우 패널 */
+body:not(.mode-viv) main{margin-top:0}
+body:not(.mode-viv) aside{background:var(--ex-card);border-color:var(--ex-ln);color:var(--ex-ink)}
+body:not(.mode-viv) aside h4,body:not(.mode-viv) #insp h4{font-style:normal;text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:700;color:var(--ex-ink);border-bottom:1px solid var(--ex-ln);padding-bottom:5px;margin:14px 0 8px}
+body:not(.mode-viv) aside .hint,body:not(.mode-viv) aside .rmh{color:var(--ex-mut)}
+body:not(.mode-viv) .rmh{font-style:normal}
+body:not(.mode-viv) aside button,body:not(.mode-viv) aside select,body:not(.mode-viv) aside input:not([type=checkbox]):not([type=range]){border:1px solid var(--ex-ln);border-radius:10px;background:#fff;color:var(--ex-ink)}
+body:not(.mode-viv) aside button:hover:not(:disabled){border-color:var(--ex-acc);background:#fff}
+body:not(.mode-viv) aside input:focus,body:not(.mode-viv) aside select:focus{outline:none;border-color:var(--ex-acc);box-shadow:0 0 0 2px rgba(141,140,133,.18)}
+body:not(.mode-viv) .tabs{background:#eeede8;border-radius:999px;padding:3px;gap:2px}
+body:not(.mode-viv) .tabs button{border:0;border-radius:999px;background:transparent;color:#55554f;font-weight:600;font-size:13px}
+body:not(.mode-viv) .tabs button+button{border-left:0}
+body:not(.mode-viv) .tabs button.on{background:#fff;color:#222;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+body:not(.mode-viv) .tile{border-color:var(--ex-ln);border-radius:10px;background:#fff}
+body:not(.mode-viv) .tile:hover{border-color:var(--ex-acc)}
+body:not(.mode-viv) .li{border:1px solid var(--ex-ln);border-radius:10px;background:#fff}
+body:not(.mode-viv) .li.on{border-color:var(--ex-acc);box-shadow:0 1px 6px rgba(0,0,0,.08)}
+body:not(.mode-viv) .btns button{border-radius:999px}
+body:not(.mode-viv) #insp{border-left:1px solid var(--ex-ln)}
+body:not(.mode-viv) .fold-h{cursor:pointer}
+body:not(.mode-viv) .li{padding:6px 9px;margin:3px 0}

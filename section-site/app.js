@@ -1,11 +1,14 @@
 (()=>{'use strict';
 let LIB=window.LIB||'../section-assets/';const $=s=>document.querySelector(s);const NS='http://www.w3.org/2000/svg';
 const DEF_B={w:900,f:2,h:270,s:20,t:20,roof:'gable',rh:150};
+/* v23 지붕 종류 — 모양은 roofGeo() 한 곳에서 계산해 그리기·화면 맞춤·SVG 내보내기·벽 윗면이 같은 값을 씀 */
+const ROOFS=[['gable','박공 (좌우 대칭)'],['asym','비대칭 박공 (처마 길이·정점 위치 조절)'],['shed','외쪽지붕 (한쪽만 경사)'],['gambrel','맞배 변형 (꺾인 박공)'],['slate','슬레이트 박공 (겹친 판재 표현)'],['flat','평지붕'],['none','없음']];
+const ROOF_IDS=ROOFS.map(r=>r[0]),GABLEISH=['gable','asym','slate','gambrel'];
 const DEF_LW={out:2,inn:1,cut:2.6,auto:true,bDash:false,bOp:.75};
 const LAYERS=[['ground','지면·기초'],['back','뒷벽 문·창(입면)'],['roof','지붕'],['struct','벽·슬래브(절단)'],['open','문·창문(개구부)'],['stairs','계단'],['terr','테라스 난간'],['items','가구'],['labels','방 이름·치수'],['levels','레벨 표시(층 높이)']];
 const MATS=[['line','기본 사선'],['concrete','콘크리트'],['brick','벽돌'],['wood','목재'],['insul','단열재'],['steel','철골'],['none','흰색(해칭 없음)']];
 const FLOOR_MIN=15; // 자동 통일 기준에서 제외하는 아주 작은 가구(cm)
-let S={v:2,title:'',b:{...DEF_B},parts:[],items:[],terr:[]};let sel=null,hist=[],fut=[],A=[],AM={},CATS=[],shown=60,curF=0;
+let S={v:2,title:'',b:{...DEF_B},parts:[],items:[],terr:[],roofs:[],chims:[],rfl:{}};let sel=null,hist=[],fut=[],A=[],AM={},CATS=[],shown=60,curF=0;
 const uid=()=>Math.random().toString(36).slice(2,9);
 const clone=o=>JSON.parse(JSON.stringify(o));
 const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
@@ -18,8 +21,13 @@ function norm(o){o.v=2;o.b={...DEF_B,...(o.b||{})};const b=o.b;
  const hs=Array.isArray(b.hs)?b.hs:[];b.hs=Array.from({length:b.f},(_,k)=>+hs[k]||b.h);
  o.lw={...DEF_LW,...(o.lw||{})};o.layers={ground:1,back:1,roof:1,struct:1,open:1,stairs:1,items:1,terr:1,labels:1,levels:0,...(o.layers||{})};
  b.rz=Math.max(0,Math.min(300,+b.rz||0));b.fnd=b.fnd==='posts'?'posts':'wall';b.go=b.go!==false;
+ b.roof=ROOF_IDS.includes(b.roof)?b.roof:'gable';b.rr=clamp(isFinite(+b.rr)&&+b.rr?+b.rr:.5,.1,.9);b.rd=b.rd==='L'?'L':'R';b.ro=(b.ro==null||!isFinite(+b.ro))?30:clamp(+b.ro,0,250);
+ b.rfx=(b.rfx&&isFinite(+b.rfx.l)&&isFinite(+b.rfx.r)&&+b.rfx.r-+b.rfx.l>=60)?{l:+b.rfx.l,r:+b.rfx.r}:null;   // 옵션 B(지붕 크기 유지): 지붕 좌우 끝을 최상층 외벽과 따로 저장
  const ex=Array.isArray(b.ext)?b.ext:[];b.ext=Array.from({length:b.f},(_,k)=>{const e=ex[k];return e&&isFinite(+e.l)&&isFinite(+e.r)&&+e.r-+e.l>=100?{l:+e.l,r:+e.r}:{l:0,r:b.w}});
  o.terr=(Array.isArray(o.terr)?o.terr:[]).filter(t=>t&&isFinite(+t.x0)&&isFinite(+t.x1)&&+t.x1-+t.x0>=20).map(t=>({id:t.id||('t'+Math.random().toString(36).slice(2,8)),f:Math.max(0,Math.min(b.f,Math.round(+t.f)||0)),x0:+t.x0,x1:+t.x1,rail:['iron','vict','brick'].includes(t.rail)?t.rail:'iron',slab:t.slab!==false}));
+ o.roofs=(Array.isArray(o.roofs)?o.roofs:[]).filter(t=>t&&isFinite(+t.x0)&&isFinite(+t.x1)&&+t.x1-+t.x0>=20).map(t=>({id:t.id||('r'+Math.random().toString(36).slice(2,8)),f:Math.max(0,Math.min(Math.max(0,b.f-2),Math.round(+t.f)||0)),x0:+t.x0,x1:+t.x1,type:['flat','shed','gable'].includes(t.type)?t.type:'shed',rd:t.rd==='L'||t.rd==='R'?t.rd:'',h:clamp(isFinite(+t.h)?+t.h:80,20,400),ov:clamp(isFinite(+t.ov)?+t.ov:25,0,200)}));
+ o.rfl=(o.rfl&&typeof o.rfl==='object'&&!Array.isArray(o.rfl))?Object.fromEntries(Object.entries(o.rfl).filter(([k,v])=>/^\d+:\w+$/.test(k)&&(v==='none'||v==='posts'))):{};
+ o.chims=(Array.isArray(o.chims)?o.chims:[]).filter(t=>t&&isFinite(+t.x)).map(t=>({id:t.id||('c'+Math.random().toString(36).slice(2,8)),x:+t.x,w:clamp(isFinite(+t.w)?+t.w:50,20,200),above:clamp(isFinite(+t.above)?+t.above:70,10,400)}));
  o.parts=(o.parts||[]).map(p=>({t:12,mat:'line',...p}));o.ops=o.ops||[];o.stairs=o.stairs||[];o.rooms=o.rooms||{};o.wpr=(o.wpr&&typeof o.wpr==='object'&&!Array.isArray(o.wpr))?o.wpr:{};o.ua=(o.ua&&typeof o.ua==='object'&&!Array.isArray(o.ua))?o.ua:{};uaFromDoc(o);
  {const wu={};if(o.wpu&&typeof o.wpu==='object'&&!Array.isArray(o.wpu))for(const [id,u] of Object.entries(o.wpu).slice(0,4))if(u&&typeof u.d==='string'&&u.d.startsWith('data:image/')&&u.d.length<260000&&isFinite(+u.w)&&isFinite(+u.h)&&+u.w>0&&+u.h>0)wu[id.replace(/[^A-Za-z0-9]/g,'')||'x']={n:String(u.n||'벽지').slice(0,20),d:u.d,w:+u.w,h:+u.h,tw:Math.max(10,Math.min(400,+u.tw||80))};
   o.wpu=wu;const okW=w=>!(typeof w==='string'&&w.startsWith('u_'))||wu[w.slice(2)];b.wp=b.wp.map(w=>okW(w)?w:'plain');for(const k of Object.keys(o.wpr||{}))if(!okW(o.wpr[k]))delete o.wpr[k]}
@@ -28,7 +36,27 @@ S=norm(S);
 const XL=k=>{const e=S.b.ext&&S.b.ext[k];return e?e.l:0};
 const XR=k=>{const e=S.b.ext&&S.b.ext[k];return e?e.r:S.b.w};
 const gE=()=>-(S.b.rz||0); // 지면 높이(cm, 1층 바닥 기준). 1층 바닥이 지면보다 높으면 음수
+/* 지붕 모양: 처마 끝~처마 끝의 윗면 꺾은선(pts: [x, 높이]) · 안쪽 면 높이 ut(x) · 박공 계열만 옵션 B(rfx)로 크기 고정 */
+function roofGeo(){const b=S.b,N=b.f;if(!N||b.roof==='none')return null;
+ const E=EH(),tl=XL(N-1),tr=XR(N-1),ov=b.ro;let l=tl-ov,r=tr+ov;if(b.rfx&&GABLEISH.includes(b.roof)){l=b.rfx.l;r=b.rfx.r}
+ const W=Math.max(60,r-l),h=b.rh,flat=b.roof==='flat';let pts;
+ if(flat)pts=[[l,22],[r,22]];
+ else if(b.roof==='shed')pts=b.rd==='L'?[[l,h],[r,0]]:[[l,0],[r,h]];
+ else{const ax=l+W*((b.roof==='asym')?b.rr:.5);
+  pts=b.roof==='gambrel'?[[l,0],[l+(ax-l)*.45,h*.68],[ax,h],[ax+(r-ax)*.55,h*.68],[r,0]]:[[l,0],[ax,h],[r,0]]}
+ const d=flat?22:18,hAt=x=>{if(x<=pts[0][0])return pts[0][1];for(let i=1;i<pts.length;i++){if(x<=pts[i][0]){const a=pts[i-1],c=pts[i];return c[0]===a[0]?c[1]:a[1]+(c[1]-a[1])*(x-a[0])/(c[0]-a[0])}}return pts[pts.length-1][1]};
+ return {type:b.roof,l,r,E,d,pts,hAt,flat,go:b.go!==false&&b.roof!=='flat',ut:x=>E-d+hAt(x),maxH:flat?30:h,apex:pts.reduce((m,p)=>p[1]>m[1]?p:m,pts[0])}}
+/* 아래층 노출부 추가 지붕 (S.roofs) · 굴뚝 (S.chims) */
+function xrGeo(o){const t=S.b.t,B=lvl(o.f+1),nearR=Math.abs(o.x1-XL(o.f+1))<=t*2,nearL=Math.abs(o.x0-XR(o.f+1))<=t*2,ws=nearR?'R':nearL?'L':null;
+ const l=o.x0-(ws==='L'?0:o.ov),r=o.x1+(ws==='R'?0:o.ov),h=o.h,W=r-l,hd=o.rd||ws||'R';
+ const pts=o.type==='flat'?[[l,22],[r,22]]:o.type==='shed'?(hd==='L'?[[l,h],[r,0]]:[[l,0],[r,h]]):[[l,0],[l+W/2,h],[r,0]];
+ return {l,r,B,pts,flat:o.type==='flat',d:o.type==='flat'?22:14,maxH:o.type==='flat'?22:h}}
+function chimTop(c){const R=roofGeo(),E=EH();return E+(R?R.hAt(c.x):0)+c.above}
+function topExtra(){const R=roofGeo(),E=EH();let m=R?R.maxH:0;for(const c of S.chims)m=Math.max(m,chimTop(c)-E+12);for(const o of S.roofs){const g=xrGeo(o);m=Math.max(m,g.B+g.maxH-E)}return m}
 function bounds(){const b=S.b;let l=0,r=b.w;for(let k=0;k<b.f;k++){l=Math.min(l,XL(k));r=Math.max(r,XR(k))}
+ {const R=roofGeo();if(R){l=Math.min(l,R.l);r=Math.max(r,R.r)}}
+ for(const o of S.roofs){const g=xrGeo(o);l=Math.min(l,g.l);r=Math.max(r,g.r)}
+ for(const c of S.chims){l=Math.min(l,c.x-c.w/2);r=Math.max(r,c.x+c.w/2)}
  for(const t of S.terr){l=Math.min(l,t.x0);r=Math.max(r,t.x1)}
  for(const a of S.stairs)if(a.type==='outer'){const g=stairGeo(a);if(g&&g.xs){l=Math.min(l,g.xs[0]);r=Math.max(r,g.xs[1])}}
  return {l,r}}
@@ -45,7 +73,7 @@ function subIv(a,b,cuts){let segs=[[a,b]];for(const [c0,c1] of cuts){const n=[];
 /* ---------- 뷰포트 ---------- */
 const svg=$('#svg');let VP={x:-200,y:-800,w:1300};
 function applyVP(){const ho=document.querySelector('.hnd');const r=svg.getBoundingClientRect();const h=VP.w*(r.height||600)/(r.width||800);svg.setAttribute('viewBox',`${VP.x} ${VP.y} ${VP.w} ${h}`);const z=Math.round((r.width||800)/VP.w*100);$('#hud').textContent=`확대 ${z}%  ·  1칸 = 100cm`;if(ho){const it=cur();if(it)placeHandle(it.x+it.w/2,-it.e)}}
-function fit(){const b=S.b,top=EH()+(b.roof==='gable'?b.rh:b.roof==='flat'?30:0);const dep=-lvl(0)+b.s;const BN=bounds(),W=(BN.r-BN.l)+500,H=top+dep+380;const r=svg.getBoundingClientRect();const k=Math.max(W/(r.width||800),H/(r.height||600));VP.w=k*(r.width||800);const vh=k*(r.height||600);VP.x=(BN.l+BN.r)/2-VP.w/2;VP.y=-(top+120)-(vh-(top+dep+380))/2;applyVP()}
+function fit(){const b=S.b,RG0=roofGeo(),top=EH()+topExtra();const dep=-lvl(0)+b.s;const BN=bounds(),W=(BN.r-BN.l)+500,H=top+dep+380;const r=svg.getBoundingClientRect();const k=Math.max(W/(r.width||800),H/(r.height||600));VP.w=k*(r.width||800);const vh=k*(r.height||600);VP.x=(BN.l+BN.r)/2-VP.w/2;VP.y=-(top+120)-(vh-(top+dep+380))/2;applyVP()}
 function toWorld(ev){const p=svg.createSVGPoint();p.x=ev.clientX;p.y=ev.clientY;const q=p.matrixTransform(svg.getScreenCTM().inverse());return {x:q.x,y:q.y}}
 /* ---------- SVG 에셋 캐시 (선·실루엣 경로를 읽어 stroke 로 직접 그림) ---------- */
 const ART={};let rq=0;
@@ -148,6 +176,11 @@ function outerGeo(a){const b=S.b,f=a.f;if(!(f>=0&&f<b.f))return null;
  const run=Math.max(60,a.run||Math.round(rise*1.7)),n=a.n>=3?Math.min(60,Math.round(a.n)):Math.max(3,Math.round(rise/17.5)),rs=rise/n,tr=run/(n-1);
  const out=side==='L'?-1:1;                      // 건물 밖으로 향하는 방향
  const eLo=Math.min(eB,eT);
+ if(a.kind==='ladder'){   // 사다리: 외벽에 기대어 선 옆모습 (두 줄 + 일정 간격 가로대)
+  const lo=Math.min(eB,eT),hi=Math.max(eB,eT),top=hi+(up?90:0),lean=Math.min(40,(top-lo)*.08),xb=edge+out*(14+lean),xt=edge+out*14;
+  const thin=[[[xb,lo],[xt,top]],[[xb+out*6,lo],[xt+out*6,top]]];const nr=Math.max(2,Math.floor((top-lo)/30));
+  for(let i=1;i<nr;i++){const u=i/nr,x=xb+(xt-xb)*u,y=lo+(top-lo)*u;thin.push([[x,y],[x+out*6,y]])}
+  return {poly:[],polys:[],rail:[],land:null,thin,voidX:null,xs:[Math.min(edge,xb),Math.max(edge+out*20,xb+out*6)],outer:true,ladder:true,hit:[Math.min(xb,xt)-6,lo,Math.max(xb,xt)+12,top]}}
  const poly2=[[edge+out*run,eLo]];
  for(let i=0;i<n;i++){const xo=edge+out*(run-i*tr),h=eB+(eT-eB)*(i+1)/n;poly2.push([xo,h]);if(i<n-1)poly2.push([edge+out*(run-(i+1)*tr),h])}
  poly2.push([edge,eT]);poly2.push([edge,eLo]);
@@ -289,8 +322,9 @@ function render(){const b=S.b,N=b.f,E=EH(),t=b.t,s=b.s,W=b.w,INK='#1c1c1c',L=S.l
  const wallBg=mk('g',{},svg);
  for(let k=0;k<N;k++){const y0=lvl(k),y1=lvl(k+1)-sl(k+1);mk('rect',{x:XL(k)+t,y:-y1,width:XR(k)-XL(k)-2*t,height:Math.max(1,y1-y0),fill:wpFill(b.wp[k])},wallBg);
   for(const r of roomsOf(k)){const v=S.wpr[r.key];if(v&&v!==b.wp[k]&&r.right>r.left)mk('rect',{x:r.left,y:-y1,width:r.right-r.left,height:Math.max(1,y1-y0),fill:wpFill(v)},wallBg)}}   // 방(벽 사이 칸)마다 따로 고른 벽지
- if(b.roof==='gable'&&b.go!==false&&N>0){const y1=lvl(N)-sl(N),xa=XL(N-1)+t,xb=XR(N-1)-t,um=(XL(N-1)+XR(N-1))/2,dd=18,hf=(XR(N-1)-XL(N-1)+60)/2,u=x=>E-dd+b.rh*Math.min(1,Math.max(0,(x<=um?x-(XL(N-1)-30):(XR(N-1)+30)-x)/hf));
-  mk('polygon',{points:`${xa},${-y1} ${xb},${-y1} ${xb},${-u(xb)} ${um},${-u(um)} ${xa},${-u(xa)}`,fill:wpFill(b.wp[N-1])},wallBg)}
+ const RG=roofGeo(),GO=!!RG&&RG.go,ut=RG?RG.ut:(()=>E);   // 박공·경사 지붕: 천장 슬래브 없이 벽이 지붕 안쪽 면까지 올라감
+ if(GO&&N>0){const y1=lvl(N)-sl(N),xa=XL(N-1)+t,xb=XR(N-1)-t,mid=RG.pts.filter(p=>p[0]>xa&&p[0]<xb).map(p=>[p[0],RG.ut(p[0])]).reverse();
+  mk('polygon',{points:[[xa,y1],[xb,y1],[xb,RG.ut(xb)],...mid,[xa,RG.ut(xa)]].map(p=>`${p[0]},${-p[1]}`).join(' '),fill:wpFill(b.wp[N-1])},wallBg)}
  // 뒷벽(단면 뒤쪽 벽면)의 문·창문: 입면으로 보이는 가는 선
  const gBk=lay('back');
  for(const o of S.ops){if(o.on!=='back'||o.f<0||o.f>=N)continue;const e0=lvl(o.f)+o.sill,x0=o.x-o.w/2,gB=mk('g',{'data-id':o.id,stroke:INK,'stroke-width':Wp,'stroke-linejoin':'round'},gBk);
@@ -299,10 +333,15 @@ function render(){const b=S.b,N=b.f,E=EH(),t=b.t,s=b.s,W=b.w,INK='#1c1c1c',L=S.l
   else{mk('rect',{x:x0+7,y:-(e0+o.h-7),width:o.w-14,height:o.h-7,fill:'none','stroke-width':Wi},gB);mk('circle',{cx:x0+o.w-16,cy:-(e0+o.h*.48),r:2.6,fill:INK,stroke:'none'},gB)}}
  const rf=lay('roof',{filter:'url(#pen)'}),d=18;
  const tl=XL(N-1),tr=XR(N-1);
- const GO=b.roof==='gable'&&b.go!==false;   // 박공 지붕: 천장 슬래브 없이 벽이 지붕 안쪽 면까지 올라감
- const half=(tr-tl+60)/2,umid=(tl+tr)/2,ut=x=>E-d+b.rh*Math.min(1,Math.max(0,(x<=umid?x-(tl-30):(tr+30)-x)/half));   // 지붕 안쪽 면의 높이(cm)
- if(b.roof==='gable'){const A_=[tl-30,-E],C=[(tl+tr)/2,-E-b.rh],B_=[tr+30,-E];mk('path',{d:`M${A_} L${C} L${B_} L${B_[0]} ${B_[1]+d} L${C[0]} ${C[1]+d} L${A_[0]} ${A_[1]+d} Z`,fill:matFill(b.mat.roof),stroke:INK,'stroke-width':L.cut*.7,'stroke-linejoin':'round'},rf)}
- else if(b.roof==='flat'){mk('rect',{x:tl-30,y:-E-22,width:tr-tl+60,height:22,fill:matFill(b.mat.roof),stroke:INK,'stroke-width':L.cut*.7},rf)}
+ for(const c of S.chims){const top=chimTop(c),by=-E;mk('rect',{x:c.x-c.w/2,y:-top,width:c.w,height:top-E,fill:matFill(b.mat.wall),stroke:INK,'stroke-width':L.cut*.7,'data-id':c.id},rf);mk('rect',{x:c.x-c.w/2-6,y:-top-8,width:c.w+12,height:8,fill:matFill(b.mat.slab),stroke:INK,'stroke-width':L.cut*.7,'data-id':c.id},rf)}
+ if(RG&&RG.flat){mk('rect',{x:RG.l,y:-E-22,width:RG.r-RG.l,height:22,fill:matFill(b.mat.roof),stroke:INK,'stroke-width':L.cut*.7},rf)}
+ else if(RG){const P=RG.pts,dd=RG.d,top=P.map(p=>`${p[0]},${-E-p[1]}`),bot=[...P].reverse().map(p=>`${p[0]},${-E-p[1]+dd}`);
+  mk('polygon',{points:[...top,...bot].join(' '),fill:matFill(b.mat.roof),stroke:INK,'stroke-width':L.cut*.7,'stroke-linejoin':'round'},rf);
+  if(RG.type==='slate'){   // 슬레이트: 경사면을 따라 판재가 겹쳐 보이도록 일정 간격의 짧은 단차선
+   for(let i=1;i<P.length;i++){const a0=P[i-1],c0=P[i],len=Math.hypot(c0[0]-a0[0],c0[1]-a0[1]),n=Math.max(1,Math.floor(len/16));
+    for(let j=1;j<n;j++){const u=j/n,x=a0[0]+(c0[0]-a0[0])*u,y=a0[1]+(c0[1]-a0[1])*u;mk('line',{x1:x,y1:-E-y,x2:x,y2:-E-y+dd*(j%2?1:.62),stroke:INK,'stroke-width':L.cut*.28,'vector-effect':'non-scaling-stroke'},rf)}}}}
+ for(const o of S.roofs){const g=xrGeo(o);if(g.flat)mk('rect',{x:g.l,y:-g.B-22,width:g.r-g.l,height:22,fill:matFill(b.mat.roof),stroke:INK,'stroke-width':L.cut*.7,'data-id':o.id},rf);
+  else{const top=g.pts.map(q=>`${q[0]},${-g.B-q[1]}`),bot=[...g.pts].reverse().map(q=>`${q[0]},${-g.B-q[1]+g.d}`);mk('polygon',{points:[...top,...bot].join(' '),fill:matFill(b.mat.roof),stroke:INK,'stroke-width':L.cut*.7,'stroke-linejoin':'round','data-id':o.id},rf)}}
  // 계단: 바닥(슬래브) 뒤에 그려서, 계단이 있어도 바닥이 끊기지 않고 이어져 보이게 함
  const stp=lay('stairs');const stc=mk('g',{filter:'url(#pen)',stroke:INK,'stroke-width':L.cut,'stroke-linejoin':'round'},stp);
  const dtS=mk('g',{fill:'none',stroke:INK,'stroke-width':Wp,'stroke-linejoin':'round','stroke-linecap':'round'},stp);
@@ -310,6 +349,7 @@ function render(){const b=S.b,N=b.f,E=EH(),t=b.t,s=b.s,W=b.w,INK='#1c1c1c',L=S.l
   if(g.asset){const q=g.asset;renderItem({uid:a.id,assetId:q.id,view:q.view,x:q.x+q.w/2,e:q.e,w:q.w,h:q.h,flip:q.flip,cs:'proj'},stp,WT,true);continue}
   for(const P of (g.polys||[g.poly]))mk('polygon',{points:pts2(P),fill:matFill(a.mat||'concrete'),'data-id':a.id},stc);
   if(g.land)mk('rect',{x:g.land[0],y:-g.land[3],width:g.land[1]-g.land[0],height:g.land[3]-g.land[2],fill:matFill(a.mat||'concrete'),'data-id':a.id},stc);
+  if(g.hit)mk('rect',{x:g.hit[0],y:-g.hit[3],width:g.hit[2]-g.hit[0],height:g.hit[3]-g.hit[1],fill:'transparent',stroke:'none','data-id':a.id},stc);
   const gs=mk('g',{'data-id':a.id},dtS);mk('polyline',{points:pts2(g.rail),'stroke-width':Wi},gs);
   g.thin.forEach(pl=>mk('polyline',{points:pts2(pl),'stroke-width':Wi,stroke:'#444'},gs))}
  // 구조체 — 절단되는 부분: 굵은 선 + 재질 해칭
@@ -329,7 +369,10 @@ function render(){const b=S.b,N=b.f,E=EH(),t=b.t,s=b.s,W=b.w,INK='#1c1c1c',L=S.l
  for(let k=0;k<=N;k++){const voids=(b.void&&k>=1)?S.stairs.filter(a=>a.f===k-1).map(a=>stairGeo(a)).filter(g=>g&&g.voidX).map(g=>g.voidX):[];
   const sp=k===0?[XL(0),XR(0)]:k===N?[XL(N-1),XR(N-1)]:[Math.min(XL(k-1),XL(k)),Math.max(XR(k-1),XR(k))];
   if(GO&&k===N)continue;
-  for(const [x0,x1] of subIv(sp[0],sp[1],voids)){R(x0,lvl(k)-sl(k),x1-x0,sl(k),matFill(b.mat.slab),'wall');if(b.mat.slab==='none')mk('line',{x1:x0+2,y1:-(lvl(k)-sl(k)/2),x2:x1-2,y2:-(lvl(k)-sl(k)/2),stroke:'#555','stroke-width':L.cut*.4,'stroke-dasharray':'7 5'},st)}}
+  const rcut=k<N?roomsOf(k).filter(r=>S.rfl[r.key]).map(r=>[r.left,r.right]):[];   // 방별 바닥 모드: 바닥 없음 / 기둥만 → 이 방 구간은 슬래브를 그리지 않음
+  if(k<N)for(const r of roomsOf(k))if(S.rfl[r.key]==='posts'){const pw=Math.max(18,t*.9),n=Math.max(1,Math.round((r.right-r.left)/220)),y0=lvl(k),y1=lvl(k+1)-sl(k+1);
+   for(let i=0;i<=n;i++){const cx=r.left+pw/2+(r.right-r.left-pw)*i/n;R(cx-pw/2,y0,pw,y1-y0,matFill('wood'),'wall')}}
+  for(const [x0,x1] of subIv(sp[0],sp[1],[...voids,...rcut])){R(x0,lvl(k)-sl(k),x1-x0,sl(k),matFill(b.mat.slab),'wall');if(b.mat.slab==='none')mk('line',{x1:x0+2,y1:-(lvl(k)-sl(k)/2),x2:x1-2,y2:-(lvl(k)-sl(k)/2),stroke:'#555','stroke-width':L.cut*.4,'stroke-dasharray':'7 5'},st)}}
  for(const q of S.terr){if(q.slab!==false&&q.f>=0&&q.f<=N)R(q.x0,lvl(q.f)-sl(q.f),q.x1-q.x0,sl(q.f),matFill(b.mat.slab),q.id)}
  for(const p of S.parts){const k=p.f;if(k<0||k>=N)continue;const top=lvl(k+1)-sl(k+1);for(const [a0,a1] of subIv(lvl(k),top,opsOn(p.id))){
   if(GO&&k===N-1&&Math.abs(a1-top)<.01){const x0=p.x-p.t/2,x1=p.x+p.t/2;mk('polygon',{points:`${x0},${-a0} ${x1},${-a0} ${x1},${-Math.max(top,ut(x1))} ${x0},${-Math.max(top,ut(x0))}`,fill:matFill(p.mat),'data-id':p.id},st)}
@@ -353,14 +396,29 @@ function render(){const b=S.b,N=b.f,E=EH(),t=b.t,s=b.s,W=b.w,INK='#1c1c1c',L=S.l
  // 가구
  const g=lay('items',{id:'items'});
  [...S.items].sort((a,b2)=>(a.z-b2.z)).forEach(it=>renderItem(it,g,WT));   // 원경(연하게)은 가려지지 않고, 다른 가구 뒤쪽에 연한 선으로 그림
- drawSel();applyVP();inspector();caption();lwInfo();
+ drawSel();drawBH();applyVP();inspector();caption();lwInfo();
 }
 function lwInfo(){const el=$('#lwInfo');if(!el)return;const W=LASTW;const n=S.items.length;el.textContent=n?`적용값 — 외곽 ${(+W._o).toFixed(2)}cm · 내부 ${(+W._i).toFixed(2)}cm (가구 ${n}개)`:`가구를 놓으면 적용값이 표시됩니다 (설정: 외곽 ${S.lw.out} · 내부 ${S.lw.inn})`}
 function caption(){const el=$('#capR');if(el)el.textContent=`가구 ${S.items.length}개 · 지상 ${S.b.f-BB()}층${BB()?' · 지하 '+BB()+'층':''} · 폭 ${S.b.w}cm`}
 /* ---------- 선택/객체 ---------- */
-function findObj(id){if(!id)return null;let o=S.items.find(i=>i.uid===id);if(o)return {k:'item',o};o=S.parts.find(i=>i.id===id);if(o)return {k:'part',o};o=S.ops.find(i=>i.id===id);if(o)return {k:'op',o};o=S.stairs.find(i=>i.id===id);if(o)return {k:'stair',o};o=S.terr.find(i=>i.id===id);if(o)return {k:'terr',o};if(id==='wall')return {k:'wall',o:S.b};return null}
+function findObj(id){if(!id)return null;let o=S.items.find(i=>i.uid===id);if(o)return {k:'item',o};o=S.parts.find(i=>i.id===id);if(o)return {k:'part',o};o=S.ops.find(i=>i.id===id);if(o)return {k:'op',o};o=S.stairs.find(i=>i.id===id);if(o)return {k:'stair',o};o=S.terr.find(i=>i.id===id);if(o)return {k:'terr',o};o=S.roofs.find(i=>i.id===id);if(o)return {k:'roof',o};o=S.chims.find(i=>i.id===id);if(o)return {k:'chim',o};if(id==='wall')return {k:'wall',o:S.b};return null}
 function placeHandle(cx,cy){svg.querySelectorAll('.hnd,.hnd-hit').forEach(n=>n.remove());const r=pxcm();
  mk('circle',{class:'sel hnd-hit',cx,cy,r:11*r,'data-h':'br'},svg);mk('circle',{class:'sel hnd',cx,cy,r:4.5*r,'data-h':'br'},svg)}
+/* 건물 핸들: 층별 외벽 좌우 · 지붕 꼭짓점/끝점 (건물 탭이 열려 있을 때만) */
+function drawBH(){svg.querySelectorAll('.bh').forEach(n=>n.remove());if($('#tHouse').hidden||tool)return;
+ const r=pxcm(),H=(cx,cy,id)=>{mk('circle',{class:'bh bh-hit','data-bh':id,cx,cy,r:8*r},svg);mk('circle',{class:'bh bh-dot','data-bh':id,cx,cy,r:4*r},svg)};
+ for(let k=0;k<S.b.f;k++){const y=-(lvl(k)+fh(k)/2);H(XL(k),y,'wl:'+k);H(XR(k),y,'wr:'+k)}
+ for(const c of S.chims)H(c.x,-chimTop(c)-8,'ch:'+c.id);
+ const R=roofGeo();if(R&&!R.flat){H(R.apex[0],-(R.E+R.apex[1]),'ra');if(S.b.rfx&&GABLEISH.includes(S.b.roof)){H(R.l,-R.E,'rl');H(R.r,-R.E,'rr')}}}
+function bhMove(p){const id=drag.id,sn=v=>Math.round(v/5)*5,t=S.b.t,b=S.b;
+ if(id[0]==='w'){const k=+id.slice(3),L=id[1]==='l',minW=Math.max(100,2*t+60),ps=S.parts.filter(q=>q.f===k);const e=b.ext[k];
+  if(L){let v=Math.min(sn(p.x),e.r-minW);if(ps.length)v=Math.min(v,Math.min(...ps.map(q=>q.x-q.t/2))-t);e.l=v}
+  else{let v=Math.max(sn(p.x),e.l+minW);if(ps.length)v=Math.max(v,Math.max(...ps.map(q=>q.x+q.t/2))+t);e.r=v}}
+ else if(id==='ra'){const R=roofGeo();b.rh=clamp(sn(-p.y-R.E),30,400);if(b.roof==='asym')b.rr=clamp(Math.round((p.x-R.l)/Math.max(60,R.r-R.l)*20)/20,.1,.9)}
+ else if(id.startsWith('ch:')){const c=S.chims.find(q=>q.id===id.slice(3));if(c){const R=roofGeo();c.above=clamp(sn(-p.y-8-EH()-(R?R.hAt(c.x):0)),10,400)}}
+ else if(id==='rl'&&b.rfx)b.rfx.l=Math.min(sn(p.x),b.rfx.r-60);
+ else if(id==='rr'&&b.rfx)b.rfx.r=Math.max(sn(p.x),b.rfx.l+60);
+ render()}
 function drawSel(){svg.querySelectorAll('.sel,.guide').forEach(n=>n.remove());const ob=findObj(sel);if(!ob)return;
  if(ob.k==='item'){const it=ob.o,x0=it.x-it.w/2,y0=-it.e-it.h;
   mk('rect',{class:'sel sel-box',x:x0,y:y0,width:it.w,height:it.h},svg);placeHandle(x0+it.w,y0+it.h);
@@ -388,11 +446,13 @@ function dup(){const ob=findObj(sel);if(!ob)return;const o=ob.o;
  else if(ob.k==='op'){const c={...clone(o),id:uid()};if(o.on==='back')c.x=clamp(o.x+o.w+30,bounds().l+20,bounds().r-20);else if(o.f+1<S.b.f)c.f=o.f+1;S.ops.push(c);sel=c.id}
  else if(ob.k==='stair'){const c={...clone(o),id:uid(),x:o.x+40};S.stairs.push(c);sel=c.id}
  else if(ob.k==='terr'){const c={...clone(o),id:uid(),x0:o.x0+60,x1:o.x1+60};S.terr.push(c);sel=c.id}
+ else if(ob.k==='roof'){const c={...clone(o),id:uid(),x0:o.x0+60,x1:o.x1+60};S.roofs.push(c);sel=c.id}
+ else if(ob.k==='chim'){const c={...clone(o),id:uid(),x:o.x+60};S.chims.push(c);sel=c.id}
  else return;commit();sync();render()}
 function del(){const ob=findObj(sel);if(!ob||ob.k==='wall')return;
  if(ob.k==='item')S.items=S.items.filter(i=>i.uid!==sel);
  else if(ob.k==='part'){S.parts=S.parts.filter(i=>i.id!==sel);S.ops=S.ops.filter(o=>o.on!==sel)}
- else if(ob.k==='op')S.ops=S.ops.filter(i=>i.id!==sel);else if(ob.k==='stair')S.stairs=S.stairs.filter(i=>i.id!==sel);else if(ob.k==='terr')S.terr=S.terr.filter(i=>i.id!==sel);
+ else if(ob.k==='op')S.ops=S.ops.filter(i=>i.id!==sel);else if(ob.k==='stair')S.stairs=S.stairs.filter(i=>i.id!==sel);else if(ob.k==='terr')S.terr=S.terr.filter(i=>i.id!==sel);else if(ob.k==='roof')S.roofs=S.roofs.filter(i=>i.id!==sel);else if(ob.k==='chim')S.chims=S.chims.filter(i=>i.id!==sel);
  sel=null;commit();sync();render()}
 function setView(v){const it=cur(),a=it&&AM[it.assetId];if(!a)return;if(v==='side'){if(it.view!=='front')return;v=a.views.rightSide?'rightSide':'leftSide'}if(!a.views[v])return;const asp=a.views[v].aspect||1;it.view=v;it.w=+(it.h*asp).toFixed(1);commit();render()}
 /* ---------- 인스펙터 ---------- */
@@ -416,11 +476,18 @@ function inspector(){const ob=findObj(sel),body=$('#inspBody'),H=$('#insp h4');
   body.innerHTML=`${opt('종류','ok',[['door','문'],['window','창문']],o.kind)}${opt('층','of',floorOpts(),o.f)}${opt('붙는 곳','oo',onOpts(o.f),o.on)}${back?fld('중심 x(cm)','ox',o.x,0,5)+fld('폭(cm)','ow',o.w,20,5):''}${fld('바닥에서 높이(cm)','os',o.sill,0,5)}${fld('개구부 높이(cm)','oh',o.h,20,5)}${stdBtns}<div class="hint" style="margin-top:6px">${back?'뒷벽 개구부는 입면으로 보이는 문·창문이에요.':'벽에 뚫린 단면 개구부예요 (벽 두께만큼).'} 도면에서 위아래로 끌 수 있어요.</div>`;
   bind('#ok',v=>o.kind=v);bind('#of',v=>{o.f=+v;if(o.on!=='back'&&o.on!=='L'&&o.on!=='R')o.on='back'});bind('#oo',v=>o.on=v);bind('#ox',v=>o.x=clamp(v,bounds().l,bounds().r));bind('#ow',v=>o.w=Math.max(20,v));bind('#os',v=>o.sill=clamp(v,0,fh(o.f)-s_(o.f)-20));bind('#oh',v=>o.h=clamp(v,20,fh(o.f)-s_(o.f)-o.sill))}
  else if(ob.k==='stair'&&o.type==='outer'){H.textContent='건물 밖 계단';
-  body.innerHTML=`${opt('도착 층 (문·테라스가 있는 층)','of',floorOpts(),o.f)}${opt('출발','ofrom',[[-1,'지면'],...floorOpts().filter(([k])=>k!==o.f).map(([k,t])=>[k,t+' 바닥'])],o.from>=0?o.from:-1)}${opt('붙는 쪽','oside',[['R','오른쪽 바깥'],['L','왼쪽 바깥']],o.side||'R')}${fld('수평 길이(cm, 0=자동)','orun',o.run||0,0,10)}${fld('단 수(0=자동)','on_',o.n||0,0,1)}${opt('재질','omat',MATS,o.mat||'concrete')}${stdBtns}<div class="hint" style="margin-top:6px">외벽 바깥쪽에 붙어 지면(또는 다른 층)과 문턱을 이어요. 지면보다 낮은 지하 현관이면 아래로 내려가는 계단이 돼요. 1층 바닥이 지면보다 높아야 현관 계단이 생겨요(건물 탭의 '1층 바닥 높이').</div>`;
-  bind('#of',v=>o.f=+v);bind('#ofrom',v=>o.from=+v);bind('#oside',v=>o.side=v);bind('#orun',v=>o.run=v>=60?v:0);bind('#on_',v=>o.n=v>=3?Math.min(60,Math.round(v)):0);bind('#omat',v=>o.mat=v)}
+  const LD=o.kind==='ladder';if(LD)H.textContent='건물 밖 사다리';
+  body.innerHTML=`${opt('도착 층 (문·테라스가 있는 층)','of',floorOpts(),o.f)}${opt('출발','ofrom',[[-1,'지면'],...floorOpts().filter(([k])=>k!==o.f).map(([k,t])=>[k,t+' 바닥'])],o.from>=0?o.from:-1)}${opt('붙는 쪽','oside',[['R','오른쪽 바깥'],['L','왼쪽 바깥']],o.side||'R')}${LD?'':fld('수평 길이(cm, 0=자동)','orun',o.run||0,0,10)}${LD?'':fld('단 수(0=자동)','on_',o.n||0,0,1)}${LD?'':opt('재질','omat',MATS,o.mat||'concrete')}${stdBtns}<div class="hint" style="margin-top:6px">외벽 바깥쪽에 붙어 지면(또는 다른 층)과 문턱을 이어요. 지면보다 낮은 지하 현관이면 아래로 내려가는 계단이 돼요. 1층 바닥이 지면보다 높아야 현관 계단이 생겨요(건물 탭의 '1층 바닥 높이').</div>`;
+  bind('#of',v=>o.f=+v);bind('#ofrom',v=>o.from=+v);bind('#oside',v=>o.side=v);if(!LD){bind('#orun',v=>o.run=v>=60?v:0);bind('#on_',v=>o.n=v>=3?Math.min(60,Math.round(v)):0);bind('#omat',v=>o.mat=v)}}
  else if(ob.k==='terr'){H.textContent='테라스';
   body.innerHTML=`${opt('바닥 높이(층)','tf',terrFloorOpts(),o.f)}${fld('왼쪽 끝 x(cm)','tx0',o.x0,undefined,5)}${fld('오른쪽 끝 x(cm)','tx1',o.x1,undefined,5)}${opt('난간','tr',RAIL_TYPES,o.rail)}${opt('구성','ts',[['1','바닥 + 난간'],['0','난간만 (이미 바닥이 있는 곳)']],o.slab===false?'0':'1')}${stdBtns}<div class="hint" style="margin-top:6px">도면에서 좌우로 끌어 옮길 수 있어요. 난간은 왼쪽·오른쪽 끝 사이 전체에 그려져요.</div>`;
   bind('#tf',v=>o.f=clamp(+v,0,S.b.f));bind('#tx0',v=>o.x0=Math.min(v,o.x1-20));bind('#tx1',v=>o.x1=Math.max(v,o.x0+20));bind('#tr',v=>o.rail=v);bind('#ts',v=>o.slab=v==='1')}
+ else if(ob.k==='roof'){H.textContent='추가 지붕 (아래층 노출부)';
+  body.innerHTML=`${opt('얹는 층','xf',Array.from({length:Math.max(0,S.b.f-1)},(_,k)=>[k,fnameKo(k)+' 위']),o.f)}${opt('종류','xt',[['flat','평지붕'],['shed','외쪽지붕'],['gable','박공']],o.type)}${o.type==='shed'?opt('높은 쪽','xd',[['','자동 (위층 벽 쪽)'],['L','왼쪽'],['R','오른쪽']],o.rd):''}${fld('왼쪽 끝 x(cm)','x0',o.x0,undefined,5)}${fld('오른쪽 끝 x(cm)','x1',o.x1,undefined,5)}${o.type==='flat'?'':fld('높이(cm)','xh',o.h,20,5)}${fld('처마 돌출(cm)','xo',o.ov,0,5)}${stdBtns}<div class="hint" style="margin-top:6px">위층 벽에 붙은 쪽은 돌출 없이 벽에 맞닿고, 바깥쪽에만 처마가 나와요. 도면에서 좌우로 끌어 옮길 수 있어요.</div>`;
+  bind('#xf',v=>o.f=clamp(+v,0,Math.max(0,S.b.f-2)));bind('#xt',v=>o.type=v);bind('#xd',v=>o.rd=v);bind('#x0',v=>o.x0=Math.min(v,o.x1-20));bind('#x1',v=>o.x1=Math.max(v,o.x0+20));bind('#xh',v=>o.h=clamp(v,20,400));bind('#xo',v=>o.ov=clamp(v,0,200))}
+ else if(ob.k==='chim'){H.textContent='굴뚝';
+  body.innerHTML=`${fld('위치 x(cm)','cx',Math.round(o.x),undefined,5)}${fld('폭(cm)','cw',o.w,20,5)}${fld('지붕 위로 솟은 높이(cm)','ca',o.above,10,5)}${stdBtns}<div class="hint" style="margin-top:6px">지붕 위 높이를 기준으로 하므로 지붕 모양·층고를 바꿔도 지붕 위로 같은 높이만큼 솟아 있어요. 도면에서 끌어 옮기거나 위쪽 점을 끌어 높이를 바꿀 수 있어요.</div>`;
+  bind('#cx',v=>o.x=v);bind('#cw',v=>o.w=clamp(v,20,200));bind('#ca',v=>o.above=clamp(v,10,400))}
  else if(ob.k==='stair'){H.textContent='계단';const as=!!STAIR_ASSET[o.type];
   body.innerHTML=`${opt('모양','st',STAIR_TYPES,o.type)}${opt('시작 층','sf',stairFloorOpts(),o.f)}${fld(as?'왼쪽 끝 x(cm)':'시작 x(cm)','sx',o.x,0,5)}${as?fld('폭(cm, 0=자동)','sw',o.w||0,0,10):fld('수평 길이(cm)','sr',o.run,60,10)}${(!as&&(o.sv==='front'||o.sv==='back'))?fld('계단 폭(cm, 0=자동)','sw',o.w||0,0,10):''}${opt(as?'방향(그림 반전)':'오르는 방향','sd',[[1,'오른쪽 →'],[-1,'← 왼쪽']],o.dir)}${as?opt('그림 면','sv',[['auto',o.type==='glass'?'옆면 (방향 따라)':'앞면'],['front','앞면(정면)'],['back','뒷면 (정면 그림 반대로)']],o.sv||'auto'):opt('보는 면','sv',[['side','옆면 (단면)'],['front','앞면'],['back','뒷면']],(o.sv==='front'||o.sv==='back')?o.sv:'side')}${as?'':fld(o.type==='straight'?'단 수 (0=자동)':'한 구간 단 수 (0=자동)','sn',o.n||0,0,1)+(o.type!=='straight'?fld('참(랜딩) 깊이(cm)','sl',o.land||100,60,10):'')+opt('재질','sm',MATS,o.mat||'concrete')}${stdBtns}<div class="hint" style="margin-top:6px">${as?'에셋 그림을 층고에 맞춰 늘려 쓰는 계단이에요. 폭을 바꾸면 그림 비율이 달라질 수 있어요.':'위층 바닥과 자동으로 이어져요.'} 계단은 바닥 뒤에 그려져 바닥이 끊기지 않습니다.</div>`;
   bind('#st',v=>{o.type=v;o.sv=STAIR_ASSET[v]?'auto':(o.sv==='front'||o.sv==='back'?o.sv:'side')});bind('#sf',v=>o.f=+v);bind('#sx',v=>o.x=v);bind('#sr',v=>o.run=Math.max(60,v));bind('#sw',v=>o.w=v>=40?v:0);bind('#sd',v=>o.dir=+v);bind('#sv',v=>o.sv=v);bind('#sl',v=>o.land=Math.max(60,v));bind('#sn',v=>o.n=v>=3?Math.min(40,Math.round(v)):0);bind('#sm',v=>o.mat=v)}
@@ -475,6 +542,7 @@ function placeWall(p){const w=wallPos(p);if(!w){msg('층 안쪽을 눌러 주세
  const q={id:uid(),f:w.k,x:w.x,t:12,mat:S.b.mat.wall};S.parts.push(q);sel=q.id;setTool(null);commit();sync();render()}
 svg.addEventListener('pointerdown',ev=>{if(ev.button>1)return;const p=toWorld(ev);
  if(tool==='wall'){placeWall(p);return}
+ const bhn=ev.target.closest('[data-bh]');if(bhn){drag={m:'bh',id:bhn.dataset.bh,moved:true};busy(true);return}
  const hnd=ev.target.closest('[data-h]');const g=ev.target.closest('.itm');const og=ev.target.closest('[data-id]');svg.setPointerCapture(ev.pointerId);const pxs=pxcm();
  const startMv=it=>{sel=it.uid;drag={m:'mv',it,dx:p.x-it.x,dy:p.y-(-it.e),p0:p,x0:it.x,e0:it.e,sx:ev.clientX,sy:ev.clientY,moved:false};busy(true);drawSel();inspector()};
  if(hnd){const it=cur();if(!it)return;drag={m:'rs',it,s:{w:it.w,h:it.h},off:p.x-(it.x+it.w/2)};busy(true);return}
@@ -493,12 +561,14 @@ function handleMove(ev){const p=toWorld(ev);
  else if(drag.m==='og'){const {k,o}=drag.ob,s0=drag.s,dx=p.x-drag.p0.x,dy=p.y-drag.p0.y;if(!drag.moved&&Math.abs(dx)+Math.abs(dy)<3*pxcm())return;drag.moved=true;const sn=v=>Math.round(v/5)*5;
   if(k==='part')o.x=clamp(sn(s0.x+dx),XL(o.f)+S.b.t+o.t,XR(o.f)-S.b.t-o.t);
   else if(k==='stair')o.x=sn(s0.x+dx);
-  else if(k==='terr'){const w=s0.x1-s0.x0;o.x0=sn(s0.x0+dx);o.x1=o.x0+w}
+  else if(k==='terr'||k==='roof'){const w=s0.x1-s0.x0;o.x0=sn(s0.x0+dx);o.x1=o.x0+w}
+  else if(k==='chim')o.x=sn(s0.x+dx)
   else if(k==='op'){o.sill=clamp(sn(s0.sill-dy),0,fh(o.f)-s_(o.f)-o.h);if(o.on==='back')o.x=clamp(sn(s0.x+dx),bounds().l,bounds().r)}
   render()}
+ else if(drag.m==='bh')bhMove(p)
  else if(drag.m==='rs'){const it=drag.it;const w=Math.max(5,2*(p.x-drag.off-it.x));const r=drag.s.w/drag.s.h;it.w=+w.toFixed(1);it.h=+(w/r).toFixed(1);render()}
  else if(drag.m==='pan'){const r=svg.getBoundingClientRect(),k=VP.w/r.width;VP.x=drag.vx-(ev.clientX-drag.sx)*k;VP.y=drag.vy-(ev.clientY-drag.sy)*k;applyVP()}}
-const endDrag=()=>{if(!drag)return;const d=drag;drag=null;busy(false);svg.querySelectorAll('.guide').forEach(g=>g.remove());if((d.m==='mv'||d.m==='og')&&d.moved){commit();if(d.m==='og')sync();inspector()}else if(d.m==='rs'){commit()}};
+const endDrag=()=>{if(!drag)return;if(pmRaf){cancelAnimationFrame(pmRaf);pmRaf=0;if(pmEv)handleMove(pmEv)}const d=drag;drag=null;busy(false);svg.querySelectorAll('.guide').forEach(g=>g.remove());if((d.m==='mv'||d.m==='og')&&d.moved){commit();if(d.m==='og')sync();inspector()}else if(d.m==='rs'){commit()}else if(d.m==='bh'){commit();sync()}};
 svg.addEventListener('pointerup',endDrag);svg.addEventListener('pointercancel',endDrag);
 svg.addEventListener('wheel',ev=>{ev.preventDefault();busy(true);clearTimeout(busyT);busyT=setTimeout(()=>{if(!drag)busy(false)},160);const p=toWorld(ev);const f=ev.deltaY>0?1.12:1/1.12;const nw=Math.min(8000,Math.max(150,VP.w*f));const k=nw/VP.w;VP.x=p.x-(p.x-VP.x)*k;VP.y=p.y-(p.y-VP.y)*k;VP.w=nw;applyVP()},{passive:false});
 svg.addEventListener('dragover',e=>e.preventDefault());svg.addEventListener('drop',e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(!id.startsWith('asset:'))return;const p=toWorld(e);addAsset(id.slice(6),p.x,p.y)});
@@ -509,7 +579,8 @@ addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(document.activeEl
  else if((e.ctrlKey||e.metaKey)&&e.key==='d'){e.preventDefault();dup()}else if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();del()}
  else if(ob&&e.key.startsWith('Arrow')){e.preventDefault();const st=e.shiftKey?20:5,o=ob.o;
   if(ob.k==='item'){if(e.key==='ArrowLeft')o.x-=st;if(e.key==='ArrowRight')o.x+=st;if(e.key==='ArrowUp')o.e+=st;if(e.key==='ArrowDown')o.e=Math.max(lvl(0),o.e-st)}
-  else if(ob.k==='terr'){if(e.key==='ArrowLeft'){o.x0-=st;o.x1-=st}if(e.key==='ArrowRight'){o.x0+=st;o.x1+=st}}
+  else if(ob.k==='terr'||ob.k==='roof'){if(e.key==='ArrowLeft'){o.x0-=st;o.x1-=st}if(e.key==='ArrowRight'){o.x0+=st;o.x1+=st}}
+  else if(ob.k==='chim'){if(e.key==='ArrowLeft')o.x-=st;if(e.key==='ArrowRight')o.x+=st}
   else if(ob.k==='part'||ob.k==='stair'){if(e.key==='ArrowLeft')o.x-=st;if(e.key==='ArrowRight')o.x+=st;if(ob.k==='part')o.x=clamp(o.x,XL(o.f)+S.b.t+o.t,XR(o.f)-S.b.t-o.t)}
   else if(ob.k==='op'){if(e.key==='ArrowUp')o.sill=clamp(o.sill+st,0,fh(o.f)-s_(o.f)-o.h);if(e.key==='ArrowDown')o.sill=Math.max(0,o.sill-st);if(o.on==='back'){if(e.key==='ArrowLeft')o.x-=st;if(e.key==='ArrowRight')o.x+=st}}
   commit();sync();render()}
@@ -519,7 +590,12 @@ function roomsOf(f){const b=S.b;const ps=S.parts.filter(p=>p.f===f).sort((a,c)=>
  return lefts.map((l,i)=>({key:f+':'+l.id,left:l.x,right:i<ps.length?ps[i].x-ps[i].t/2:XR(f)-b.t,rightPart:i<ps.length?ps[i]:null}))}
 function defaultWallX(f){const rs=roomsOf(f);let best=rs[0];for(const r of rs)if(r.right-r.left>best.right-best.left)best=r;return Math.round((best.left+best.right)/2/5)*5}
 /* ---------- 건물 설정 ---------- */
-function sync(){const b=S.b,B=BB();$('#bw').value=b.w;$('#bf').value=b.f-B;$('#bb').value=B;$('#bh').value=b.h;$('#bs').value=b.s;$('#bt').value=b.t;$('#br').value=b.roof;$('#brh').value=b.rh;
+function sync(){const b=S.b,B=BB();{const br=$('#br');if(!br.dataset.f){br.innerHTML=ROOFS.map(([v,t])=>`<option value="${v}">${t}</option>`).join('');br.dataset.f='1'}
+  const RG1=roofGeo(),gb=GABLEISH.includes(b.roof),vis=(id,on)=>{$(id).hidden=!on};
+  vis('#rowRH',b.roof!=='flat'&&b.roof!=='none');vis('#rowGo',b.roof!=='flat'&&b.roof!=='none');vis('#rowRR',b.roof==='asym');vis('#rowRD',b.roof==='shed');vis('#rowRO',b.roof!=='none'&&!(gb&&b.rfx));vis('#rowRK',gb);
+  $('#brr').value=Math.round(b.rr*100);$('#brrv').textContent=Math.round(b.rr*100)+'%';$('#brd').value=b.rd;$('#bro').value=b.ro;$('#brk').checked=!!b.rfx;
+  $('#roofInfo').textContent=RG1&&!RG1.flat?`지붕 폭 ${Math.round(RG1.r-RG1.l)}cm · 최대 경사 ${Math.round(Math.max(...RG1.pts.slice(1).map((p,i)=>Math.abs(Math.atan2(p[1]-RG1.pts[i][1],p[0]-RG1.pts[i][0]))*180/Math.PI)))}°`:'';}
+ $('#bw').value=b.w;$('#bf').value=b.f-B;$('#bb').value=B;$('#bh').value=b.h;$('#bs').value=b.s;$('#bt').value=b.t;$('#br').value=b.roof;$('#brh').value=b.rh;
  const opts=floorOpts().map(([k,t])=>`<option value="${k}">${t}</option>`).join('');$('#curFloor').innerHTML=opts;curF=Math.min(Math.max(curF,0),b.f-1);$('#curFloor').value=curF;
  const pf=$('#pFloor').value,of=$('#oFloor').value;for(const id of ['#pFloor','#oFloor'])$(id).innerHTML=opts;$('#pFloor').value=pf!==''&&+pf<b.f?pf:B;$('#oFloor').value=of!==''&&+of<b.f?of:B;
  {const fo=floorOpts().map(([k,t])=>`<option value="${k}">${t}</option>`).join('');const to=terrFloorOpts().map(([k,t])=>`<option value="${k}">${t}</option>`).join('');
@@ -527,13 +603,16 @@ function sync(){const b=S.b,B=BB();$('#bw').value=b.w;$('#bf').value=b.f-B;$('#b
   set('#wxFloor',fo,B);set('#raFloor',fo,B);set('#tfFloor',to,Math.min(B+1,b.f));set('#oxFloor',fo,B);
   const f0=+$('#wxFloor').value;$('#wxInfo').textContent=`현재 ${Math.round(XR(f0)-XL(f0))}cm (x ${Math.round(XL(f0))} ~ ${Math.round(XR(f0))})`;if(document.activeElement!==$('#wxW'))$('#wxW').value=Math.round(XR(f0)-XL(f0));$('#brz').value=b.rz||0;$('#bfnd').value=b.fnd||'wall';$('#bgo').checked=b.go!==false;
   $('#tList').innerHTML=S.terr.length?S.terr.map(q=>`<div class="li ${sel===q.id?'on':''}" data-pick="${q.id}"><span>${(RAIL_TYPES.find(r=>r[0]===q.rail)||[0,''])[1]} · ${q.f<b.f?fnameKo(q.f)+' 바닥':'옥상'} · x ${Math.round(q.x0)}~${Math.round(q.x1)}</span><button data-rm="${q.id}">삭제</button></div>`).join(''):'<div class="hint">테라스 없음</div>'}
+ $('#xrList').innerHTML=S.roofs.length?S.roofs.map(q=>`<div class="li ${sel===q.id?'on':''}" data-pick="${q.id}"><span>${({flat:'평지붕',shed:'외쪽지붕',gable:'박공'})[q.type]} · ${fnameKo(q.f)} 위 · x ${Math.round(q.x0)}~${Math.round(q.x1)}</span><button data-rm="${q.id}">삭제</button></div>`).join(''):'<div class="hint">추가 지붕 없음</div>';
+ $('#chList').innerHTML=S.chims.length?S.chims.map(q=>`<div class="li ${sel===q.id?'on':''}" data-pick="${q.id}"><span>굴뚝 · x ${Math.round(q.x)} · 폭 ${q.w}</span><button data-rm="${q.id}">삭제</button></div>`).join(''):'<div class="hint">굴뚝 없음</div>';
  $('#sFloor').innerHTML=stairFloorOpts().map(([k,t])=>`<option value="${k}">${t}</option>`).join('');
  const oo=$('#oOn'),pf2=+$('#oFloor').value||0;oo.innerHTML=onOpts(pf2).map(([v,t])=>`<option value="${esc(v)}">${esc(t)}</option>`).join('');
  $('#fhList').innerHTML=b.hs.map((h,k)=>`<label class="sub">${fnameKo(k)} 층고 / 위 슬래브(cm)<span class="two"><input type="number" data-fh="${k}" value="${h}" min="220" max="500" step="5"><input type="number" data-sk="${k+1}" value="${sl(k+1)}" min="10" max="60" step="5"></span></label>`).join('');
  $('#fhList').querySelectorAll('[data-fh]').forEach(i=>i.onchange=e=>{b.hs[+i.dataset.fh]=clamp(+e.target.value||b.h,220,500);reflow();commit();sync();render();fit()});
  $('#fhList').querySelectorAll('[data-sk]').forEach(i=>i.onchange=e=>{b.sk[+i.dataset.sk]=clamp(+e.target.value||b.s,10,60);commit();sync();render()});
- let h='';for(let k=b.f-1;k>=0;k--){h+=`<div class="rmh">${fnameKo(k)}</div>`;roomsOf(k).forEach((r,i)=>{h+=`<div class="rm"><input data-rn="${esc(r.key)}" value="${esc(S.rooms[r.key]||'')}" placeholder="방 ${i+1} 이름"><input type="number" data-rw="${esc(r.key)}" value="${Math.round(r.right-r.left)}" step="10" min="60" ${r.rightPart?'':'disabled title="오른쪽이 외벽이라 폭은 건물 폭으로 정해져요"'}><span class="u">cm</span></div>`})}
+ let h='';for(let k=b.f-1;k>=0;k--){h+=`<div class="rmh">${fnameKo(k)}</div>`;roomsOf(k).forEach((r,i)=>{h+=`<div class="rm"><input data-rn="${esc(r.key)}" value="${esc(S.rooms[r.key]||'')}" placeholder="방 ${i+1} 이름"><input type="number" data-rw="${esc(r.key)}" value="${Math.round(r.right-r.left)}" step="10" min="60" ${r.rightPart?'':'disabled title="오른쪽이 외벽이라 폭은 건물 폭으로 정해져요"'}><span class="u">cm</span><select data-rf="${esc(r.key)}" title="이 방의 바닥">${[['','바닥'],['none','바닥 없음'],['posts','기둥만']].map(([v,t2])=>`<option value="${v}" ${(S.rfl[r.key]||'')===v?'selected':''}>${t2}</option>`).join('')}</select></div>`})}
  $('#rmList').innerHTML=h;
+ $('#rmList').querySelectorAll('[data-rf]').forEach(i=>i.onchange=e=>{if(e.target.value)S.rfl[i.dataset.rf]=e.target.value;else delete S.rfl[i.dataset.rf];commit();render()});
  $('#rmList').querySelectorAll('[data-rn]').forEach(i=>i.onchange=e=>{S.rooms[i.dataset.rn]=e.target.value;commit();render()});
  $('#rmList').querySelectorAll('[data-rw]').forEach(i=>i.onchange=e=>{const key=i.dataset.rw;const [f]=key.split(':');const r=roomsOf(+f).find(q=>q.key===key);if(!r||!r.rightPart)return;
   const ps=S.parts.filter(p=>p.f===+f).sort((a,c)=>a.x-c.x);const idx=ps.indexOf(r.rightPart);const nextL=idx+1<ps.length?ps[idx+1].x-ps[idx+1].t/2-60:XR(+f)-b.t-60;
@@ -547,7 +626,7 @@ function sync(){const b=S.b,B=BB();$('#bw').value=b.w;$('#bf').value=b.f-B;$('#b
  for(const [id,key] of [['#mWall','wall'],['#mSlab','slab'],['#mRoof','roof']]){const sel_=$(id);sel_.innerHTML=MATS.map(([v,t])=>`<option value="${v}">${t}</option>`).join('');if(key==='roof')sel_.insertAdjacentHTML('afterbegin','<option value="roof">지붕 사선</option>');sel_.value=b.mat[key]}
  const lst=(arr,fn)=>arr.length?arr.map(fn).join(''):'<div class="hint">없음</div>';
  $('#oList').innerHTML=lst(S.ops,o=>`<div class="li ${sel===o.id?'on':''}" data-pick="${o.id}"><span>${o.kind==='door'?'문':'창'} · ${fnameKo(o.f)} · ${({L:'왼쪽 외벽',R:'오른쪽 외벽',back:'뒷벽'})[o.on]||'내벽'}</span><button data-rm="${o.id}">삭제</button></div>`);
- $('#sList').innerHTML=lst(S.stairs,a=>`<div class="li ${sel===a.id?'on':''}" data-pick="${a.id}"><span>${(STAIR_TYPES.find(q=>q[0]===a.type)||[0,a.type])[1]} · ${a.type==='outer'?(a.from>=0?fnameKo(a.from):'지면')+'→'+fnameKo(a.f)+' ('+(a.side==='L'?'왼쪽':'오른쪽')+' 바깥)':fnameKo(a.f)+'→'+fnameKo(a.f+1)}</span><button data-rm="${a.id}">삭제</button></div>`);
+ $('#sList').innerHTML=lst(S.stairs,a=>`<div class="li ${sel===a.id?'on':''}" data-pick="${a.id}"><span>${a.kind==='ladder'?'건물 밖 사다리':(STAIR_TYPES.find(q=>q[0]===a.type)||[0,a.type])[1]} · ${a.type==='outer'?(a.from>=0?fnameKo(a.from):'지면')+'→'+fnameKo(a.f)+' ('+(a.side==='L'?'왼쪽':'오른쪽')+' 바깥)':fnameKo(a.f)+'→'+fnameKo(a.f+1)}</span><button data-rm="${a.id}">삭제</button></div>`);
  $('#pList').innerHTML=S.parts.length?S.parts.map(p=>`<div class="li ${sel===p.id?'on':''}" data-pick="${p.id}"><span>${fnameKo(p.f)} · x ${p.x}cm</span><button data-rm="${p.id}">삭제</button></div>`).join(''):'<div class="hint">내벽 없음</div>';
  document.querySelectorAll('#tHouse [data-pick]').forEach(d=>d.onclick=e=>{if(e.target.closest('[data-rm]'))return;sel=d.dataset.pick;drawSel();inspector();sync()});
  document.querySelectorAll('#tHouse [data-rm]').forEach(bt=>bt.onclick=()=>{sel=bt.dataset.rm;del()})}
@@ -555,10 +634,10 @@ function reflow(){const b=S.b;S.items.forEach(i=>{const m=lvl(b.f);if(i.e>m)i.e=
 /* 지상/지하 층수 바꾸기: 층 번호가 바뀌어도 벽·문·계단·방 이름이 제 층에 붙어 있도록 같이 옮김 */
 function setFloors(above,below){const b=S.b;above=clamp(Math.round(above)||1,1,6);below=clamp(Math.round(below)||0,0,3);const d=below-b.bb;
  if(d>0){b.ext.unshift(...Array.from({length:d},()=>({l:0,r:b.w})));b.hs.unshift(...Array(d).fill(b.h));b.sk.unshift(...Array(d).fill(b.s));b.wp.unshift(...Array(d).fill('plain'))}else if(d<0){b.ext.splice(0,-d);b.hs.splice(0,-d);b.sk.splice(0,-d);b.wp.splice(0,-d)}
- S.terr=S.terr.filter(o=>o.f+d>=0);S.terr.forEach(o=>o.f+=d);S.parts=S.parts.filter(o=>o.f+d>=0);S.ops=S.ops.filter(o=>o.f+d>=0);S.stairs=S.stairs.filter(o=>o.f+d>=0);[...S.parts,...S.ops,...S.stairs].forEach(o=>o.f+=d);
- const nr={};for(const k in S.rooms){const [f,id]=k.split(':');if(+f+d>=0)nr[(+f+d)+':'+id]=S.rooms[k]}S.rooms=nr;b.bb=below;
+ S.terr=S.terr.filter(o=>o.f+d>=0);S.terr.forEach(o=>o.f+=d);S.roofs=S.roofs.filter(o=>o.f+d>=0);S.roofs.forEach(o=>o.f+=d);S.parts=S.parts.filter(o=>o.f+d>=0);S.ops=S.ops.filter(o=>o.f+d>=0);S.stairs=S.stairs.filter(o=>o.f+d>=0);[...S.parts,...S.ops,...S.stairs].forEach(o=>o.f+=d);
+ const nr={};for(const k in S.rooms){const [f,id]=k.split(':');if(+f+d>=0)nr[(+f+d)+':'+id]=S.rooms[k]}S.rooms=nr;{const nf={};for(const k in S.rfl){const [f,id]=k.split(':');if(+f+d>=0)nf[(+f+d)+':'+id]=S.rfl[k]}S.rfl=nf}b.bb=below;
  const F=above+below;while(b.hs.length<F){b.hs.push(b.h);b.wp.push('plain');const top=b.ext[b.ext.length-1]||{l:0,r:b.w};b.ext.push({l:top.l,r:top.r})}b.ext.length=F;b.hs.length=F;b.wp.length=F;b.sk=Array.from({length:F+1},(_,k)=>b.sk[k]||b.s);b.f=F;
- S.parts=S.parts.filter(p=>p.f<F);S.ops=S.ops.filter(o=>o.f<F);S.stairs=S.stairs.filter(a=>a.type==='outer'?a.f<F:a.f<F-1);S.terr=S.terr.filter(o=>o.f<=F);reflow();curF=below}
+ S.parts=S.parts.filter(p=>p.f<F);S.ops=S.ops.filter(o=>o.f<F);S.stairs=S.stairs.filter(a=>a.type==='outer'?a.f<F:a.f<F-1);S.terr=S.terr.filter(o=>o.f<=F);S.roofs=S.roofs.filter(o=>o.f<=F-2);reflow();curF=below}
 const num=(id,key,min,max)=>$(id).addEventListener('change',e=>{let v=+e.target.value;v=clamp(isNaN(v)?S.b[key]:v,min,max);const ow0=S.b[key];S.b[key]=v;
  if(key==='h')S.b.hs=Array.from({length:S.b.f},()=>v);
  if(key==='s')S.b.sk=Array.from({length:S.b.f+1},()=>v);
@@ -568,7 +647,11 @@ const num=(id,key,min,max)=>$(id).addEventListener('change',e=>{let v=+e.target.
 num('#bw','w',300,3000);num('#brz','rz',0,300);$('#bfnd').onchange=e=>{S.b.fnd=e.target.value==='posts'?'posts':'wall';if(S.b.fnd==='posts'&&!S.b.rz){S.b.rz=90}commit();sync();render()};$('#bgo').onchange=e=>{S.b.go=e.target.checked;commit();render()};num('#bh','h',220,500);num('#bs','s',10,60);num('#bt','t',10,60);num('#brh','rh',30,400);
 $('#bf').onchange=e=>{setFloors(+e.target.value,BB());commit();sync();render();fit()};
 $('#bb').onchange=e=>{setFloors(S.b.f-BB(),+e.target.value);commit();sync();render();fit()};
-$('#br').onchange=e=>{S.b.roof=e.target.value;commit();render()};
+$('#br').onchange=e=>{S.b.roof=e.target.value;if(!GABLEISH.includes(S.b.roof))S.b.rfx=null;commit();sync();render();fit()};
+$('#brr').oninput=e=>{S.b.rr=clamp(+e.target.value/100,.1,.9);$('#brrv').textContent=e.target.value+'%';render()};$('#brr').onchange=()=>{commit();sync()};
+$('#brd').onchange=e=>{S.b.rd=e.target.value==='L'?'L':'R';commit();render()};
+$('#bro').addEventListener('change',e=>{S.b.ro=clamp(isNaN(+e.target.value)?30:+e.target.value,0,250);commit();sync();render();fit()});
+$('#brk').onchange=e=>{if(e.target.checked){const keep=S.b.rfx;S.b.rfx=null;const R=roofGeo();S.b.rfx=R?{l:R.l,r:R.r}:keep}else S.b.rfx=null;commit();sync();render()};   // 옵션 B 켜면 지금 지붕 크기를 그대로 고정, 끄면 최상층 외벽을 다시 따라감
 $('#pAdd').onclick=()=>{const f=+$('#pFloor').value;let x=$('#pX').value.trim()===''?defaultWallX(f):+$('#pX').value;
  if(!(x>XL(f)+S.b.t+20&&x<XR(f)-S.b.t-20)){msg(`벽 위치(x)는 ${XL(f)+S.b.t+20}~${XR(f)-S.b.t-20}cm 사이여야 해요`);$('#pX').focus();return}
  const p={id:uid(),f,x:Math.round(x),t:12,mat:S.b.mat.wall};S.parts.push(p);sel=p.id;$('#pX').value='';commit();sync();render();msg(`${fnameKo(f)}에 벽을 추가했어요 (x ${p.x}cm)`)};
@@ -592,12 +675,20 @@ $('#raAdd').onclick=()=>{const f=+$('#raFloor').value,side=$('#raSide').value,w=
  const e=S.b.ext[f],ws=S.b.mat.wall,q={id:uid(),f,x:side==='R'?e.r-t/2:e.l+t/2,t,mat:ws};
  // 기존 외벽이 안쪽 벽(내벽)이 되고, 새 방의 바깥 둘레가 새 외벽이 된다. 기존 외벽의 문·창은 그대로 새 내벽에 남는다.
  S.ops.forEach(o=>{if(o.f===f&&o.on===side)o.on=q.id});
- if(side==='L'){const k0=f+':L';if(S.rooms[k0]!==undefined){S.rooms[f+':'+q.id]=S.rooms[k0];delete S.rooms[k0]}}
+ if(side==='L'){const k0=f+':L';if(S.rooms[k0]!==undefined){S.rooms[f+':'+q.id]=S.rooms[k0];delete S.rooms[k0]}if(S.rfl[k0]){S.rfl[f+':'+q.id]=S.rfl[k0];delete S.rfl[k0]}}
  S.parts.push(q);if(side==='R')e.r+=w;else e.l-=w;sel=q.id;commit();sync();render();fit();msg(`${fnameKo(f)} ${side==='R'?'오른쪽':'왼쪽'} 바깥에 방(폭 ${w}cm)을 붙였어요. 새 방의 바깥 둘레가 외벽이에요`)};
+$('#xrAdd').onclick=()=>{const side=$('#xrSide').value,type=$('#xrType').value;let q=null;
+ for(let f=S.b.f-2;f>=0&&!q;f--){const lo=XL(f),hi=XL(f+1),ri=XR(f+1),ro=XR(f);
+  if(side==='L'&&hi-lo>=20)q={f,x0:lo,x1:hi};if(side==='R'&&ro-ri>=20)q={f,x0:ri,x1:ro}}
+ if(!q){msg('덮을 곳이 없어요. 아래층이 위층보다 '+(side==='L'?'왼쪽':'오른쪽')+'으로 더 튀어나와 있어야 해요 (건물 탭에서 층별 폭을 먼저 조절하세요)');return}
+ const o={id:uid(),...q,type,rd:'',h:type==='flat'?22:80,ov:25};S.roofs.push(o);sel=o.id;commit();sync();render();fit();msg('추가 지붕을 얹었어요 (종류·높이·처마는 오른쪽 속성창에서)')};
+$('#chAdd').onclick=()=>{const R=roofGeo(),N=S.b.f,lo=R?R.l:XL(N-1),hi=R?R.r:XR(N-1);const o={id:uid(),x:Math.round((lo+(hi-lo)*.72)/5)*5,w:50,above:70};S.chims.push(o);sel=o.id;commit();sync();render();fit();msg('굴뚝을 추가했어요. 끌어서 옮기고 위쪽 점으로 높이를 바꿀 수 있어요')};
 $('#tfAdd').onclick=()=>{const f=+$('#tfFloor').value,side=$('#tfSide').value,w=Math.round((+$('#tfW').value||0)/5)*5,fk=Math.min(f,S.b.f-1);
  if(!(w>=40&&w<=2000)){msg('테라스 폭은 40~2000cm 로 정해 주세요');return}
  const q={id:uid(),f,x0:side==='R'?XR(fk):XL(fk)-w,x1:side==='R'?XR(fk)+w:XL(fk),rail:$('#tfRail').value,slab:true};
  S.terr.push(q);sel=q.id;commit();sync();render();fit();msg('테라스를 추가했어요 (난간 모양은 오른쪽 속성창에서 바꿀 수 있어요)')};
+$('#oxLadder').onclick=()=>{const f=+$('#oxFloor').value,side=$('#oxSide').value;const a={id:uid(),type:'outer',kind:'ladder',f,from:-1,side,run:0,n:0,mat:'concrete',dir:1,x:0};S.stairs.push(a);sel=a.id;commit();sync();render();fit();
+ msg(stairGeo(a)?'건물 밖 사다리를 추가했어요. 속성창에서 출발(지면/다른 층)을 바꿀 수 있어요.':'이 층은 지면과 높이가 같아 사다리가 보이지 않아요. 속성창에서 출발을 다른 층으로 바꿔 주세요.')};
 $('#oxAdd').onclick=()=>{const f=+$('#oxFloor').value,side=$('#oxSide').value;let note='';
  if(f===BB()&&Math.abs(lvl(f)-gE())<8){S.b.rz=Math.max(S.b.rz||0,45);note=' 현관 앞 계단을 만들려고 1층 바닥을 지면보다 45cm 높였어요(건물 탭에서 조절)'}
  const a={id:uid(),type:'outer',f,from:-1,side,run:0,n:0,mat:'concrete',dir:1,x:0};S.stairs.push(a);sel=a.id;commit();sync();render();fit();
@@ -649,7 +740,7 @@ $('#wpList').addEventListener('change',e=>{const t=e.target;if(t.dataset.wpall!=
   const tg=()=>{const o=body.hidden;set(o);open[key]=o;try{localStorage.setItem('sectionSite.fold',JSON.stringify(open))}catch(e){}};
   h.onclick=tg;h.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg()}}})}
 /* ---------- 라이브러리 ---------- */
-document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));$('#tLib').hidden=b.dataset.t!=='lib';$('#tHouse').hidden=b.dataset.t!=='house';$('#tDraw').hidden=b.dataset.t!=='draw';if(b.dataset.t!=='house')setTool(null)});
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));$('#tLib').hidden=b.dataset.t!=='lib';$('#tHouse').hidden=b.dataset.t!=='house';$('#tDraw').hidden=b.dataset.t!=='draw';if(b.dataset.t!=='house')setTool(null);drawBH()});
 function filtered(){const q=$('#q').value.trim().toLowerCase(),c=$('#fcat').value,os=$('#onlySide').checked;
  return A.filter(a=>(!c||a.categoryId===c)&&(!os||a.views.leftSide||a.views.rightSide)&&(!q||(a.nameKo+' '+a.nameEn+' '+a.assetId+' '+(a.tags||[]).join(' ')).toLowerCase().includes(q)))}
 function prefetch(a){const k=avail(a)[0];const v=a.views[k];if(!v)return;art(v.svg,true);if(v.fill)art(v.fill,true)}
@@ -746,17 +837,18 @@ $('#bSave').onclick=async()=>{if(HK.save&&await HK.save())return;   // 공유 �
 const dl=(blob,name)=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
 $('#bNew').onclick=()=>{newSlot()};
 /* 도면 내보내기: 선택 표시를 빼고 건물 영역만 잘라 SVG/PNG 로 저장 (가구 선이 인라인 경로라 파일 하나로 완결) */
-function exportSvg(){const b=S.b,top=EH()+(b.roof==='gable'?b.rh:b.roof==='flat'?30:0);const dep=-lvl(0)+b.s;const BN=bounds();
+function exportSvg(){const b=S.b,RG0=roofGeo(),top=EH()+topExtra();const dep=-lvl(0)+b.s;const BN=bounds();
  /* 집 밖에 둔 가구·테라스·바깥 계단·지붕 처마까지 포함해, 가장 바깥 끝점보다 여백을 더 두고 그림 범위를 잡는다(안 그러면 잘림) */
  let mnX=BN.l,mxX=BN.r,mxY=top;{const ex=(a0,a1)=>{if(isFinite(a0))mnX=Math.min(mnX,a0);if(isFinite(a1))mxX=Math.max(mxX,a1)};
   for(const it of S.items){ex(it.x-it.w/2,it.x+it.w/2);if(isFinite(it.e+it.h))mxY=Math.max(mxY,it.e+it.h)}
   for(const q of S.terr)ex(q.x0,q.x1);
+  for(const o of S.roofs){const g=xrGeo(o);ex(g.l,g.r)}
   for(const a of S.stairs){let g=null;try{g=stairGeo(a)}catch(e){}if(!g)continue;
    if(g.asset){ex(g.asset.x,g.asset.x+g.asset.w);mxY=Math.max(mxY,g.asset.e+g.asset.h)}
    else{if(g.xs)ex(g.xs[0],g.xs[1]);for(const P of [...(g.polys||[g.poly||[]]),g.rail||[],...(g.thin||[])])for(const p of P){ex(p[0],p[0]);if(isFinite(p[1]))mxY=Math.max(mxY,p[1])};if(g.land)ex(g.land[0],g.land[1])}}
   ex(XL(S.b.f-1)-30,XR(S.b.f-1)+30)}   // 박공·평지붕 처마
  const x0=mnX-110,y0=-(mxY+(S.title?110:60)),w=(mxX-mnX)+260,h=mxY+dep+(S.title?330:280);
- const c=svg.cloneNode(true);c.querySelectorAll('.sel,.guide').forEach(n=>n.remove());c.classList.remove('drag');c.removeAttribute('style');c.setAttribute('xmlns',NS);c.setAttribute('viewBox',`${x0} ${y0} ${w} ${h}`);c.setAttribute('width',w);c.setAttribute('height',h);
+ const c=svg.cloneNode(true);c.querySelectorAll('.sel,.guide,.bh').forEach(n=>n.remove());c.classList.remove('drag');c.removeAttribute('style');c.setAttribute('xmlns',NS);c.setAttribute('viewBox',`${x0} ${y0} ${w} ${h}`);c.setAttribute('width',w);c.setAttribute('height',h);
  const bg=document.createElementNS(NS,'rect');[['x',x0],['y',y0],['width',w],['height',h],['fill','#f7f6f2']].forEach(([k,v])=>bg.setAttribute(k,v));c.insertBefore(bg,c.firstChild);
  if(S.title){const tt=document.createElementNS(NS,'text');tt.setAttribute('x',x0+w/2);tt.setAttribute('y',y0+34);tt.setAttribute('text-anchor','middle');tt.setAttribute('style',"font:italic 800 26px Arial,'Noto Sans KR',sans-serif;fill:#1c1c1c");tt.textContent=S.title;c.appendChild(tt)}
  return {text:'<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(c),w,h,x0,y0}}

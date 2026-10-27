@@ -118,6 +118,10 @@ async function join(code,nick){
   const tokens=Object.values(reg.houses).map(h=>h.token).filter(Boolean);   // 이미 입장한 집이면 서버가 알아보고 중복 참여자를 만들지 않음
   const r=await api('POST','/api/join',{body:{code,nick,tokens}});
   remember(r.houseId,r,r.rejoined?null:{code:String(code).toUpperCase().replace(/[^A-Z0-9]/g,''),codeFrom:'join'});await refresh(r.houseId,true);return {hid:r.houseId,name:r.name,rejoined:!!r.rejoined}}
+/* v22 이웃 신청 — 수락/신청 확인 때 서버가 내려 주는 상대 집 참여 토큰을 이 브라우저에 보관(입장하기와 같은 참여자 권한) */
+async function adopt(r){if(!r||!r.houseId||!r.token)return false;
+  if(reg.houses[r.houseId]&&reg.houses[r.houseId].token)return true;   // 이미 이 집에 들어와 있으면 그대로 사용
+  remember(r.houseId,r,{codeFrom:'neighbor'});await refresh(r.houseId,true);return true}
 const recoveryKey=hid=>{const h=reg.houses[hid];return h?btoa(hid+':'+h.token).replace(/=+$/,''):''};
 async function joinRecovery(key){
   let s='';try{s=atob(String(key).trim())}catch(e){}const m=/^(h_[0-9a-f]{24}):([A-Za-z0-9_-]{30,64})$/.exec(s);
@@ -174,5 +178,5 @@ const linkedSlots=()=>new Set(Object.entries(reg.houses).filter(([hid,h])=>h.lin
 const notify=()=>emit('poll');
 window.VivShare={notify,enabled,store,api,syncAll,poll,refresh,flush,takeLost,onChange:f=>listeners.push(f),
   createHouse,join,joinRecovery,recoveryKey,leave,deleteHouse,rename,setNick,rotate,revoke,kick,saveDoc,getDoc,setLink,lease,isLeader,auto,takeDocEvents,docHash,
-  createChar,updateChar,removeChar,info,sharedHouses,linkedSlots,regHouses,reg:()=>reg,saveReg,ShareErr};
+  adopt,createChar,updateChar,removeChar,info,sharedHouses,linkedSlots,regHouses,reg:()=>reg,saveReg,ShareErr};
 })();
