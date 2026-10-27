@@ -43,13 +43,12 @@ body.mode-viv #tools{display:none}
  html,body{overscroll-behavior:none}
  body:not(.mode-viv){height:100vh;height:100dvh}
  /* 상단: 한 줄 머리글(로고·탭·되돌리기) + 가로로 밀리는 도구 줄. 입장하기·이웃하기는 비바리움 관찰 탭에만 둠 */
- body:not(.mode-viv) #top{padding:6px 10px;gap:6px 8px;flex-wrap:wrap;align-items:center}
- body:not(.mode-viv) #top .logo{order:1;margin:0;font-size:13px}
- body:not(.mode-viv) .vnav{order:2;margin:0 auto 0 0}
+ body:not(.mode-viv) #top{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;align-content:start;align-items:center;gap:6px 8px;padding:6px 10px;flex:none;height:auto}
+ body:not(.mode-viv) #top .logo{grid-area:1/1;margin:0;font-size:13px}
+ body:not(.mode-viv) .vnav{grid-area:1/2;justify-self:start;margin:0}
  body:not(.mode-viv) .vnav .vjoin{display:none}
- body:not(.mode-viv) #top::before{content:"";order:3;flex:0 0 100%;height:0}
- body:not(.mode-viv) #top>.grp{order:4;flex:none}
- body:not(.mode-viv) #tools{order:5;display:flex;flex:1 1 0;min-width:0;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:0 0 2px}
+ body:not(.mode-viv) #top>.grp{grid-area:2/1}
+ body:not(.mode-viv) #tools{grid-area:2/2;display:flex;min-width:0;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:0 0 2px}
  body:not(.mode-viv) #tools::-webkit-scrollbar{display:none}
  body:not(.mode-viv) #tools .grp{flex:none;gap:6px}
  body:not(.mode-viv) #top .grp button,body:not(.mode-viv) #top .grp select{min-height:38px;padding:4px 13px;white-space:nowrap}
