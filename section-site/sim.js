@@ -6,6 +6,7 @@
    저장하는 최소 상태(캐릭터당): 집·위치·층·자세·현재 행동(그룹/세부)·가구 uid·말풍선 문구·외출 여부 | 다음 결정 시각·결정 횟수·최근 행동·대기 중인 후속 행동·사용자 선택(wish). 초 단위 저장 없음. */
 (function(root){
 'use strict';
+const mR=id=>String(id||'').startsWith('vg:')?String(id).slice(3):id;   // 이웃집에 놀러 온 손님 사본('vg:…')도 마음 기록은 원래 캐릭터 id 로 찾는다
 const GROUPS={wake:'기상·정비',eat:'식사',sleep:'수면',rest:'휴식',read:'독서',work:'작업',tv:'TV 시청',study:'공부',hobby:'취미',chore:'집 가꾸기',pet:'반려동물',care:'반려동물 돌보기',p_sleep:'자기',p_rest:'쉬기',p_play:'놀기',p_roam:'돌아다니기',p_eat:'먹기',p_wait:'기다리기',wander:'집 안 이동',out:'외출',chat:'대화',unc:'주변 살피기'};
 const MIN=60000;
 /* 행동 갱신 시각은 서울 시계의 15분 단위(:00/:15/:30/:45)에 맞춘다. 10분 미만의 짧은 준비 동작은 그대로 둔다 */
@@ -946,7 +947,7 @@ function decide(ctx,c,p,st,reason){
       if(!pm)return false;
       say=wa(pm.pe.name)+' 함께 '+dsay}
     if(mate)say=wa(mate.cp.name)+' 함께 '+dsay;
-    if(!pm&&!mate&&!c.pet&&ctx.mind&&ctx.mind.out){try{const ot=ctx.mind.out(c.id,A,id=>{const o=ctx.chars.find(x=>x.id===id);return o?o.name:''});if(ot)say=say+', '+ot}catch(e){}}   // v37: 외출 지문에도 마음이 드러남
+    if(!pm&&!mate&&!c.pet&&ctx.mind&&ctx.mind.out){try{const ot=ctx.mind.out(mR(c.id),A,id=>{const o=ctx.chars.find(x=>x.id===id);return o?o.name:''});if(ot)say=say+', '+ot}catch(e){}}   // v37: 외출 지문에도 마음이 드러남
     ctx.setPlace(c.id,{mode:'out',action:'out',verb:'out_'+why.id,tgt:null,pose:'stand',dy:0,f:ex.f,x:ex.x,say,e:null});
     setStop({outAt:now,decideAt:dur>40?qd(now,30):qd(now,dur),outUntil:qd(now,dur),outFrom:ex.side,outTo:why.id==='visit'?forcedNb.hid:null,outNb:why.id==='visit'?forcedNb.name:null,then:null,wish:wish?{...wish,done:true}:null,recent:[...recent,'out'].slice(-5)});
     moves.push({id:c.id,from,route:rt,leave:true});
@@ -1001,6 +1002,7 @@ function decide(ctx,c,p,st,reason){
   let cs=candidates(ctx,c,A,st,pos,hm,{wish:!!forcedGroup,ignoreHr:!!forcedGroup,sleepAnyTime:!!forcedGroup&&forcedGroup==='sleep'});
   if(forcedJobV){const jv=cs.filter(x=>x.v.jobv);if(jv.length)cs=jv}   // v19: '일하기'는 일하기 행동 10종 중에서 성격 가중치로 고름
   if(forcedVerb)cs=cs.filter(x=>x.v.id===forcedVerb&&(!forcedPet||x.partner&&x.partner.id===forcedPet));   // v17: '○○ 밥주기'처럼 대상까지 정한 선택
+  if(forcedGroup==='chat'){const pc=cs.filter(x=>x.v.g==='chat'&&x.partner&&!x.partner.pet);if(pc.length)cs=cs.filter(x=>x.v.g!=='chat'||pc.includes(x))}   // '다른 캐릭터와 대화하기'는 실제 상대가 있는 대화로(혼자 메시지 보내기 제외)
   const groups={};cs.forEach(x=>(groups[x.v.g]=groups[x.v.g]||[]).push(x));
   const eh=effHour(A,hm),eH=Math.floor(eh);
   if(!forcedGroup&&!c.pet&&!String(c.id).startsWith('vg:')&&canExit(ctx,pos)&&!groups.out){groups.out=[{v:{id:'out',g:'out'},special:true}]}
@@ -1102,10 +1104,10 @@ function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepW
   const uv=ch.uncRep||(v.unc?v:null);
   if(uv&&ctx.unc){const ut=ctx.unc.say(c.id,uv.id,A,rng,{nb:(ctx.neighbors||[]).length});if(ut)say=fillSay(ut,room,ch.near?ch.near.name:'')}
   if(ch.like)say=say.replace(/\{L\}을\(를\)/g,eul(ch.like)).replace(/\{L\}/g,ch.like);
-  if(!uv&&!partner&&!c.pet&&v.g==='wander'&&ctx.mind&&ctx.mind.alt){try{const al=ctx.mind.alt(c.id,v,A,room,id=>{const o=ctx.chars.find(x=>x.id===id);return o?o.name:''});if(al)say=al}catch(e){}}   // v33: 서성임은 상태별 문장으로
-  if(!uv&&!partner&&!c.pet&&ctx.mind&&ctx.mind.tone){try{const tn=ctx.mind.tone(c.id,v,A,id=>{const o=ctx.chars.find(x=>x.id===id);return o?o.name:''});if(tn)say=say+', '+tn}catch(e){}}   // v31: 지금 마음 상태가 혼자 하는 행동의 지문에 드러남
+  if(!uv&&!partner&&!c.pet&&v.g==='wander'&&ctx.mind&&ctx.mind.alt){try{const al=ctx.mind.alt(mR(c.id),v,A,room,id=>{const o=ctx.chars.find(x=>x.id===id);return o?o.name:''});if(al)say=al}catch(e){}}   // v33: 서성임은 상태별 문장으로
+  if(!uv&&!partner&&!c.pet&&ctx.mind&&ctx.mind.tone){try{const tn=ctx.mind.tone(mR(c.id),v,A,id=>{const o=ctx.chars.find(x=>x.id===id);return o?o.name:''});if(tn)say=say+', '+tn}catch(e){}}   // v31: 지금 마음 상태가 혼자 하는 행동의 지문에 드러남
   if(!uv&&partner&&ctx.mind&&!c.pet){try{const nmf=id=>{const o=ctx.chars.find(x=>x.id===id);return o?o.name:''};   // v37: 반려동물 돌봄·대화에도 지금의 마음이 드러남
-    const tn=v.care&&partner.pet?(ctx.mind.petTone&&ctx.mind.petTone(c.id,partner.name,A,nmf)):(v.g==='chat'&&!partner.pet&&ctx.mind.talk?ctx.mind.talk(c.id,partner.id,A,nmf):'');if(tn)say=say+', '+tn}catch(e){}}
+    const tn=v.care&&partner.pet?(ctx.mind.petTone&&ctx.mind.petTone(mR(c.id),partner.name,A,nmf)):(v.g==='chat'&&!partner.pet&&ctx.mind.talk?ctx.mind.talk(mR(c.id),mR(partner.id),A,nmf):'');if(tn)say=say+', '+tn}catch(e){}}
   let evB=null;   // v19: 연애 상태가 있는 쌍이면 두 사람의 성격을 조합한 지문(특별 이벤트는 결과까지 정해 두 사람에게 함께 표시)
   if(partner&&v.pair&&!partner.pet&&!c.pet&&ctx.mind&&ctx.mind.romLine){
     try{const B2=ctx.analysis(partner);
@@ -1200,6 +1202,7 @@ function wishCheck(ctx,c,wo0){
   const st=ctx.getSim(c.id);
   const cs=candidates(ctx,c,A,st,pos,seoul(ctx.now).hm,{wish:true,ignoreHr:true,sleepAnyTime:true}).filter(x=>x.v.g===wo.g&&(!wo.job||x.v.jobv)&&(!wo.vid||x.v.id===wo.vid&&x.partner&&x.partner.id===wo.pet));
   if(!cs.length)return {ok:false,why:wo.need||'지금은 할 수 없어요'};
+  if(wo.id==='chat'&&!cs.some(x=>x.partner&&!x.partner.pet))return {ok:false,why:'지금 대화할 수 있는 다른 캐릭터가 없어요(자는 중이거나 갈 수 없는 곳에 있어요)'};
   return {ok:true}}
 const ensure=ctx=>{if(!ctx.analysis)ctx.analysis=c=>analyze(c.profile,c.name,ctx.chars||[]);return ctx};
 function wishOptions(ctx,c){ensure(ctx);return wishList(ctx,c).map(w=>{const r=wishCheck(ctx,c,w);return {id:w.id,label:w.label,ok:r.ok,why:r.ok?'':r.why}})}

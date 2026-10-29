@@ -439,7 +439,13 @@ const withTag=(c,text)=>{const t=petOfChar(c);return t?Sim.petTag(t.sp,t.owner)+
 const humansIn=hid=>inHouse(hid).map(toSimChar).filter(c=>!c.pet);
 const inHouse=hid=>Viv.chars().filter(c=>Viv.getPlace(c.id).house===hid);
 function simCtx(h,snap){const all=inHouse(h.id).filter(c=>!isMiss(c.id)).map(toSimChar).concat(guestChars(h.id).map(toSimChar));
-  return {now:Date.now(),world:snap.world,houseId:h.id,guests:(()=>{try{return visitorsOf(h.id).filter(c=>c.srvVisit).map(c=>{const g=guestSpot(c,snap,true);return {id:c.id,name:c.name,f:g.p.f,x:g.p.x}})}catch(e){return []}})(),chars:all,getPlace:Viv.getPlace,setPlace:Viv.setPlace,getSim:Viv.getSim,setSim:Viv.setSim,neighbors:nbFor(h.id).map(x=>({hid:x.id,name:x.name})),analysis:c=>Sim.analyze(c.profile,c.name,all.filter(o=>!o.pet)),mind:window.Mind?Mind.hooks(Mind.store.get(),Date.now()):null,unc:ucHooks()}}
+  return {now:Date.now(),world:snap.world,houseId:h.id,guests:(()=>{try{return visitorsOf(h.id).filter(c=>c.srvVisit).map(c=>{const g=guestSpot(c,snap,true);return {id:c.id,name:c.name,f:g.p.f,x:g.p.x}})}catch(e){return []}})(),chars:all,getPlace:Viv.getPlace,setPlace:Viv.setPlace,getSim:Viv.getSim,setSim:Viv.setSim,neighbors:nbFor(h.id).map(x=>({hid:x.id,name:x.name})),analysis:c=>Sim.analyze(c.profile,c.name,all.filter(o=>!o.pet)),mind:window.Mind?guestMind(Mind.hooks(Mind.store.get(),Date.now())):null,unc:ucHooks()}}
+/* 이웃집에 놀러 간 손님('vg:…' 사본)도 원래 캐릭터의 마음으로 지문(혼자 있을 때·대화·외출·서성임)이 붙도록, 지문 훅에 넘기는 id 를 원래 id 로 바꾼다 */
+function guestMind(m){if(!m)return m;const raw=id=>String(id||'').startsWith('vg:')?String(id).slice(3):id,nmW=nm=>typeof nm==='function'?(id=>nm(id)||nm('vg:'+id)||((Viv.char(raw(id))||{}).name||'')):nm;
+  const w=(k,f)=>{const o=m[k];if(typeof o==='function')m[k]=f(o)};
+  w('tone',o=>(c,v,A,nm)=>o(raw(c),v,A,nmW(nm)));w('alt',o=>(c,v,A,room,nm)=>o(raw(c),v,A,room,nmW(nm)));
+  w('talk',o=>(c,pid,A,nm)=>o(raw(c),raw(pid),A,nmW(nm)));w('petTone',o=>(c,pn,A,nm)=>o(raw(c),pn,A,nmW(nm)));w('out',o=>(c,A,nm)=>o(raw(c),A,nmW(nm)));
+  w('groupMul',o=>(c,g)=>o(raw(c),g));return m}
 
 /* ---------- v23 위화감 (viv-uncanny.js · 별도 저장소 viv.unc.v1) ----------
    모든 연출은 화면 위의 임시 요소/클래스로만 그리고, 이미지 파일·캐릭터 데이터·도면은 바꾸지 않는다.
@@ -727,7 +733,7 @@ function renderList(){
 function selectChar(id){selChar=id;const p=Viv.getPlace(id),i=houses.findIndex(h=>h.id===p.house);
   if(i>=0&&i!==activeIdx&&p.mode==='home'){scrollTo(i)}else{const s=qa('.vv-slide')[activeIdx];s&&drawChars(s);renderList();renderDetail()}}
 const nextText=st=>{const m=st&&st.decideAt>Date.now()?Math.max(1,Math.round((st.decideAt-Date.now())/60000)):0;return m?(m>=90?Math.round(m/60)+'시간':m+'분')+' 뒤':'곧'};
-function renderDetailTimes(){updNote();const e=q('#vvNextAct');if(e&&selChar)e.textContent=nextText(Viv.getSim(selChar));mindRefresh()}
+function renderDetailTimes(){updNote();if(selChar&&/^(vg|vis):/.test(selChar)){const e0=q('#vvDetail');if(e0)guestDetail(e0,selChar,true);return}const e=q('#vvNextAct');if(e&&selChar)e.textContent=nextText(Viv.getSim(selChar));mindRefresh()}
 /* 입력 중이면 패널 전체를 다시 그리지 않고 문구만 갱신(입력 포커스 유지) */
 function softDetail(){const el=q('#vvDetail'),a=document.activeElement;
   if(el&&a&&el.contains(a)&&/INPUT|SELECT|TEXTAREA/.test(a.tagName)){const c=selChar&&Viv.char(selChar);if(c){const p=Viv.getPlace(c.id),h=houseOf(p.house),d=describe(c,p,h?snapOf(h.id):null,h?h.name:''),ph=q('.vv-phrase',el);if(ph)ph.textContent=d.phrase;mindRefresh()}return}
@@ -821,8 +827,35 @@ function ucCorruptDetail(el,c,mm){
     s.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"><filter id="ucTear" x="-5%" y="-10%" width="110%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="0 0.7" numOctaves="1" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="0" xChannelSelector="R" yChannelSelector="G"><animate attributeName="scale" dur="3.4s" repeatCount="indefinite" values="0;0;0;0;16;0;0;26;0;0;0;10;0" keyTimes="0;.2;.4;.5;.52;.54;.7;.72;.74;.85;.9;.92;1"/></feDisplacementMap></filter></svg>';document.body.appendChild(s)}
   ucPicGlitch(q('.vv-pic img',el));
   el.classList.add('vv-uc-corrupt');qa('h3,h4,dt,dd,p,.vv-tag,.vm-box',el).forEach((n,i)=>{if(i%2===0)n.style.setProperty('--ucd',(r()*3).toFixed(2)+'s')})}
+/* 이웃집에서 놀러 온 손님: 선택하면 이름·현재 위치·행동을 보고, 내 브라우저에서 등록한 캐릭터('vg:' 사본)는 그 집 가구·다른 사람이 등록한 캐릭터와 하는 행동을 직접 지정할 수 있다 */
+const GUEST_WISH=['read','eat','rest','work','tv','study','hobby','care','chat'];   // 잠자기·일하러 나가기·산책·친구 연락·반려동물 돌봄은 남의 집에서는 하지 않음
+function guestInfo(id){
+  const h=houses[activeIdx],raw=String(id).replace(/^vg:/,''),g=h&&visitorsOf(h.id).find(x=>x.id===raw||x.id===id);if(!g)return null;
+  const srv=!!g.srvVisit,p=srv?null:Viv.getPlace(id),snap=h?snapOf(h.id):null;
+  const d=srv?{loc:h.name,act:g.say||'집 구경 중',phrase:`${g.name}: ${g.say||'놀러 왔어요'}`}:describe(g,p&&p.house===h.id&&p.mode!=='out'?p:{...p,mode:'home'},snap,h.name);
+  const from=srv?(g.fromName||'다른 집'):((houses.find(x=>x.id===(Viv.getPlace(raw)||{}).house)||{}).name||'다른 집');
+  return {h,g,srv,snap,d,from,raw}}
+function guestDetail(el,id,soft){
+  const I=guestInfo(id);if(!I){selChar=null;el.innerHTML='<h3>상세</h3><p class="hint">손님이 돌아갔어요.</p>';return}
+  const {h,g,srv,snap,d,from}=I;
+  if(soft&&el.dataset.guest===id){const ph=q('.vv-phrase',el),dd=qa('dd',el);if(ph)ph.textContent=d.phrase;if(dd[0])dd[0].textContent=d.loc;if(dd[1])dd[1].textContent=d.act;return}
+  el.dataset.guest=id;
+  const canW=!srv&&snap&&Viv.guestHas(id)&&(Viv.getPlace(id)||{}).mode!=='out';
+  let wish='<p class="hint">놀러 온 손님이라 이름·프로필 수정은 원래 집에서 할 수 있어요.</p>';
+  if(canW){const sc=toSimChar({...g,id}),opts=Sim.wishOptions(simCtx(h,snap),sc).filter(o=>GUEST_WISH.includes(o.id)),
+      wb=o=>`<button data-w="${o.id}" ${o.ok?'':'disabled'} title="${esc(o.ok?'':o.why)}">${esc(o.id==='chat'?'이 집의 다른 캐릭터와 대화하기':o.label)}</button>`;
+    wish=`<h4>직접 행동 지정하기 <small>이 집의 가구·캐릭터와</small></h4><div class="vv-wishes">${opts.map(wb).join('')}</div><div id="vvWmsg" class="vv-wmsg"></div><p class="hint">고르면 이 집에 있는 가구와 다른 사람이 등록한 캐릭터를 포함해 가능한 조건을 확인하고 바로 반영해요.</p>`}
+  el.innerHTML=`<h3><span class="vv-nm">${esc(g.name)}</span> <small class="vv-tag fact">손님</small></h3>
+  <div class="vv-pic">${IMG[id]||IMG[g.id]?`<img src="${IMG[id]||IMG[g.id]}" alt="${esc(g.name)}">`:'<span>이미지 없음</span>'}</div>
+  <p class="vv-phrase">${esc(d.phrase)}</p>
+  <dl><dt>현재 위치</dt><dd>${esc(d.loc)}</dd><dt>현재 행동</dt><dd>${esc(d.act)}</dd><dt>방문</dt><dd>${esc(from)}에서 놀러 왔어요</dd></dl>${wish}`;
+  qa('.vv-wishes button',el).forEach(b=>b.onclick=()=>{
+    const ctx=simCtx(h,snap),r=Sim.setWish(ctx,toSimChar({...g,id}),b.dataset.w);
+    if(!r.ok){const m=q('#vvWmsg',el);m.textContent=r.why;m.className='vv-wmsg err';return}
+    runSim(activeIdx,true);renderList();guestDetail(el,id);const m=q('#vvWmsg',el);if(m)m.textContent='선택을 반영했어요'})}
 function renderDetail(){
   const el=q('#vvDetail'),c=selChar&&Viv.char(selChar);el.classList.remove('vv-uc-corrupt');
+  if(!c&&selChar&&/^(vg|vis):/.test(selChar)){guestDetail(el,selChar);return}
   if(!c){el.innerHTML=`<h3>상세</h3><p class="hint">캐릭터를 선택하면 이름, 프로필, 현재 위치와 행동을 볼 수 있어요.<br><br>도면 위의 캐릭터는 끌어서 옮기고, 오른쪽 위 동그라미를 끌면 비율을 유지한 채 크기가 바뀌어요. 직접 옮기면 20분 동안 그 자리에서 쉬다가 다시 스스로 움직여요.</p>`;return}
   const p=Viv.getPlace(c.id),h=houseOf(p.house),snap=h?snapOf(h.id):null,d=describe(c,p,snap,h?h.name:'');
   const pet=petOfChar(c),placed=!!h,out=p.mode==='out',A=Sim.analyze(profText(c),c.name,humansIn(p.house)),st=Viv.getSim(c.id);
