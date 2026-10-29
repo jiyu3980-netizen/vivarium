@@ -6,6 +6,7 @@
    저장하는 최소 상태(캐릭터당): 집·위치·층·자세·현재 행동(그룹/세부)·가구 uid·말풍선 문구·외출 여부 | 다음 결정 시각·결정 횟수·최근 행동·대기 중인 후속 행동·사용자 선택(wish). 초 단위 저장 없음. */
 (function(root){
 'use strict';
+const Ko=(typeof window!=='undefined'?window:globalThis).Ko;   // 한국어 문법 엔진(viv-ko.js)
 const mR=id=>String(id||'').startsWith('vg:')?String(id).slice(3):id;   // 이웃집에 놀러 온 손님 사본('vg:…')도 마음 기록은 원래 캐릭터 id 로 찾는다
 const GROUPS={wake:'기상·정비',eat:'식사',sleep:'수면',rest:'휴식',read:'독서',work:'작업',tv:'TV 시청',study:'공부',hobby:'취미',chore:'집 가꾸기',pet:'반려동물',care:'반려동물 돌보기',p_sleep:'자기',p_rest:'쉬기',p_play:'놀기',p_roam:'돌아다니기',p_eat:'먹기',p_wait:'기다리기',wander:'집 안 이동',out:'외출',chat:'대화',unc:'주변 살피기'};
 const MIN=60000;
@@ -174,6 +175,10 @@ function analyze(profile,name,others){
     let m;const hr=/([가-힣 ]{2,18}?)\s?(버릇|습관)/g;while((m=hr.exec(c))){const w=m[1].trim().replace(/^.*(?:있고|하고|이고|하며|며|지만|는데)\s+/,'');if(w.length>=3&&!/^(나쁜|좋은|오랜|못된|이상한|특이한|독특한|작은|큰|어떤)/.test(w)&&!bits.habits.some(h=>h.w===w))bits.habits.push({w,k:m[2]})}
     const mr=/([가-힣 ]{3,26}?)\s?(?:기억|추억)/.exec(c);if(mr){const w=mr[1].trim();if(w.length>=3&&!/없|지우고|잊/.test(w)&&!bits.memories.includes(w))bits.memories.push(w)}}
   {const jm=JOB_FREE_RE.exec(profile)||JOB_NOUN_RE.exec(profile);if(jm&&job)bits.job=jm[0]}
+  const nomi=w=>Ko?Ko.canon(w):w;   // 동사구('술 마시는 걸')→명사형('술 마시기'), 의미 해석은 Ko.parse
+  {const pn=(others||[]).filter(o=>o&&o.name!==name).map(o=>o.name),RELR=/(연인|부부|배우자|아내|남편|친구|가족|동생|형|누나|오빠|언니|엄마|아빠|부모)(?:인|이자|과|와)?\s*([가-힣]{2,4})/g;bits.rels=[];let rm;while((rm=RELR.exec(profile))){const n=pn.find(x=>rm[2].startsWith(x));if(n&&!bits.rels.some(r=>r.n===n))bits.rels.push({n,k:rm[1]})}
+  bits.likes=bits.likes.filter(w=>!pn.includes(w));for(let i=likes.length-1;i>=0;i--)if(pn.includes(likes[i]))likes.splice(i,1)}
+  bits.likes=bits.likes.map(nomi);bits.dislikes=bits.dislikes.map(nomi);likes.forEach((w,i)=>likes[i]=nomi(w));
   bits.likes=[...new Set([...(likes||[]).slice(0,4),...bits.likes])];bits.likes=bits.likes.filter(w=>!bits.likes.some(x=>x!==w&&x.length>w.length&&x.endsWith(w))).slice(0,6);bits.dislikes=bits.dislikes.slice(0,4);bits.habits=bits.habits.slice(0,3);bits.memories=bits.memories.slice(0,3);
   const res={bits,traits,ev,facts,job,status,hobbyWords,clauseList,likes:likes.slice(0,4),factList:fl,traitList:Object.keys(traits).filter(t=>TRAIT_RULES.some(x=>x[0]===t)).map(t=>{const r=TRAIT_RULES.find(x=>x[0]===t);return {k:t,label:traits[t]<0?'싫어함: '+r[1].replace(/을 좋아함|를 좋아함|을 즐김|를 즐김/,''):r[1],v:traits[t],words:ev[t]}})};
   if(_acache.size>200)_acache.clear();_acache.set(key,res);return res}
@@ -375,7 +380,7 @@ V('copy_text','read','desk','stand',[20,50],['{r}에서 책상에서 좋아하�
 /* 작업 */
 V('work_desk','work','desk','stand',[30,100],['{r}에서 책상 앞에서 작업하는 중','{r}에서 책상 앞에서 집중해서 일하는 중'],{worker:1.5});
 V('job_free','work',['desk','laptop'],'stand',[40,120],['{r}에서 일을 하는 중','{r}에서 일감을 처리하는 중이에요','{r}에서 업무에 몰두하는 중'],{worker:1.2,busy:.4},{jobv:true,req:A=>!!(A.job&&A.job.kind==='freelance')});
-V('hobby_free','hobby',null,'stand',[20,60],['{r}에서 {L}을(를) 즐기는 중','{r}에서 {L}에 푹 빠져 시간을 보내는 중','{r}에서 {L} 하며 여유를 즐기는 중'],{hobby:1.5,creative:.5},{hobbyFree:true,hr:[8,24]});
+V('hobby_free','hobby',null,'stand',[20,60],['{r}에서 {K:act}'],{hobby:1.5,creative:.5},{hobbyFree:true,hr:[8,24]});
 V('music_listen','rest',['sofa','chair','bed'],'sit',[20,60],['{r}에서 좋아하는 음악을 들으며 쉬는 중','{r}에서 이어폰을 끼고 음악에 빠진 중'],{music:1.6},{trait:'music'});
 V('home_workout','rest',null,'stand',[15,40],['{r}에서 홈트레이닝으로 운동하는 중','{r}에서 스트레칭을 하며 몸을 푸는 중'],{sporty:1.5,outdoor:1},{trait:'sporty',hr:[6,22]});
 V('game_play','hobby',['laptop','tv'],'sit',[30,90],['{r}에서 {GM}','{r}에서 {GM}'],{gamer:2},{trait:'gamer'});
@@ -462,7 +467,7 @@ V('f_style','wake',null,'stand',[5,12],['{r}에서 휴대폰으로 옷 구경을
 V('f_plantinfo','chore',null,'stand',[5,12],['{r}에서 식물 키우는 법을 찾아보는 중'],{plant:1},{trait:'plant'});
 V('f_petinfo','pet',null,'stand',[5,12],['{r}에서 동물 영상을 구경하는 중'],{pet:1},{trait:'pet'});
 V('f_insomnia','rest',null,'stand',[10,25],['{r}에서 잠이 오지 않아 뒤척이는 중','{r}에서 불을 낮추고 밤 시간을 보내는 중'],{nightowl:1},{trait:'nightowl',hr:[23,27]});
-V('f_likes','rest',null,'stand',[6,20],['{r}에서 {L}에 대해 곰곰이 생각하는 중','{r}에서 {L} 생각에 빠진 중','{r}에서 {L}을(를) 떠올리며 미소 짓는 중'],{},{likes:true,rare:.8});
+V('f_likes','rest',null,'stand',[6,20],['{r}에서 {K:feel}','{r}에서 {K:want}','{r}에서 {K:habit}'],{},{likes:true,rare:.8});
 V('prep_out','wake',null,'stand',[4,10],['{r}에서 외출 준비를 하는 중','{r}에서 가방을 챙기며 나갈 채비를 하는 중'],{},{special:'prep',internal:true});
 /* 둘 이상이 하는 대화 */
 V('chat_sofa','chat','sofa','sit',[10,35],['{r}에서 소파에 앉아 {p}와(과) 이야기하는 중','{r}에서 {p}와(과) 소파에서 수다를 떠는 중'],{social:1.8},{pair:true,cp:['{r}에서 {p}에게 어깨를 기대고 이야기하는 중','{r}에서 소파에서 {p}와(과) 손을 잡고 도란도란 이야기하는 중']});
@@ -1066,7 +1071,8 @@ function decideFallback(ctx,c,A,p,st,pos,from,moves,rng,stUp,hm,recent){
 /* 문구 만들기: 자체 장소 표현("책상 앞에서", "침대에서")이 있으면 방 이름은 생략해 "~에서 ~에서"가 겹치지 않게 한다 */
 function fillSay(tpl,room,partner){
   let t=tpl;if(t.startsWith('{r}에서 ')){const rest=t.slice(6);if(/^\S+( 앞)?에서\s/.test(rest))t=rest}
-  return t.replace(/\{r\}/g,room).replace(/\{p\}와\(과\)/g,wa(partner||'')).replace(/\{p\}을\(를\)/g,eul(partner||'')).replace(/\{p\}이\(가\)/g,ig(partner||'')).replace(/\{p\}/g,partner||'')}
+  return t.replace(/\{r\}/g,room).replace(/\{p\}와\(과\)/g,wa(partner||'')).replace(/\{p\}을\(를\)/g,eul(partner||'')).replace(/\{p\}이\(가\)/g,ig(partner||'')).replace(/\{p\}[을를](?=[\s,.!?]|$)/g,()=>eul(partner||'')).replace(/\{p\}[이가](?=[\s,.!?]|$)/g,()=>ig(partner||'')).replace(/\{p\}[은는](?=[\s,.!?]|$)/g,()=>(partner||'')+(hasJong(partner||'')?'은':'는')).replace(/\{p\}[와과](?=[\s,.!?]|$|의)/g,()=>wa(partner||''))   // 템플릿에 조사가 박혀 있어도 이름 받침에 맞게(가온를→가온을)
+    .replace(/\{p\}/g,partner||'')}
 function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepWish){
   const W=ctx.world,v=ch.v,now=ctx.now,H=Math.floor(hm);
   let spot,partner=ch.partner||null,roomSeg;
@@ -1103,6 +1109,7 @@ function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepW
   say=fillExtra(say,rng,A,H,c.profile,brng);
   const uv=ch.uncRep||(v.unc?v:null);
   if(uv&&ctx.unc){const ut=ctx.unc.say(c.id,uv.id,A,rng,{nb:(ctx.neighbors||[]).length});if(ut)say=fillSay(ut,room,ch.near?ch.near.name:'')}
+  if(/\{K:/.test(say)){const kl=ch.like&&Ko?Ko.like(ch.like):null;say=say.replace(/\{K:(act|want|feel|habit)\}/g,(m,k)=>kl&&kl[k].length?pick(rng,kl[k]):'지내는 중')}   // 취미·좋아하는 것은 Ko 가 뜻을 해석해 만든 문장으로
   if(ch.like)say=say.replace(/\{L\}을\(를\)/g,eul(ch.like)).replace(/\{L\}/g,ch.like);
   if(!uv&&!partner&&!c.pet&&v.g==='wander'&&ctx.mind&&ctx.mind.alt){try{const al=ctx.mind.alt(mR(c.id),v,A,room,id=>{const o=ctx.chars.find(x=>x.id===id);return o?o.name:''});if(al)say=al}catch(e){}}   // v33: 서성임은 상태별 문장으로
   if(!uv&&!partner&&!c.pet&&ctx.mind&&ctx.mind.tone){try{const tn=ctx.mind.tone(mR(c.id),v,A,id=>{const o=ctx.chars.find(x=>x.id===id);return o?o.name:''});if(tn)say=say+', '+tn}catch(e){}}   // v31: 지금 마음 상태가 혼자 하는 행동의 지문에 드러남
@@ -1116,6 +1123,8 @@ function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepW
         if(!(ctx.mind.sep&&ctx.mind.sep(c.id,partner.id))||!rl){const rl3=ctx.mind.relLine&&ctx.mind.relLine(c.id,partner.id,A,B2,rng,c.name,partner.name,room);if(rl3)rl=rl3}
         if(rl)say=rl}}catch(e){}}
   if(v.id==='sleep_bed'&&ch.item){const cp=coupleOf(ctx,c,A);if(cp){const pp=ctx.getPlace(cp.id);if(pp.mode==='home'&&pp.action==='sleep'&&pp.tgt===ch.item.uid&&ctx.getSim(cp.id).decideAt>now)say=fillSay(pick(rng,['{r}에서 {p}를 꼭 안고 잠든 중','{r}에서 {p}의 곁에서 서로 기대어 곤히 자는 중','{r}에서 {p}의 팔을 베고 잠든 중']),room,cp.name)}}
+  if(Ko){say=Ko.fix(say);if(!Ko.ok(say)){const cut=say.indexOf(', ');say=cut>0&&Ko.ok(say.slice(0,cut))?say.slice(0,cut):room+'에서 지내는 중'}   // 문법·호응 검사에 걸리면 안전한 문장으로
+    const pv=(ctx.getPlace(c.id)||{}).say;if(pv&&Ko.endKind(say)==='중'&&Ko.endKind(pv)==='중')say=Ko.vary(say)}   // 같은 어미가 연달아 나오면 '~고 있음'으로 바꿈
   const patch={mode:'home',action:uv?'unc':v.g,verb:uv?uv.id:v.id,tgt:spot.uid||null,pose:spot.pose,dy:spot.dy||0,f:spot.f,x:Math.round(spot.x),say,e:spot.e,partner:partner?partner.id:null,seg:spot.seg};
   ctx.setPlace(c.id,patch);
   if(ctx.unc&&!c.pet){if(uv)ctx.unc.onStart(c.id,uv.id,A);else ctx.unc.onNormal(c.id)}

@@ -401,8 +401,8 @@ const hourOf=now=>(Math.floor(now/HOUR)+9)%24;
 const whenOK=(w,now)=>{const h=hourOf(now);if(/자기 전|잠자리|잠들기|취침|밤/.test(w))return h>=21||h<2;if(/아침|기상|일어나/.test(w))return h>=6&&h<10;if(/저녁/.test(w))return h>=17&&h<22;return true};   // 시간대가 적힌 버릇은 그 시간대에만
 function profileLines(s,c,A,nm,now,grp){
   const b=(A&&A.bits)||{},o=[];
-  for(const w of (b.likes||[]).slice(0,4)){o.push([.9,`${obj(w)} 떠올리며 슬며시 미소를 지음`]);o.push([.6,`${w} 생각이 문득 스치는 듯함`]);o.push([.5,`${w} 이야기가 나오면 눈이 반짝일 것 같은 얼굴`]);o.push([.5,`다음에는 ${w}에 시간을 내야겠다고 마음먹는 듯함`])}
-  for(const w of b.dislikes||[])o.push([.5,`${ga(w)} 문득 떠올랐는지 인상을 살짝 찌푸림`]);
+  const KO=window.Ko;
+  if(KO){const W={feel:.35,want:.3,habit:.25,dis:.5};for(const g of KO.gen(b))if(W[g.i])o.push([g.t==='rel'?.5:W[g.i],g.text])}   // viv-ko.js 4단계(추출→설계→생성→검증)
   for(const h of (b.habits||[]).filter(h=>whenOK(h.w,now)))o.push([1,`${h.w} ${h.k}이 슬쩍 나옴`]);
   for(const w of b.memories||[])o.push([.8,`문득 ${w} 기억이 떠오른 듯 먼 곳을 봄`]);
   if(b.job)o.push(grp==='work'?[.9,`${b.job} 일이라 손이 익숙하게 움직임`]:[.7,`쉬는 중에도 ${b.job} 일이 머릿속을 맴도는 듯함`]);
