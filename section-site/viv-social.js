@@ -37,7 +37,7 @@ const FEEL_BY={talk:{att:.6,tr:.4},play:{att:1.2,tr:.6},meal:{att:.8,tr:.4},cozy
   conflict:{tr:-3,rs:6,wr:3},ignore:{rs:3,tr:-1.5},talk_out:{tr:6,att:3,rs:-20,wr:-6},bicker_end:{rs:-8},confess_ok:{att:6,tr:3},confess_no:{rs:1},propose_ok:{att:6,tr:4},breakup:{rs:8,att:-6,tr:-5},divorce:{rs:10,att:-8,tr:-6},reunion:{tr:6,att:8,rs:-25,wr:-10}};
 const nm=(env,id)=>env.name(id);
 /* 사건 기록(관찰 일지용). 원인·결과가 남는 최소 정보만 */
-const LOG_MAX=600,KEEP=new Set(['breakup','divorce','reunion','confess_ok','confess_no','propose_ok','propose_no','talk_out','conflict','witness','gossip','sep','conf_branch','check']);
+const LOG_MAX=600,KEEP=new Set(['breakup','divorce','reunion','confess_ok','confess_no','propose_ok','propose_no','talk_out','conflict','witness','gossip','sep','conf_branch','check','aware']);
 let OFF=false;
 /* 사건 연쇄(원인 추적): 모든 기록에 id 를 주고, 원인이 된 앞선 사건이 있으면 cause 로 잇는다. 시각·장소·참여자·원인·결과가 함께 남음(관찰 일지가 읽음) */
 KEEP.add('care');KEEP.add('contagion_big');KEEP.add('trap');KEEP.add('mannerism');KEEP.add('deja');KEEP.add('reflect');KEEP.add('dislike');
@@ -391,7 +391,7 @@ function forget(s,id){const S=soc(s);for(const k of Object.keys(S.feel)){const [
   S.todo=S.todo.filter(t=>t.w!==id&&t.to!==id);S.log=S.log.filter(x=>x.a!==id&&x.b!==id)}
 /* 서버 동기화용: 그 집 캐릭터에 해당하는 부분만 잘라 내고, 받은 것으로 바꿔 넣는다 */
 const ok1=(ids,k,sep)=>{const [a,b]=k.split(sep);return ids.has(a)&&ids.has(b)};
-const CX=['apr','trapst','dj','hist','refl','strain'];
+const CX=['apr','trapst','dj','hist','refl','strain','awc'];
 function slice(S,ids){const o={feel:{},know:{},expect:{},conf:{},sep:{},todo:[],log:[],estr:{},res:{},int:{}};
   for(const k of Object.keys(S.int||{}))if(k!=='_lg'&&ids.has(k))o.int[k]=S.int[k];   // 의도(자율 의사결정)도 함께 보내 다른 기기의 상세창에서 같은 마음이 보이게 함
   for(const k of Object.keys(S.feel||{}))if(ok1(ids,k,'>'))o.feel[k]=S.feel[k];

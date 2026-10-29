@@ -2,7 +2,7 @@
    · 버튼을 누르면 작은 패널(켜기/끄기 + 볼륨)이 메뉴 바로 아래에 잠깐 열리고, 바깥을 누르거나 몇 초 지나면 닫힌다.
    · 브라우저 정책상 소리는 사용자가 화면을 처음 누르거나 키를 누른 뒤에 시작한다(기본: 켜짐, 볼륨 25%, 천천히 커짐).
    · 설정(켜짐/꺼짐·볼륨)은 이 브라우저에만 저장(localStorage). 저장이 막혀 있어도 동작한다.
-   · 탭이 가려지면 멈췄다가 돌아오면 이어서 재생. 시스템에서 '동작 줄이기'를 켰으면 움직이는 막대 표시를 쓰지 않는다. */
+   · 탭·창이 가려져도 계속 반복 재생(완전히 닫을 때만 멈춤). 시스템에서 '동작 줄이기'를 켰으면 움직이는 막대 표시를 쓰지 않는다. */
 (function(){
 'use strict';
 const SRC='bgm/eerie-ambient.mp3',KEY='viv.bgm.v1',DEF={on:true,vol:.25};
@@ -23,7 +23,9 @@ function setVol(v){st.vol=Math.min(1,Math.max(0,v));save();if(au&&!au.paused&&st
 /* 첫 사용자 동작 뒤에 시작(자동재생 차단 대응) */
 function unlock(){if(unlocked)return;unlocked=true;['pointerdown','keydown','touchend'].forEach(e=>removeEventListener(e,unlock,true));if(st.on)play()}
 ['pointerdown','keydown','touchend'].forEach(e=>addEventListener(e,unlock,{capture:true,passive:true}));
-document.addEventListener('visibilitychange',()=>{if(!au)return;if(document.hidden){au.pause()}else if(st.on&&unlocked)play()});
+/* 탭·창을 가려도(다른 탭·앱으로 이동, 화면 끔) 멈추지 않고 계속 반복 재생. 브라우저가 스스로 멈춘 경우에만 돌아왔을 때 다시 시작. 완전히 닫으면(탭 닫기·X) 당연히 끝난다 */
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&au&&au.paused&&st.on&&unlocked)play()});
+if('mediaSession' in navigator){try{navigator.mediaSession.metadata=new MediaMetadata({title:'Eerie Ambient',artist:'사이버 비바리움'});navigator.mediaSession.setActionHandler('play',()=>{setOn(true);unlock();if(unlocked)play()});navigator.mediaSession.setActionHandler('pause',()=>setOn(false))}catch(e){}}
 /* 작은 조절 패널 */
 function openPop(){if(pop)return;pop=document.createElement('div');pop.className='bgm-pop';pop.setAttribute('role','dialog');pop.setAttribute('aria-label','배경음악');
   pop.innerHTML=`<div class="bgm-t">배경음악 <small>Eerie Ambient</small></div><div class="bgm-r"><button type="button" class="bgm-sw" role="switch"></button><input type="range" min="0" max="100" step="1" aria-label="볼륨"></div>`;

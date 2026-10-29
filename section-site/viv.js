@@ -546,11 +546,7 @@ function mindStep(h,snap,prev){
     chars.forEach(c=>{if(gsts.some(g=>g.realId===c.id))return;const p=Viv.getPlace(c.id),st=Viv.getSim(c.id),sg=p.mode==='home'?W.segAt(p.f|0,p.x==null?W.mid:p.x):null;
       cur[c.id]={mode:p.mode,action:p.action,verb:p.verb,seg:sg?sg.id:null,segName:sg?sg.name:'',partner:chars.some(o=>o.id===gRaw(p.partner))?gRaw(p.partner):null,say:p.say||'',n:st.n||0,outAt:st.outAt||0,...reachInfo(W,sg),wh:st.wishHist||[]}});
     const sp=Viv.seoul(new Date()),A=c=>Sim.analyze(c.profile,c.name,chars);
-<<<<<<< HEAD:section-site/section-site/viv.js
     M.update(M.store.get(),{now:Date.now(),hour:sp.hour+sp.minute/60,day:`${sp.year}-${sp.month}-${sp.day}`,chars,A,cur,prev:prev||{},unc:cid=>{const U2=UC();return U2&&U2.mood?U2.mood(U2.store.get(),cid,Date.now()):null},stay:cid=>{const U2=UC();if(!U2||!U2.dayNum)return 0;try{const u=(U2.store.get().u||{})[cid];return u&&u.since!=null?Math.max(0,U2.dayNum(Date.now())-U2.dayNum(u.since)):0}catch(e){return 0}}});
-=======
-    M.update(M.store.get(),{now:Date.now(),hour:sp.hour+sp.minute/60,day:`${sp.year}-${sp.month}-${sp.day}`,chars,A,cur,prev:prev||{},unc:cid=>{const U2=UC();return U2&&U2.mood?U2.mood(U2.store.get(),cid,Date.now()):null}});
->>>>>>> 74002c90140e2bda6ec17f1629638a16e224d397:section-site/viv.js
     /* v19: 고백·프로포즈 결과가 새로 생기면 한 번 알려 준다(관계 상태는 직접 확인하기 전에는 바뀌지 않음) */
     try{const st=M.store.get(),ids=new Set(chars.map(c=>c.id));
       for(const k of Object.keys(st.rev||{})){const rv=st.rev[k],g=rv&&rv.sug;if(!g||g.shown)continue;const [x,y]=k.split('|');if(!ids.has(x)||!ids.has(y))continue;g.shown=1;note(g.text+' (캐릭터를 누르고 관계에서 확인할 수 있어요)')}}catch(e){}
@@ -584,6 +580,10 @@ function romPanel(M,r,c,other){
 const INT_P={affiliate:'함께 시간을 보내고 싶은 마음',comfort:'위로받고 싶은 마음',reconcile:'화해하고 싶은 마음',romance:'마음을 전하고 싶은 마음',care:'마음을 살피고 싶은 마음'};
 const INT_W={pride:'자존심이 앞서',timid:'쑥스러워서',fear:'거절당할까 불안해서'};
 const eulK=n=>{n=String(n||'');const c=n.charCodeAt(n.length-1);return c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28?n+'을':n+'를'};
+function awBox(M,s,c){const W=M._awr&&M._awr.view?M._awr.view(s,c.id,Date.now()):null;if(!W||(W.b<15&&W.ph<1))return '';
+  const lv=W.b>=70?'거의 확신해요':W.b>=40?'의심이 커졌어요':W.b>=15?'가끔 어색하게 느껴요':'특별히 이상하다고 느끼지 않아요';
+  const cp={rationalize:'착각이라고 스스로 설명하며 달래는 중',avoid:'생각을 피해 다른 일에 몰두하는 중',accept:'이상함을 받아들이고 가라앉힌 상태',seek:'다른 사람의 생각이 궁금한 상태'}[W.cp];
+  return `<h4>세계에 대한 생각 <small>규칙 기반 해석 · 논문 재현 아님</small></h4><div class="vm-box"><div class="vm-cause">이 세계가 이상하다는 생각: ${lv}</div><div class="vm-bar"><i style="width:${Math.max(3,W.b)}%"></i></div><div class="vm-sub">${W.dis>=.4&&cp?cp+' · ':''}집 전체 V ${W.v} (${W.phn})${W.fis?' · 틈 '+W.fis+'곳':''}</div></div>`}
 function socIntent(M,s,c,nm){const D=M._dec;if(!D)return '';const tp=M._chn&&M._chn.trapOf?M._chn.trapOf(s,c.id):null;if(tp){const h=Math.max(0,Math.round((Date.now()-tp.since)/36e5));return `<h4>지금의 마음 <small>무엇을 하고 싶은지</small></h4><div class="vm-box"><div class="vm-cause">${h>=1?h+'시간째 ':''}나가고 싶은데 길이 막혀 있어 답답하고 불안해해요</div><div class="vm-sub">왜 막혔는지는 본인도 몰라요</div></div>`}
   const ap=M._chn&&M._chn.apprOf?M._chn.apprOf(s,c.id):null;if(ap&&ap.mn>=30){const st=ap.mn>=85?'아무것도 하고 싶지 않을 만큼 무기력해요':ap.mn>=60?'매너리즘에 빠져 의욕이 떨어졌어요':'같은 일이 되풀이되어 단조롭게 느끼고 있어요';return `<h4>지금의 마음 <small>무엇을 하고 싶은지</small></h4><div class="vm-box"><div class="vm-cause">${st}</div><div class="vm-sub">${ap.fk!=null&&ap.fk<=2?'할 수 있는 일이 거의 없는 공간이라 더 그래요 · ':''}왜 그런지는 본인도 잘 몰라요</div></div>`}
   const it=D.view(s,c.id);if(!it||Date.now()>it.until)return '';let t=null;
@@ -597,7 +597,7 @@ function socTags(M,s,a,b){const SO=M._soc;if(!SO)return '';const v=SO.view(s,a,b
   if(v.sep)o.push(v.sep.kind==='divorce'?'헤어진 부부':'헤어진 사이');
   return o.map(x=>` <span class="vv-tag vm-soctag">${esc(x)}</span>`).join('')}
 const FEEL_LAB=[['tr','신뢰'],['att','애착'],['rs','서운함·원망'],['wr','경계'],['jl','질투']];
-const SHOW_T=new Set(['conflict','conf_branch','apology','talk_out','bicker_end','breakup','divorce','reunion','sep','confess_ok','confess_no','propose_ok','propose_no','witness','gossip','check','care','contagion','intent','trap','strain','mannerism','deja','reflect','dislike']);
+const SHOW_T=new Set(['conflict','conf_branch','apology','talk_out','bicker_end','breakup','divorce','reunion','sep','confess_ok','confess_no','propose_ok','propose_no','witness','gossip','check','care','contagion','intent','trap','strain','mannerism','deja','reflect','dislike','aware']);
 function socDetail(M,s,c,o,nm){const SO=M._soc;if(!SO)return '';const f=SO.feelOf(s,c.id,o),S=SO.soc(s),by=new Map(S.log.map(e=>[e.id,e]));
   const bars=FEEL_LAB.map(([k,l])=>`<div class="vm-fl"><span>${l}</span><div class="vm-bar"><i style="width:${Math.max(2,Math.round(f[k]))}%"></i></div></div>`).join('');
   const evs=S.log.filter(x=>SHOW_T.has(x.type)&&(x.a===c.id&&x.b===o||x.a===o&&x.b===c.id||(x.pair||[]).includes(o)&&(x.a===c.id||x.b===c.id)||x.type==='witness'&&x.a===c.id&&(x.pair||[]).includes(o))).slice(-6).reverse();
@@ -618,7 +618,7 @@ function mindFill(el,c){
    <div class="vm-cause">원인: ${esc(e.cause)}</div>
    <div class="vm-sub">${e.at?`시작 ${esc(mindTime(e.at))} · `:''}마지막 갱신 ${esc(mindTime(e.upd))}</div>
    ${e.others.length?`<div class="vm-oth">그 밖의 기분: ${e.others.map(o=>`<span class="vv-tag">${esc(o.name)} <small>${esc(o.level)}</small></span>`).join('')}</div>`:''}</div>
-   ${socIntent(M,s,c,nm)}
+   ${socIntent(M,s,c,nm)}${awBox(M,s,c)}
    <h4>관계 <small>${esc(c.name)}이(가) 상대를 어떻게 느끼는지</small></h4>`;
   if(!others.length)h+='<p class="hint">같은 집에 다른 캐릭터가 있으면 관계가 만들어져요.</p>';
   else h+=`<p class="hint vm-top">각 캐릭터를 누르면 세부 내용 확인 및 관계 설정이 가능해요 <small>(같은 집의 사람 캐릭터만 나와요. 반려동물은 돌봄 기능으로 따로 다뤄요.)</small></p><div class="vm-rels">${V.rels.map(r=>`<button type="button" class="vm-rel${mindSel===r.id?' on':''}" data-o="${r.id}">
@@ -846,11 +846,7 @@ function renderDetail(){
   <div id="vdAn">${anHtml(A)}</div>`}
   ${canPen?kindEditHtml(c,pet):''}
   <label>크기(높이 cm) <span class="row"><input type="range" id="vdSz" min="${HMIN}" max="${HMAX}" value="${Math.round(p.h)}" ${placed&&!out&&!ro?'':'disabled'}><input type="number" id="vdSzN" min="${HMIN}" max="${HMAX}" value="${Math.round(p.h)}" ${placed&&!out&&!ro?'':'disabled'}></span></label>
-<<<<<<< HEAD:section-site/section-site/viv.js
   <div class="vv-btns"><button id="vdDel" class="vv-danger" ${ro||!canSetC(c)?'disabled':''}>삭제</button></div>`;
-=======
-  <div class="vv-btns"><button id="vdDel" class="vv-danger" ${ro?'disabled':''}>삭제</button></div>`;
->>>>>>> 74002c90140e2bda6ec17f1629638a16e224d397:section-site/viv.js
   if(mm)ucCorruptDetail(el,c,mm);else if(!pet)mindFill(q('#vvMind',el),c);
   /* 이름·이미지는 상세 머리말의 연필로 바로 고침(수정 대화상자 없이 같은 저장 경로 사용) */
   const quick=async(d,prep)=>{if(c.remote)await SH().updateChar(c.id,Viv.validate?Viv.validate(d):d,prep);else await Viv.saveChar(d,prep,c.id);

@@ -480,6 +480,7 @@ function stateOf(s,id,now){
   for(const k of ['anxious','irritated','sad','lonely','bored','tired'])o.push([k,L(k)]);
   const hp=L('happy'),ex=L('excited');if(hp>=60)o.push(['happy',hp]);if(ex>=60)o.push(['excited',ex]);if(L('curious')>=65)o.push(['curious',L('curious')]);
   for(const r of relStates(s,id,now))o.push(r);
+  if(M._awr){const w=M._awr.states(s,id,now);if(w.some(x=>x[0]==='aw_hi'||x[0]==='aw_mid')){const i=o.findIndex(x=>x[0]==='unease');if(i>=0)o.splice(i,1)}for(const r of w)o.push(r)}   // 세계 자각이 생기면 막연한 '어색함'은 그쪽으로 대체
   return o.sort((a,b)=>b[1]-a[1])}
 function extend(H,s,now){
   const baseGM=H.groupMul,S=SO.soc(s);
@@ -532,7 +533,7 @@ function extend(H,s,now){
     const sub=GROUP_SUB(v);
     if(!sub)return '';
     const dl=sub==='sleep'?'':disLine(c,0);if(dl)return dl;
-    const t=pickState(c,v,A,k=>GT[sub][k],sub==='sleep'?(()=>null):(k=>REL[k]),nm),hb=((A&&A.bits&&A.bits.habits)||[]).filter(h=>whenOK(h.w,now));
+    const t=pickState(c,v,A,k=>GT[sub][k]||(sub!=='sleep'&&M._awr?M._awr.lines[k]:null),sub==='sleep'?(()=>null):(k=>REL[k]),nm),hb=((A&&A.bits&&A.bits.habits)||[]).filter(h=>whenOK(h.w,now));
     if(t){if(hb.length&&/(anxious|irritated|bored|lonely)/.test(lastK)&&mulberry(hash('hb|'+c+'|'+Math.floor(now/(15*MIN))))()<.3){const h=hb[Math.floor(now/(15*MIN))%hb.length];return `${h.w} ${h.k}이 슬쩍 나옴`}return t}
     if(sub==='sleep')return '';
     const st=stateOf(s,c,now);return st.length&&st[0][1]>=45&&!hab?'':flavor(c,A,nm,v.g)};   // 강한 상태가 있으면(이번 걸음에 드러나지 않았더라도) 평온한 버릇은 붙이지 않음
@@ -550,10 +551,10 @@ function extend(H,s,now){
       try{const r=M.romState(s,c,p);if(r.k==='lover'||r.k==='spouse')pool.push(josaFill('{o:obj} 두고 나서는 게 아쉬운 듯 한 번 뒤돌아봄',n))}catch(e2){}}
     return pool.length?pickOf(c,'ot',pool):''};
   H.alt=(c,v,A,room,nm)=>{                                      // 서성임: 상태에 맞는 문장으로 통째로 바꿈
-    if(!v||v.g!=='wander'||v.petsay)return '';const dl=disLine(c,1);if(dl)return `${room}에서 ${dl}`;const t=pickState(c,v,A,k=>WL[k],k=>WREL[k],nm);return t?`${room}에서 ${t}`:''};
+    if(!v||v.g!=='wander'||v.petsay)return '';const dl=disLine(c,1);if(dl)return `${room}에서 ${dl}`;const t=pickState(c,v,A,k=>WL[k]||(M._awr?M._awr.lines[k]:null),k=>WREL[k],nm);return t?`${room}에서 ${t}`:''};
   return H}
 
-function step(s,inp,env,log){contagion(s,env,inp);ripple(s,env,inp);care(s,env,inp,log);BUF=[];trap(s,inp,env,log);strain(s,inp,env);appraise(s,inp,env);deja(s,inp,env);history(s,inp,env);observe(s,inp,env);settle(s,env)}
+function step(s,inp,env,log){contagion(s,env,inp);ripple(s,env,inp);care(s,env,inp,log);BUF=[];trap(s,inp,env,log);strain(s,inp,env);appraise(s,inp,env);deja(s,inp,env);history(s,inp,env);observe(s,inp,env);if(M._awr){try{M._awr.step(s,inp,env,log)}catch(e){console.error('[viv aware]',e)}}settle(s,env)}
 
 /* 원인 사슬: 기록 id 에서 원인을 거슬러 올라가며(위쪽이 먼저) 돌려준다 */
 function trace(s,id){const S=SO.soc(s),by=new Map(S.log.map(e=>[e.id,e])),out=[];let e=by.get(id),n=0;
@@ -561,5 +562,5 @@ function trace(s,id){const S=SO.soc(s),by=new Map(S.log.map(e=>[e.id,e])),out=[]
 /* 이 기록에서 이어진 결과들(아래로) */
 function effects(s,id){const S=SO.soc(s),out=[],q=[id];let n=0;
   while(q.length&&n++<200){const cur=q.shift();for(const e of S.log)if(e.cause===cur){out.push(e);q.push(e.id)}}return out}
-M._chn={observe,coupleLines,episodes,step,trace,effects,ripple,contagion,trap,strain,trapOf,felt,appraise,apprOf,extend,stateOf};
+M._chn={emit,observe,coupleLines,episodes,step,trace,effects,ripple,contagion,trap,strain,trapOf,felt,appraise,apprOf,extend,stateOf};
 })(typeof window!=='undefined'?window:globalThis);
