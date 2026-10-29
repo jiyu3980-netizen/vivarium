@@ -60,7 +60,7 @@ body.mode-viv #viv{display:block}body.mode-viv main{display:none}body.mode-viv #
 #vvDlg h4{margin:14px 0 4px}
 
 .vv-stagewrap.vv-zoomable{position:relative;overflow:hidden;touch-action:none;cursor:grab}.vv-stagewrap.vv-panning{cursor:grabbing}.vv-stage{transform-origin:0 0}.vv-zreset{position:absolute;right:8px;top:8px;z-index:3;font-size:12px;padding:3px 8px;border:1px solid var(--rule);background:#fff;border-radius:6px;cursor:pointer}.vv-zreset[hidden]{display:none}
-.vv-outtop{position:absolute;left:8px;top:8px;z-index:2;display:flex;flex-wrap:wrap;gap:10px;max-width:calc(100% - 110px);pointer-events:none}.vv-out1{display:flex;align-items:flex-end;gap:6px}.vv-out1 img{height:64px;width:auto;display:block}.vv-out1 .ph{width:40px;height:56px;display:flex;align-items:center;justify-content:center;background:#ececea;border:1px solid #1c1c1c;border-radius:6px;font-weight:700}.vv-out1 .bub{position:relative;background:#fff;border:1.1px solid #1c1c1c;border-radius:6px;padding:4px 8px;font-size:12px;line-height:1.35;max-width:210px;margin-bottom:22px}.vv-out1 .bub b{display:block}.vv-out1 .bub::after{content:'';position:absolute;left:-7px;bottom:8px;border:6px solid transparent;border-right:7px solid #1c1c1c;border-left:0}.vv-out1 .bub::before{content:'';position:absolute;left:-5.5px;bottom:9px;border:5px solid transparent;border-right:6px solid #fff;border-left:0;z-index:1}
+.vv-outtop{position:absolute;left:8px;top:8px;z-index:2;display:flex;flex-wrap:wrap;gap:10px;max-width:calc(100% - 110px);pointer-events:none}.vv-out1{display:flex;align-items:flex-end;gap:6px}.vv-out1 img{height:64px;width:auto;display:block}.vv-out1 .ph{width:40px;height:56px;display:flex;align-items:center;justify-content:center;background:#ececea;border:1px solid #1c1c1c;border-radius:6px;font-weight:700}.vv-out1 .bub{position:relative;background:#fff;border:1.1px solid #1c1c1c;border-radius:6px;padding:4px 8px;font-size:12px;line-height:1.35;max-width:210px;margin-bottom:22px}.vv-out1 .bub b{display:block}.vv-out1 .bub::after{content:'';position:absolute;left:-7px;bottom:8px;border:6px solid transparent;border-right:7px solid #1c1c1c;border-left:0}.vv-out1 .bub::before{content:'';position:absolute;left:-5.5px;bottom:9px;border:5px solid transparent;border-right:8px solid #fff;border-left:0;z-index:1;margin-right:-2px}   /* 창 폭·배율이 바뀌어도 말풍선 테두리와 꼬리 사이에 가는 선이 비치지 않게 꼬리 안쪽(흰색)을 풍선 안으로 살짝 더 겹침 */
 .vv-prof textarea{width:100%;box-sizing:border-box;font:inherit;font-size:12.5px;padding:6px;border:1px solid var(--rule);border-radius:6px;resize:vertical}.vv-cl{margin:2px 0 8px;padding-left:16px;font-size:12px;line-height:1.5}.vv-cl li{margin:2px 0}
 
 /* 지면: 편집기처럼 집 양옆으로 끝없이 이어지게(도면 이미지 바깥까지) */
@@ -130,3 +130,9 @@ body.mode-viv #viv{display:block}body.mode-viv main{display:none}body.mode-viv #
 .vm-romtag{background:#ffe3e8;border-color:#e8a0b0}
 
 .vv-zroom{position:absolute;left:8px;top:8px;z-index:3;font-size:12px;padding:3px 6px;border:1px solid var(--rule);background:#fff;border-radius:6px;max-width:44%;cursor:pointer}
+
+.vv-out1 .bub{background-clip:padding-box}.vv-out1 .bub::after{z-index:0}
+
+.vv-roomsel{font-size:12px;padding:3px 6px;border:1px solid var(--rule);background:#fff;border-radius:6px;margin-left:8px;max-width:140px;cursor:pointer}
+
+.vm-feel .vm-fl{display:grid;grid-template-columns:5.5em 1fr;align-items:center;gap:6px;font-size:12px}.vm-soctag{background:#f3e4e1;color:#7a3b32}.vm-box .vm-fl .vm-bar{margin:3px 0}

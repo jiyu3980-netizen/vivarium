@@ -38,13 +38,14 @@ function noteDoc(hid,s,prevRev){   // 다른 참여자가 도면을 저장했다
 const pendingDocEvents=[];
 function applyState(hid,s){
   const prev=H[hid]||{};
-  H[hid]={...prev,hid,rev:s.rev,docRev:s.docRev,docSavedAt:s.docSavedAt,docSavedBy:s.docSavedBy,docSummary:s.docSummary,leaderPid:s.leader?s.leader.pid:null,name:s.house.name,me:s.me,members:s.members,invite:s.invite||null,limits:s.limits,ok:true};
+  H[hid]={...prev,hid,rev:s.rev,docRev:s.docRev,docSavedAt:s.docSavedAt,docSavedBy:s.docSavedBy,docSummary:s.docSummary,leaderPid:s.leader?s.leader.pid:null,name:s.house.name,me:s.me,members:s.members,invite:s.invite||null,nbInvite:s.nbInvite||null,visitors:s.visitors||[],limits:s.limits,ok:true};
   if(prev.ok)noteDoc(hid,s,prev.docRev);
   const seen=new Set();
   for(const sc of s.chars){seen.add(sc.id);
-    const mine=sc.owner===s.me.pid,canEdit=mine||s.me.role==='owner';let c=C[sc.id];
+    const mine=sc.owner===s.me.pid,canEdit=mine||s.me.role==='owner'||s.me.role==='co',canSet=mine;   // canEdit=행동 지정·이동, canSet=이름·프로필·이미지·삭제(원 등록자만)
+    let c=C[sc.id];
     if(!c){c=C[sc.id]={id:sc.id,hid,remote:true,pend:null}}
-    Object.assign(c,{hid,name:sc.name,profile:sc.profile,owner:sc.owner,mine,canEdit,img:sc.img,updatedAt:sc.updatedAt});
+    Object.assign(c,{hid,name:sc.name,profile:sc.profile,owner:sc.owner,mine,canEdit,canSet,img:sc.img,updatedAt:sc.updatedAt});
     if(c.pend&&canEdit){c.rev=sc.rev;   /* 내가 바꾼 값(대기 중)은 유지: 주인의 직접 조작이 우선 */}
     else{c.pend=null;c.place=sc.place;c.sim=sc.sim;c.rev=sc.rev}}
   for(const id of Object.keys(C))if(C[id].hid===hid&&!seen.has(id)){if(imgCache[id]){URL.revokeObjectURL(imgCache[id].url);delete imgCache[id]}delete C[id]}}
@@ -112,7 +113,7 @@ const docHash=d=>{const s=JSON.stringify(d);let h=5381;for(let i=0;i<s.length;i+
 function remember(hid,r,extra){reg.houses[hid]={...(reg.houses[hid]||{}),name:r.name,token:r.token,pid:r.pid,role:r.role,...(extra||{})};saveReg()}
 async function createHouse({name,doc,nick,slot,savedHash}){
   const r=await api('POST','/api/houses',{body:{name,doc,nick}});
-  remember(r.houseId,r,{code:r.code,codeExp:r.codeExpiresAt,linkSlot:slot==null?null:String(slot),baseRev:1,savedHash:savedHash||null,lastSavedRev:1});
+  remember(r.houseId,r,{code:r.code,codeExp:r.codeExpiresAt,nbCode:r.nbCode,nbCodeExp:r.nbCodeExpiresAt,linkSlot:slot==null?null:String(slot),baseRev:1,savedHash:savedHash||null,lastSavedRev:1});
   await refresh(r.houseId,true);return {hid:r.houseId,code:r.code}}
 async function join(code,nick){
   const tokens=Object.values(reg.houses).map(h=>h.token).filter(Boolean);   // 이미 입장한 집이면 서버가 알아보고 중복 참여자를 만들지 않음
@@ -133,6 +134,10 @@ async function deleteHouse(hid){await api('DELETE',`/api/houses/${hid}`,{hid});d
 async function rename(hid,name){await api('PATCH',`/api/houses/${hid}`,{hid,body:{name}});reg.houses[hid].name=name;saveReg();await refresh(hid,true)}
 async function setNick(hid,nick){await api('PATCH',`/api/houses/${hid}/me`,{hid,body:{nick}});await refresh(hid,true)}
 async function rotate(hid){const r=await api('POST',`/api/houses/${hid}/invite/rotate`,{hid});Object.assign(reg.houses[hid],{code:r.code,codeExp:r.expiresAt});saveReg();await refresh(hid,true);return r.code}
+const visImg={};   // 방문 캐릭터 이미지 캐시: 'toHid|charId' → {rev,url}
+async function visitorImageUrl(toHid,charId,rev){const k=toHid+'|'+charId,u=visImg[k];if(u&&u.rev===rev)return u.url;
+  const b=await api('GET',`/api/houses/${toHid}/visitors/${charId}/image`,{hid:toHid,blob:true});if(u)URL.revokeObjectURL(u.url);const url=URL.createObjectURL(b);visImg[k]={rev,url};return url}
+async function rotateNb(hid){const r=await api('POST',`/api/houses/${hid}/neighbor-code/rotate`,{hid});Object.assign(reg.houses[hid],{nbCode:r.code,nbCodeExp:r.expiresAt});saveReg();await refresh(hid,true);return r.code}
 async function revoke(hid){await api('POST',`/api/houses/${hid}/invite/revoke`,{hid});Object.assign(reg.houses[hid],{code:null,codeExp:null});saveReg();await refresh(hid,true)}
 async function kick(hid,pid){await api('DELETE',`/api/houses/${hid}/members/${pid}`,{hid});await refresh(hid,true)}
 /* 도면 저장(참여자 누구나). baseRev 가 서버 최신과 같을 때만 성공하고, 다르면 409 와 함께 최신 버전 정보를 받는다.
@@ -146,6 +151,12 @@ async function getDoc(hid,rev){const d=await api('GET',`/api/houses/${hid}/doc${
 function setLink(hid,patch){const h=reg.houses[hid];if(!h)return;Object.assign(h,patch);saveReg()}
 /* 시뮬레이션 대표: 한 번에 한 화면만 캐릭터 행동을 계산해 저장 */
 async function lease(hid){try{const r=await api('POST',`/api/houses/${hid}/lease`,{hid});if(H[hid])H[hid].leaderPid=r.leader?H[hid].me.pid:(H[hid].leaderPid===H[hid].me.pid?null:H[hid].leaderPid);return !!r.leader}catch(e){return false}}
+/* v24 감정·관계·기억 기록 공유: 리더만 쓰고(서버가 확인), 모두 읽는다. 서버와 같은 버전을 기준으로만 반영되어 중복·덮어쓰기가 없다 */
+const MR={};
+async function mindPull(hid){try{const r=await api('GET',`/api/houses/${hid}/mind?sinceRev=${MR[hid]||0}`,{hid});
+  if(r.unchanged)return null;MR[hid]=r.rev;if(!r.data)return null;return JSON.parse(r.data)}catch(e){return null}}
+async function mindPush(hid,data){try{const r=await api('PUT',`/api/houses/${hid}/mind`,{hid,body:{data:JSON.stringify(data),baseRev:MR[hid]||0}});MR[hid]=r.rev;return {ok:true}}
+  catch(e){if(e.status===409&&e.data){if(e.data.conflict){MR[hid]=e.data.rev;try{return {ok:false,conflict:true,data:JSON.parse(e.data.data)}}catch(x){}}if(e.data.notLeader&&H[hid])H[hid].leaderPid=null}return {ok:false}}}
 const isLeader=hid=>!!(H[hid]&&H[hid].me&&H[hid].leaderPid===H[hid].me.pid);
 let polling=null;
 async function poll(){if(!enabled()||!Object.keys(reg.houses).length)return false;if(polling)return polling;
@@ -177,6 +188,6 @@ const linkedSlots=()=>new Set(Object.entries(reg.houses).filter(([hid,h])=>h.lin
 
 const notify=()=>emit('poll');
 window.VivShare={notify,enabled,store,api,syncAll,poll,refresh,flush,takeLost,onChange:f=>listeners.push(f),
-  createHouse,join,joinRecovery,recoveryKey,leave,deleteHouse,rename,setNick,rotate,revoke,kick,saveDoc,getDoc,setLink,lease,isLeader,auto,takeDocEvents,docHash,
+  createHouse,join,joinRecovery,recoveryKey,leave,deleteHouse,rename,setNick,rotate,rotateNb,visitorImageUrl,revoke,kick,saveDoc,getDoc,setLink,lease,isLeader,mindPull,mindPush,auto,takeDocEvents,docHash,
   adopt,createChar,updateChar,removeChar,info,sharedHouses,linkedSlots,regHouses,reg:()=>reg,saveReg,ShareErr};
 })();

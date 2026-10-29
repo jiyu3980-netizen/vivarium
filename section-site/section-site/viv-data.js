@@ -40,6 +40,23 @@ function sniff(h){
 const toBlob=(cv,type,q)=>new Promise(r=>cv.toBlob(r,type,q));
 function hasAlpha(cx,w,h){const d=cx.getImageData(0,0,w,h).data;for(let i=3;i<d.length;i+=4)if(d[i]<250)return true;return false}
 /* 반환: {blob,w,h,alpha,mime,srcType,srcBytes,srcW,srcH}  — 실패하면 사용자에게 보여줄 문장으로 Error */
+/* v24 배경 자동 제거(누끼): 가장자리와 이어진 '배경과 비슷한 색'만 투명하게 만든다. 단색·단순 배경에 맞고, 복잡한 사진 배경은 제거 못 해 원본을 그대로 쓴다 */
+function cutoutBg(cx,w,h,tol){const im=cx.getImageData(0,0,w,h),d=im.data,N=w*h;
+  const bd=[];const add=(x,y)=>{const i=(y*w+x)*4;bd.push([d[i],d[i+1],d[i+2]])};
+  for(let x=0;x<w;x+=Math.max(1,w>>5)){add(x,0);add(x,h-1)}for(let y=0;y<h;y+=Math.max(1,h>>5)){add(0,y);add(w-1,y)}
+  const med=k=>bd.map(c=>c[k]).sort((a,b)=>a-b)[bd.length>>1],bg=[med(0),med(1),med(2)];
+  const near=bd.filter(c=>Math.hypot(c[0]-bg[0],c[1]-bg[1],c[2]-bg[2])<tol).length/bd.length;
+  if(near<.6)return {ok:false,why:'배경이 단색에 가깝지 않아요'};
+  const dist=i=>Math.hypot(d[i]-bg[0],d[i+1]-bg[1],d[i+2]-bg[2]);
+  const seen=new Uint8Array(N),st=[];const push=(x,y)=>{const k=y*w+x;if(!seen[k]&&dist(k*4)<tol){seen[k]=1;st.push(k)}};
+  for(let x=0;x<w;x++){push(x,0);push(x,h-1)}for(let y=0;y<h;y++){push(0,y);push(w-1,y)}
+  let n=0;while(st.length){const k=st.pop(),x=k%w,y=(k/w)|0;n++;
+    if(x>0)push(x-1,y);if(x<w-1)push(x+1,y);if(y>0)push(x,y-1);if(y<h-1)push(x,y+1)}
+  const ratio=n/N;if(ratio<.04)return {ok:false,why:'지울 배경을 찾지 못했어요'};if(ratio>.97)return {ok:false,why:'대부분이 배경색이라 지우지 않았어요'};
+  for(let k=0;k<N;k++)if(seen[k])d[k*4+3]=0;
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const k=y*w+x;if(seen[k])continue;   // 경계 1px: 배경에 닿은 픽셀은 거리만큼 반투명하게 부드럽게
+    if(seen[k-1]||seen[k+1]||seen[k-w]||seen[k+w]){const a=Math.min(1,Math.max(.25,dist(k*4)/(tol*2.2)));d[k*4+3]=Math.round(255*a)}}
+  cx.putImageData(im,0,0);return {ok:true,ratio}}
 async function prepareImage(file,opts){opts=opts||{};const OB=opts.bytes||OUT_BYTES;
   if(!file)throw new Error('이미지 파일을 선택하세요');
   if(file.size>MAX_UPLOAD)throw new Error(`파일이 너무 커요 (${mb(file.size)}MB). 5MB 이하만 등록할 수 있어요`);
@@ -51,14 +68,14 @@ async function prepareImage(file,opts){opts=opts||{};const OB=opts.bytes||OUT_BY
   const W=bmp.width,H=bmp.height;
   if(W<MIN_SIDE||H<MIN_SIDE){bmp.close&&bmp.close();throw new Error(`이미지가 너무 작아요 (${W}×${H}). 가로·세로 ${MIN_SIDE}px 이상이어야 해요`)}
   if(W*H>MAX_PIXELS){bmp.close&&bmp.close();throw new Error(`이미지 해상도가 너무 커요 (${W}×${H})`)}
-  let max=OUT_MAX,alpha=false;
+  let max=OUT_MAX,alpha=false,cut=null,srcA=false;
   for(let i=0;i<4;i++){
     const k=Math.min(1,max/Math.max(W,H)),w=Math.max(1,Math.round(W*k)),h=Math.max(1,Math.round(H*k));
     const cv=document.createElement('canvas');cv.width=w;cv.height=h;const cx=cv.getContext('2d',{willReadFrequently:true});cx.drawImage(bmp,0,0,w,h);
-    if(i===0)alpha=hasAlpha(cx,w,h);
+    if(i===0)srcA=hasAlpha(cx,w,h);alpha=srcA;if(opts.cutout&&!srcA){cut=cutoutBg(cx,w,h,opts.cutTol||46);if(cut.ok)alpha=true}
     let blob=await toBlob(cv,alpha?'image/png':'image/webp',.92);
     if(!blob||blob.type!==(alpha?'image/png':'image/webp'))blob=await toBlob(cv,alpha?'image/png':'image/jpeg',.9);
-    if(blob&&blob.size<=OB){bmp.close&&bmp.close();return {blob,w,h,alpha,mime:blob.type,srcType:kind,srcBytes:file.size,srcW:W,srcH:H}}
+    if(blob&&blob.size<=OB){bmp.close&&bmp.close();return {blob,w,h,alpha,cut,mime:blob.type,srcType:kind,srcBytes:file.size,srcW:W,srcH:H}}
     max=Math.round(max*.75)}
   bmp.close&&bmp.close();throw new Error('이미지가 너무 복잡해서 용량을 줄일 수 없어요. 더 단순한 이미지를 써 주세요')}
 
@@ -93,14 +110,18 @@ async function removeChar(id){
 /* 위치·현재 행동(저장은 결과만: 초 단위 기록 없음). action=행동 그룹, verb=세부 행동, tgt=쓰고 있는 가구 uid, pose=stand|sit|lie, e=바닥 위 높이(cm), say=말풍선 문구 */
 const DEF_PLACE={house:null,x:null,f:0,h:120,mode:'home',action:'rest',since:0,verb:'',tgt:null,pose:'stand',dy:0,e:null,say:'',partner:null,seg:null};
 const placeAll=()=>jget(K.place,{});
-const getPlace=id=>isRemote(id)?{...DEF_PLACE,...RM().place(id)}:({...DEF_PLACE,...(placeAll()[id]||{})});
+/* v25: 이웃집에 놀러 온 손님의 '그 집 안에서의' 위치·상태 — 메모리에만 두고 저장하지 않음(원래 집의 데이터는 그대로) */
+const GST={p:{},s:{}},isG=id=>typeof id==='string'&&id.startsWith('vg:');
+const getPlace=id=>isG(id)?{...DEF_PLACE,...(GST.p[id]||{})}:isRemote(id)?{...DEF_PLACE,...RM().place(id)}:({...DEF_PLACE,...(placeAll()[id]||{})});
 function setPlace(id,patch){
+  if(isG(id)){const cur={...DEF_PLACE,...(GST.p[id]||{})},next={...cur,...patch};if(patch.mode||patch.action||patch.house!==undefined)next.since=Date.now();GST.p[id]=next;return next}
   if(isRemote(id)){const cur={...DEF_PLACE,...RM().place(id)};const next={...cur,...patch};if(patch.mode||patch.action||patch.house!==undefined){next.since=Date.now();patch={...patch,since:next.since}}RM().setPlace(id,patch,next);return next}
   const all=placeAll();const cur={...DEF_PLACE,...(all[id]||{})};const next={...cur,...patch};
   if(patch.mode||patch.action||patch.house!==undefined)next.since=Date.now();all[id]=next;jset(K.place,all);return next}
 /* 시뮬레이션 상태: decideAt(다음 결정 시각)·n(결정 횟수)·recent(최근 행동)·then(후속 행동)·wish(사용자 선택)·bias·outUntil … */
-const getSim=id=>isRemote(id)?{v:1,updatedAt:0,needs:{},...RM().sim(id)}:((jget(K.sim,{})[id])||{v:1,updatedAt:0,needs:{}});
+const getSim=id=>isG(id)?{v:1,updatedAt:0,needs:{},...(GST.s[id]||{})}:isRemote(id)?{v:1,updatedAt:0,needs:{},...RM().sim(id)}:((jget(K.sim,{})[id])||{v:1,updatedAt:0,needs:{}});
 function setSim(id,patch){
+  if(isG(id)){const next={...getSim(id),...patch};GST.s[id]=next;return next}
   if(isRemote(id)){const next={...getSim(id),...patch};RM().setSim(id,patch,next);return next}
   const all=jget(K.sim,{});const cur=all[id]||{v:1,updatedAt:0,needs:{}};all[id]={...cur,...patch};jset(K.sim,all);return all[id]}
 const getUi=()=>jget(K.ui,{});const setUi=p=>jset(K.ui,{...getUi(),...p});
@@ -111,5 +132,6 @@ function seoul(d){const o={};fmt.formatToParts(d||new Date(Date.now())).forEach(
 
 window.Viv={validate,K,MAX_CHARS,MAX_UPLOAD,NAME_MAX,PROFILE_MAX,TYPES,prepareImage,chars:()=>readChars().concat(RM()?RM().chars():[]),localChars:readChars,isRemote,imageBlob:imgGet,
   char:id=>isRemote(id)?RM().char(id):(readChars().find(c=>c.id===id)||null),saveChar,removeChar,imageUrl,
+  guestHas:id=>!!GST.p[id],guestDrop:id=>{delete GST.p[id];delete GST.s[id]},guestIds:()=>Object.keys(GST.p),
   getPlace,setPlace,getSim,setSim,getUi,setUi,seoul,sniff,idbAvailable:()=>db().then(()=>true,()=>false)};
 })();

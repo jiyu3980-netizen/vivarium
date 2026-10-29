@@ -2,7 +2,7 @@
 let LIB=window.LIB||'../section-assets/';const $=s=>document.querySelector(s);const NS='http://www.w3.org/2000/svg';
 const DEF_B={w:900,f:2,h:270,s:20,t:20,roof:'gable',rh:150};
 /* v23 지붕 종류 — 모양은 roofGeo() 한 곳에서 계산해 그리기·화면 맞춤·SVG 내보내기·벽 윗면이 같은 값을 씀 */
-const ROOFS=[['gable','박공 (좌우 대칭)'],['asym','비대칭 박공 (폭이 줄면 지붕이 그만큼 잘림 · 정점 위치 조절)'],['shed','외쪽지붕 (한쪽만 경사)'],['gambrel','맞배 변형 (꺾인 박공)'],['slate','슬레이트 박공 (겹친 판재 표현)'],['flat','평지붕'],['none','없음']];
+const ROOFS=[['gable','박공 (좌우 대칭)'],['asym','비대칭 박공 (폭이 줄면 지붕이 그만큼 잘림 · 정점 위치 조절)'],['shed','외쪽지붕 (한쪽만 경사)'],['gambrel','맞배 변형 (꺾인 박공)'],['slate','슬레이트 박공 (겹친 판재 표현)'],['dome','돔형 (반원·타원 곡면 · 높이로 둥글기 조절)'],['flat','평지붕'],['none','없음']];
 const ROOF_IDS=ROOFS.map(r=>r[0]),GABLEISH=['gable','asym','slate','gambrel'];
 const DEF_LW={out:2,inn:1,cut:2.6,auto:true,bDash:false,bOp:.75};
 const LAYERS=[['ground','지면·기초'],['back','뒷벽 문·창(입면)'],['roof','지붕'],['struct','벽·슬래브(절단)'],['open','문·창문(개구부)'],['stairs','계단'],['terr','테라스 난간'],['items','가구'],['labels','방 이름·치수'],['levels','레벨 표시(층 높이)']];
@@ -28,7 +28,7 @@ function norm(o){o.v=2;o.b={...DEF_B,...(o.b||{})};const b=o.b;
  const ex=Array.isArray(b.ext)?b.ext:[];b.ext=Array.from({length:b.f},(_,k)=>{const e=ex[k];return e&&isFinite(+e.l)&&isFinite(+e.r)&&+e.r-+e.l>=100?{l:+e.l,r:+e.r}:{l:0,r:b.w}});
  o.terr=(Array.isArray(o.terr)?o.terr:[]).filter(t=>t&&isFinite(+t.x0)&&isFinite(+t.x1)&&+t.x1-+t.x0>=20).map(t=>({id:t.id||('t'+Math.random().toString(36).slice(2,8)),f:Math.max(0,Math.min(b.f,Math.round(+t.f)||0)),x0:+t.x0,x1:+t.x1,rail:['iron','vict','brick'].includes(t.rail)?t.rail:'iron',slab:t.slab!==false}));
  o.roofs=(Array.isArray(o.roofs)?o.roofs:[]).filter(t=>t&&isFinite(+t.x0)&&isFinite(+t.x1)&&+t.x1-+t.x0>=20).map(t=>({id:t.id||('r'+Math.random().toString(36).slice(2,8)),f:Math.max(0,Math.min(Math.max(0,b.f-2),Math.round(+t.f)||0)),x0:+t.x0,x1:+t.x1,type:['flat','shed','gable'].includes(t.type)?t.type:'shed',rd:t.rd==='L'||t.rd==='R'?t.rd:'',h:clamp(isFinite(+t.h)?+t.h:80,20,400),ov:clamp(isFinite(+t.ov)?+t.ov:25,0,200)}));
- o.rfl=(o.rfl&&typeof o.rfl==='object'&&!Array.isArray(o.rfl))?Object.fromEntries(Object.entries(o.rfl).filter(([k,v])=>/^\d+:\w+$/.test(k)&&(v==='none'||v==='posts'))):{};
+ o.rfl=(o.rfl&&typeof o.rfl==='object'&&!Array.isArray(o.rfl))?Object.fromEntries(Object.entries(o.rfl).filter(([k,v])=>/^0:\w+$/.test(k)&&(v==='none'||v==='posts'))):{};   /* 방별 바닥 형태는 1층만 */
  o.chims=(Array.isArray(o.chims)?o.chims:[]).filter(t=>t&&isFinite(+t.x)).map(t=>({id:t.id||('c'+Math.random().toString(36).slice(2,8)),x:+t.x,w:clamp(isFinite(+t.w)?+t.w:50,20,200),above:clamp(isFinite(+t.above)?+t.above:70,10,400)}));
  o.parts=(o.parts||[]).map(p=>({t:12,mat:'line',...p}));o.ops=o.ops||[];o.stairs=(o.stairs||[]).filter(a=>a&&a.kind!=='ladder');o.rooms=o.rooms||{};o.wpr=(o.wpr&&typeof o.wpr==='object'&&!Array.isArray(o.wpr))?o.wpr:{};o.ua=(o.ua&&typeof o.ua==='object'&&!Array.isArray(o.ua))?o.ua:{};uaFromDoc(o);
  {const wu={};if(o.wpu&&typeof o.wpu==='object'&&!Array.isArray(o.wpu))for(const [id,u] of Object.entries(o.wpu).slice(0,4))if(u&&typeof u.d==='string'&&u.d.startsWith('data:image/')&&u.d.length<260000&&isFinite(+u.w)&&isFinite(+u.h)&&+u.w>0&&+u.h>0)wu[id.replace(/[^A-Za-z0-9]/g,'')||'x']={n:String(u.n||'벽지').slice(0,20),d:u.d,w:+u.w,h:+u.h,tw:Math.max(10,Math.min(400,+u.tw||80))};
@@ -51,6 +51,7 @@ function roofGeo(){const b=S.b,N=b.f;if(!N||b.roof==='none')return null;
   l=Math.min(l+(+b.rcl||0),r-60);r=Math.max(r-(+b.rcr||0),l+60);   // v23.9 비대칭은 왼쪽·오른쪽 끝을 따로 잘라 조절(대칭 박공과 무관)
   const axx=L+(R-L)*b.rr,hA=x=>x<=axx?h*(x-L)/Math.max(1,axx-L):h*(R-x)/Math.max(1,R-axx);
   pts=[[l,Math.max(0,hA(l))]];if(axx>l&&axx<r)pts.push([axx,h]);pts.push([r,Math.max(0,hA(r))])}
+ else if(b.roof==='dome'){const c=(l+r)/2,rx=W/2;pts=[];for(let i=0;i<=28;i++){const x=l+W*i/28,u=(x-c)/rx;pts.push([x,h*Math.sqrt(Math.max(0,1-u*u))])}}   // 돔: 타원 곡면(높이 = 지붕 높이)
  else{const ax=l+W*((b.roof==='asym')?b.rr:.5);
   pts=b.roof==='gambrel'?[[l,0],[l+(ax-l)*.45,h*.68],[ax,h],[ax+(r-ax)*.55,h*.68],[r,0]]:[[l,0],[ax,h],[r,0]]}
  const d=flat?22:18,hAt=x=>{if(x<=pts[0][0])return pts[0][1];for(let i=1;i<pts.length;i++){if(x<=pts[i][0]){const a=pts[i-1],c=pts[i];return c[0]===a[0]?c[1]:a[1]+(c[1]-a[1])*(x-a[0])/(c[0]-a[0])}}return pts[pts.length-1][1]};
@@ -77,6 +78,7 @@ const fname=k=>k<BB()?'B'+(BB()-k):(k-BB()+1)+'F';
 const fnameKo=k=>k<BB()?'지하 '+(BB()-k)+'층':(k-BB()+1)+'층';
 const EH=()=>lvl(S.b.f);
 const sl=k=>(S.b.sk&&S.b.sk[k])||S.b.s; // k번째 슬래브(k층 바닥 아래) 두께
+const outsideX=x=>{let l=1e9,r=-1e9;for(let k=0;k<S.b.f;k++){l=Math.min(l,XL(k));r=Math.max(r,XR(k))}return x<l||x>r};   // 가구 중심이 건물 폭 밖이면 '건물 밖'
 const nearLevel=e=>{let best=0,bd=1e9;for(let k=0;k<S.b.f;k++){const d=Math.abs(e-lvl(k));if(d<bd){bd=d;best=k}}return {k:best,d:bd}};
 function subIv(a,b,cuts){let segs=[[a,b]];for(const [c0,c1] of cuts){const n=[];for(const [x0,x1] of segs){if(c1<=x0||c0>=x1){n.push([x0,x1]);continue}if(c0>x0)n.push([x0,c0]);if(c1<x1)n.push([c1,x1])}segs=n}return segs.filter(g=>g[1]-g[0]>0.01)}
 /* ---------- 뷰포트 ---------- */
@@ -339,7 +341,8 @@ function render(){try{fillRoomSel()}catch(e){}const b=S.b,N=b.f,E=EH(),t=b.t,s=b
  // 실내 뒷벽면(벽지): 층마다 다르게 고를 수 있음
  const wallBg=mk('g',{},svg);
  for(let k=0;k<N;k++){const y0=lvl(k),y1=lvl(k+1)-sl(k+1);mk('rect',{x:XL(k)+t,y:-y1,width:XR(k)-XL(k)-2*t,height:Math.max(1,y1-y0),fill:wpFill(b.wp[k])},wallBg);
-  for(const r of roomsOf(k)){const v=S.wpr[r.key];if(v&&v!==b.wp[k]&&r.right>r.left)mk('rect',{x:r.left,y:-y1,width:r.right-r.left,height:Math.max(1,y1-y0),fill:wpFill(v)},wallBg)}}   // 방(벽 사이 칸)마다 따로 고른 벽지
+  for(const r of roomsOf(k)){const v=S.wpr[r.key];if(v&&v!==b.wp[k]&&r.right>r.left)mk('rect',{x:r.left,y:-y1,width:r.right-r.left,height:Math.max(1,y1-y0),fill:wpFill(v)},wallBg)}
+  for(const r of roomsOf(k)){if(S.rfl[r.key]&&sl(k)>0&&r.right>r.left){const v=S.wpr[r.key]||b.wp[k];mk('rect',{x:r.left,y:-lvl(k),width:r.right-r.left,height:sl(k),fill:wpFill(v)},wallBg)}}}   // 방(벽 사이 칸)마다 따로 고른 벽지 · 바닥 없음/기둥만이면 슬래브 두께 자리까지 뒷벽을 채움
  const RG=roofGeo(),GO=!!RG&&RG.go,ut=RG?RG.ut:(()=>E);   // 박공·경사 지붕: 천장 슬래브 없이 벽이 지붕 안쪽 면까지 올라감
  if(GO&&N>0){const y1=lvl(N)-sl(N),xa=XL(N-1)+t,xb=XR(N-1)-t,mid=RG.pts.filter(p=>p[0]>xa&&p[0]<xb).map(p=>[p[0],RG.ut(p[0])]).reverse();
   mk('polygon',{points:[[xa,y1],[xb,y1],[xb,RG.ut(xb)],...mid,[xa,RG.ut(xa)]].map(p=>`${p[0]},${-p[1]}`).join(' '),fill:wpFill(b.wp[N-1])},wallBg)}
@@ -458,7 +461,7 @@ function newItem(a,x,e){const view=avail(a)[0];const v=a.views[view];const h0=(a
  return {uid:uid(),assetId:a.assetId,view,x:Math.round(x),e,w:+w.toFixed(1),h:+hh.toFixed(1),flip:false,cs:'proj',z:(Math.max(0,...S.items.map(i=>i.z))+1)}}
 function addAsset(id,x,y){const a=AM[id];if(!a||!avail(a).length)return;const b=S.b;
  let e=lvl(Math.min(curF,b.f-1));if(y!==undefined){const ee=-y;const n=nearLevel(ee);e=n.d<40?lvl(n.k):Math.max(lvl(0),Math.round(ee))}
- const xx=x===undefined?Math.min(Math.max(b.w/2,b.t+30),b.w-b.t-30):x;const it=newItem(a,xx,e);S.items.push(it);sel=it.uid;commit();render()}
+ const xx=x===undefined?Math.min(Math.max(b.w/2,b.t+30),b.w-b.t-30):x;if(outsideX(xx))e=gE();const it=newItem(a,xx,e);S.items.push(it);sel=it.uid;commit();render()}
 const cur=()=>S.items.find(i=>i.uid===sel);
 function dup(){const ob=findObj(sel);if(!ob)return;const o=ob.o;
  if(ob.k==='item'){const c={...clone(o),uid:uid(),x:o.x+40,z:Math.max(...S.items.map(i=>i.z))+1};S.items.push(c);sel=c.uid}
@@ -553,9 +556,12 @@ function snapMove(it,x,e,alt){const r=pxcm(),thr=Math.max(3,8*r);let gx=null,gy=
  const fk=nearLevel(it.e).k,xs=[XL(fk)+S.b.t,XR(fk)-S.b.t];S.parts.forEach(p=>xs.push(p.x-p.t/2,p.x+p.t/2));S.items.forEach(o=>{if(o.uid!==it.uid)xs.push(o.x-o.w/2,o.x,o.x+o.w/2)});
  let bd=thr+1,dx=0;for(const c of xs)for(const off of [-it.w/2,0,it.w/2]){const d=c-(x+off);if(Math.abs(d)<bd){bd=Math.abs(d);dx=d;gx=c}}
  if(bd<=thr)x+=dx;else{gx=null;x=Math.round(x)}
- const ys=[];for(let k=0;k<S.b.f;k++){ys.push([lvl(k),0]);ys.push([lvl(k+1)-sl(k+1),it.h])}S.items.forEach(o=>{if(o.uid!==it.uid){ys.push([o.e+o.h,0],[o.e,it.h])}});
+ const ys=[];for(let k=0;k<S.b.f;k++){ys.push([lvl(k),0]);ys.push([lvl(k+1)-sl(k+1),it.h])}
+ if(outsideX(x))ys.push([gE(),0]); /* 건물 밖: 지면에 붙임 */
+ S.items.forEach(o=>{if(o.uid!==it.uid){ys.push([o.e+o.h,0],[o.e,it.h])}});
  let bd2=thr+1,dy=0;for(const [c,off] of ys){const d=c-(e+off);if(Math.abs(d)<bd2){bd2=Math.abs(d);dy=d;gy=c}}
  if(bd2<=thr)e+=dy;else{gy=null;e=Math.round(e)}
+ if(outsideX(x)&&Math.abs(e-gE())<=thr*3){e=gE();gy=gE()}
  return {x,e,gx,gy}}
 function guides(gx,gy){const E=EH(),W=bounds().r;if(gx!==null)mk('line',{class:'guide',x1:gx,y1:-(E+120),x2:gx,y2:-lvl(0)+80},svg);if(gy!==null)mk('line',{class:'guide',x1:bounds().l-100,y1:-gy,x2:W+100,y2:-gy},svg)}
 function setTool(n){tool=n;svg.style.cursor=n?'crosshair':'';const b=$('#pDraw');if(b)b.classList.toggle('on',!!n);svg.querySelectorAll('.guide').forEach(g=>g.remove());if(n)msg('벽을 넣을 층 안쪽을 클릭하세요 (Esc 취소)')}
@@ -586,7 +592,7 @@ function handleMove(ev){const p=toWorld(ev);
  if(!drag){if(tool==='wall'){svg.querySelectorAll('.guide').forEach(g=>g.remove());const w=wallPos(p);if(w&&w.x!==null)mk('line',{class:'guide',x1:w.x,y1:-lvl(w.k),x2:w.x,y2:-(lvl(w.k+1)-sl(w.k+1))},svg)}return}
  if(drag.m==='mv'){const it=drag.it,r=pxcm();if(!drag.moved&&Math.hypot(ev.clientX-drag.sx,ev.clientY-drag.sy)<3)return;drag.moved=true;
   let x=p.x-drag.dx,e=-(p.y-drag.dy);if(ev.shiftKey){if(Math.abs(p.x-drag.p0.x)>Math.abs(p.y-drag.p0.y))e=drag.e0;else x=drag.x0}
-  const q=snapMove(it,x,e,ev.altKey);it.x=q.x;it.e=Math.max(lvl(0),q.e);
+  const q=snapMove(it,x,e,ev.altKey);it.x=q.x;it.e=Math.max(outsideX(q.x)?Math.min(gE(),lvl(0)):lvl(0),q.e);
   const gg=svg.querySelector(`.itm[data-uid="${it.uid}"]`);if(gg)gg.setAttribute('transform',`translate(${it.x-it.w/2} ${-it.e-it.h})`+(it.flip?` translate(${it.w} 0) scale(-1 1)`:''));drawSel();guides(q.gx,q.gy)}
  else if(drag.m==='og'){const {k,o}=drag.ob,s0=drag.s,dx=p.x-drag.p0.x,dy=p.y-drag.p0.y;if(!drag.moved&&Math.abs(dx)+Math.abs(dy)<3*pxcm())return;drag.moved=true;const sn=v=>Math.round(v/5)*5;
   if(k==='part')o.x=clamp(sn(s0.x+dx),XL(o.f)+S.b.t+o.t,XR(o.f)-S.b.t-o.t);
@@ -645,7 +651,10 @@ function sync(){const b=S.b,B=BB();try{fillRoomSel()}catch(e){}{const br=$('#br'
  $('#fhList').innerHTML=b.hs.map((h,k)=>`<label class="sub">${fnameKo(k)} 층고 / 위 슬래브(cm)<span class="two"><input type="number" data-fh="${k}" value="${h}" min="220" max="500" step="5"><input type="number" data-sk="${k+1}" value="${sl(k+1)}" min="10" max="60" step="5"></span></label>`).join('');
  $('#fhList').querySelectorAll('[data-fh]').forEach(i=>i.onchange=e=>{b.hs[+i.dataset.fh]=clamp(+e.target.value||b.h,220,500);reflow();commit();sync();render();fit()});
  $('#fhList').querySelectorAll('[data-sk]').forEach(i=>i.onchange=e=>{b.sk[+i.dataset.sk]=clamp(+e.target.value||b.s,10,60);commit();sync();render()});
- let h='';for(let k=b.f-1;k>=0;k--){h+=`<div class="rmh">${fnameKo(k)}</div>`;roomsOf(k).forEach((r,i)=>{h+=`<div class="rm"><input data-rn="${esc(r.key)}" value="${esc(S.rooms[r.key]||'')}" placeholder="방 ${i+1} 이름"><input type="number" data-rw="${esc(r.key)}" value="${Math.round(r.right-r.left)}" step="10" min="60" ${r.rightPart?'':'disabled title="오른쪽이 외벽이라 폭은 건물 폭으로 정해져요"'}><span class="u">cm</span><select data-rf="${esc(r.key)}" title="이 방의 바닥">${[['','바닥'],['none','바닥 없음'],['posts','기둥만']].map(([v,t2])=>`<option value="${v}" ${(S.rfl[r.key]||'')===v?'selected':''}>${t2}</option>`).join('')}</select></div>`})}
+ let h='';for(let k=b.f-1;k>=0;k--){h+=`<div class="rmh">${fnameKo(k)}</div>`;roomsOf(k).forEach((r,i)=>{h+=`<div class="rm"><input data-rn="${esc(r.key)}" value="${esc(S.rooms[r.key]||'')}" placeholder="방 ${i+1} 이름"><input type="number" data-rw="${esc(r.key)}" value="${Math.round(r.right-r.left)}" step="10" min="60" ${r.rightPart?'':'disabled title="오른쪽이 외벽이라 폭은 건물 폭으로 정해져요"'}><span class="u">cm</span></div>`})}
+ h+=`<p class="hint">벽을 추가하면 층마다 벽 사이가 방으로 나뉘어요. 방 이름·폭은 여기서 고치고, 벽은 도면에서 끌어 옮길 수 있어요.</p>`;
+ h+=`<div class="rm-div" role="separator"></div><div class="rm-h">바닥 설정 <small>1층만</small></div>`;
+ roomsOf(0).forEach((r,i)=>{h+=`<div class="rm rm-fl"><span class="rm-nm">${esc(S.rooms[r.key]||('방 '+(i+1)))}</span><select data-rf="${esc(r.key)}" title="이 방의 바닥">${[['','바닥 있음'],['none','바닥 없음'],['posts','기둥만']].map(([v,t2])=>`<option value="${v}" ${(S.rfl[r.key]||'')===v?'selected':''}>${t2}</option>`).join('')}</select></div>`});
  $('#rmList').innerHTML=h;
  $('#rmList').querySelectorAll('[data-rf]').forEach(i=>i.onchange=e=>{if(e.target.value)S.rfl[i.dataset.rf]=e.target.value;else delete S.rfl[i.dataset.rf];commit();render()});
  $('#rmList').querySelectorAll('[data-rn]').forEach(i=>i.onchange=e=>{S.rooms[i.dataset.rn]=e.target.value;commit();render()});
@@ -815,12 +824,12 @@ function renderLib(){const L=filtered();$('#count').textContent=`${L.length}개`
 let qT=0;
 $('#more').onclick=()=>{shown+=60;renderLib()};$('#q').addEventListener('input',()=>{clearTimeout(qT);qT=setTimeout(()=>{shown=60;renderLib()},120)});['fcat','onlySide'].forEach(i=>$('#'+i).addEventListener('input',()=>{shown=60;renderLib()}));
 /* ---------- 내 단면도: 이 브라우저에 자동 저장(최대 5개) ---------- */
-const SLOT_MAX=5,SK='sectionSite.slots',OLD_AUTO='sectionSite.auto',OLD_SAVES='sectionSite.saves';
+const SLOT_MAX=10,SK='sectionSite.slots',OLD_AUTO='sectionSite.auto',OLD_SAVES='sectionSite.saves';
 let SL={v:1,cur:'1',slots:{}};
 const blankDoc=()=>({v:2,title:'',b:{...DEF_B},parts:[],items:[]});
 function slotsRead(){try{const j=JSON.parse(localStorage.getItem(SK)||'null');if(j&&j.slots&&typeof j.slots==='object'){SL={v:1,cur:String(j.cur||'1'),slots:j.slots};return true}}catch(e){}return false}
 function slotsMigrate(){ // 예전 버전의 자동 저장/이름 저장이 있으면 슬롯으로 옮김
- const put=(name,doc,t)=>{const id=[1,2,3,4,5].map(String).find(i=>!SL.slots[i]);if(id&&doc&&doc.b&&doc.items)SL.slots[id]={name,t:t||Date.now(),doc}};
+ const put=(name,doc,t)=>{const id=Array.from({length:SLOT_MAX},(_,i)=>String(i+1)).find(i=>!SL.slots[i]);if(id&&doc&&doc.b&&doc.items)SL.slots[id]={name,t:t||Date.now(),doc}};
  try{const a=JSON.parse(localStorage.getItem(OLD_AUTO)||'null');if(a)put('',a)}catch(e){}
  try{const o=JSON.parse(localStorage.getItem(OLD_SAVES)||'{}');Object.entries(o).sort((x,y)=>(y[1].t||0)-(x[1].t||0)).forEach(([n,v])=>put(n,v.data,v.t))}catch(e){}
  SL.cur=Object.keys(SL.slots)[0]||'1'}
@@ -832,43 +841,37 @@ function persistNow(){clearTimeout(pT);pT=0;if(!READY)return;try{uaEmbed(S);cons
 function persist(){clearTimeout(pT);pT=setTimeout(persistNow,350)}
 addEventListener('pagehide',()=>{if(pT)persistNow()});document.addEventListener('visibilitychange',()=>{if(document.hidden&&pT)persistNow()});
 const slotKind=id=>{try{return HK.slotKind(id)||'own'}catch(e){return 'own'}};
-function slotBtn(){const b=$('#bSlots'),j=$('#bSlotsJ');const ids=Object.keys(SL.slots),nj=ids.filter(i=>slotKind(i)==='joined').length;let pend=0;try{pend=HK.joined().filter(h=>h.linkSlot==null||!SL.slots[h.linkSlot]).length}catch(e){}
- if(b){b.textContent=`내 집 (${ids.length-nj})`;b.classList.toggle('on',slotKind(SL.cur)!=='joined')}
- if(j){j.textContent=`더부살이 집 (${nj+pend})`;j.classList.toggle('on',slotKind(SL.cur)==='joined')}}
+function slotBtn(){const b=$('#bSlots');let pend=0;try{pend=HK.joined().filter(h=>h.linkSlot==null||!SL.slots[h.linkSlot]).length}catch(e){}
+ if(b)b.textContent=`내 집 (${Object.keys(SL.slots).length+pend}/${SLOT_MAX})`}
 function dlg(html){const d=$('#dlg');d.innerHTML=html+'<form method="dialog" style="margin-top:10px"><button>닫기</button></form>';d.showModal();return d}
 const cleanName=n=>String(n||'').replace(/[\\/:*?"<>|\u0000-\u001f]/g,'').trim().slice(0,80);
-function askName(title,def,ext){return new Promise(res=>{const d=$('#dlg');d.innerHTML=`<h3>${esc(title)}</h3><div class="row" style="align-items:center"><input id="fnIn" style="flex:1;width:auto" value="${esc(def)}">${ext?`<span>.${ext}</span>`:''}</div><form method="dialog" style="margin-top:10px;display:flex;gap:6px"><button value="ok">저장</button><button value="cancel">취소</button></form>`;
+async function askName(title,def,ext){const d0=$('#dlg');if(d0.open)d0.close();await new Promise(r=>setTimeout(r,40))   // 앞 창의 close 이벤트가 새 이름 창을 바로 닫아 버리지 않도록 먼저 닫고 기다림
+ return new Promise(res=>{const d=$('#dlg');d.innerHTML=`<h3>${esc(title)}</h3><div class="row" style="align-items:center"><input id="fnIn" style="flex:1;width:auto" value="${esc(def)}">${ext?`<span>.${ext}</span>`:''}</div><form method="dialog" style="margin-top:10px;display:flex;gap:6px"><button value="ok">저장</button><button value="cancel">취소</button></form>`;
   d.onclose=()=>{d.onclose=null;const v=cleanName($('#fnIn')&&$('#fnIn').value);res(d.returnValue==='ok'?(v||def):null)};d.returnValue='';d.showModal();const i=$('#fnIn');i.select();i.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();d.close('ok')}}})}
 const baseName=()=>cleanName(slotName(SL.cur))||cleanName(S.title)||'단면도';
 function load(data){S=norm(clone(data));hist=[JSON.stringify(S)];fut=[];sel=null;curF=BB();sync();render();fit();btns();persistNow()}
 function openSlot(id){if(!SL.slots[id]||id===SL.cur)return;persistNow();SL.cur=id;load(SL.slots[id].doc);msg('열었어요: '+slotName(id))}
-function newSlot(){const id=[1,2,3,4,5].map(String).find(i=>!SL.slots[i]);if(!id){msg(`단면도는 최대 ${SLOT_MAX}개까지 만들 수 있어요. 하나를 지우고 다시 시도하세요`);openSlots();return false}
+function newSlot(){const id=Array.from({length:SLOT_MAX},(_,i)=>String(i+1)).find(i=>!SL.slots[i]);if(!id){msg(`단면도는 최대 ${SLOT_MAX}개까지 만들 수 있어요. 하나를 지우고 다시 시도하세요`);openSlots();return false}
  persistNow();SL.cur=id;SL.slots[id]={name:'',t:Date.now(),doc:blankDoc()};load(blankDoc());msg('새 단면도를 만들었어요');return true}
-function openSlots(kind){kind=kind==='joined'?'joined':'own';persistNow();
+function openSlots(){persistNow();
  const when=x=>new Date(x.t||0).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
- const ids=[1,2,3,4,5].map(String);
- const row=id=>{const x=SL.slots[id];return `<div class="it"><span><b>${esc(slotName(id))}</b>${id===SL.cur?' <em style="color:#2e8b57;font-style:normal">· 작업 중</em>':''}<br><small style="color:#8a8493">칸 ${id} · ${esc(when(x))} · 가구 ${(x.doc.items||[]).length}개</small></span><span><button data-o="${id}" ${id===SL.cur?'disabled':''}>열기</button> <button data-r="${id}">이름</button> <button data-d="${id}">${kind==='joined'?'내 사본 삭제':'삭제'}</button></span></div>`};
- let rows='',title,note;
- if(kind==='own'){
-  rows=ids.filter(id=>SL.slots[id]&&slotKind(id)!=='joined').map(row).join('');
-  const emptyId=ids.find(id=>!SL.slots[id]);
-  rows+=emptyId?`<div class="it"><span style="color:#8a8493">빈 칸이 ${ids.filter(id=>!SL.slots[id]).length}개 남았어요</span><span><button data-n="${emptyId}">새로 만들기</button></span></div>`:'<div class="hint">칸이 가득 찼어요(내 집과 더부살이 집을 합쳐 최대 '+SLOT_MAX+'칸). 하나를 지우면 새로 만들 수 있어요.</div>';
-  title='내 집';note='내가 만든 단면도예요. 작업 내용은 이 기기·이 브라우저에 <b>자동 저장</b>돼요. (다른 기기·다른 브라우저, 시크릿 창, 사이트 데이터 삭제 시에는 보이지 않아요)'}
- else{
-  rows=ids.filter(id=>SL.slots[id]&&slotKind(id)==='joined').map(row).join('');
-  let pend=[];try{pend=HK.joined().filter(h=>h.linkSlot==null||!SL.slots[h.linkSlot])}catch(e){}
-  rows+=pend.map(h=>`<div class="it"><span><b>${esc(h.name)}</b><br><small style="color:#8a8493">아직 편집기에 열지 않은 공유 집</small></span><span><button data-h="${esc(h.hid)}">편집기에서 열기</button></span></div>`).join('');
-  if(!rows)rows='<div class="hint">초대 코드로 입장한 집이 아직 없어요. 비바리움 관찰 탭의 「입장하기」로 들어오면 여기에 나타나요.</div>';
-  title='더부살이 집';note='초대 코드로 입장한 집이에요. 여기서 고친 내용은 <b>「저장 (공유)」</b>을 눌러야 이 집의 모든 참여자에게 반영돼요. 저장 전의 변경은 나만 볼 수 있어요.'}
- const d=dlg(`<h3>${title}</h3>${rows}<p class="hint">${note}</p>`);
+ const ids=Array.from({length:SLOT_MAX},(_,i)=>String(i+1));
+ const row=id=>{const x=SL.slots[id],jn=slotKind(id)==='joined';return `<div class="it"><span class="it-main"><b>${esc(slotName(id))}</b>${jn?' <em class="it-on">공동</em>':''}${id===SL.cur?' <em class="it-on">작업 중</em>':''}<small>${esc(when(x))} · 가구 ${(x.doc.items||[]).length}개</small></span><span class="it-btn"><button data-o="${id}" ${id===SL.cur?'disabled':''}>열기</button><button data-r="${id}">이름 바꾸기</button><button data-d="${id}" class="ex-del">${jn?'내 사본 삭제':'삭제'}</button></span></div>`};
+ let rows=ids.filter(id=>SL.slots[id]).map(row).join('');
+ let pend=[];try{pend=HK.joined().filter(h=>h.linkSlot==null||!SL.slots[h.linkSlot])}catch(e){}
+ rows+=pend.map(h=>`<div class="it"><span class="it-main"><b>${esc(h.name)}</b> <em class="it-on">공동</em><small>아직 편집기에 열지 않았어요</small></span><span class="it-btn"><button data-h="${esc(h.hid)}">열기</button></span></div>`).join('');
+ const emptyId=ids.find(id=>!SL.slots[id]);
+ rows+=emptyId?`<div class="it it-empty"><span class="it-main"><small>빈 칸 ${ids.filter(id=>!SL.slots[id]).length}개</small></span><span class="it-btn"><button data-n="${emptyId}" class="ex-add">새로 만들기</button></span></div>`:'<div class="hint">칸이 가득 찼어요(최대 '+SLOT_MAX+'칸). 하나를 지우면 새로 만들 수 있어요.</div>';
+ const title='내 집',note='「공동」은 입장하기로 함께 쓰는 집이에요. 「저장 (공유)」을 눌러야 모두에게 반영돼요';
+ const d=dlg(`<h3>${title}</h3><div class="it-list">${rows}</div><p class="hint">${note}</p>`);
  d.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{d.close();openSlot(b.dataset.o)});
  d.querySelectorAll('[data-h]').forEach(b=>b.onclick=async()=>{d.close();if(HK.openHouse)await HK.openHouse(b.dataset.h);slotBtn()});
  d.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{d.close();persistNow();const id=b.dataset.n;SL.cur=id;SL.slots[id]={name:'',t:Date.now(),doc:blankDoc()};load(blankDoc());msg('새 단면도를 만들었어요')});
- d.querySelectorAll('[data-r]').forEach(b=>b.onclick=async()=>{d.close();const id=b.dataset.r;const n=await askName('단면도 이름',slotName(id),'');if(n){SL.slots[id].name=n;persistNow()}openSlots(kind)});
- d.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{const id=b.dataset.d;if(!confirm(kind==='joined'?`'${slotName(id)}' 의 내 작업 사본을 지울까요? 공유 집의 도면은 그대로 남아요.`:`'${slotName(id)}' 을(를) 지울까요? 되돌릴 수 없어요.`))return;d.close();delete SL.slots[id];
+ d.querySelectorAll('[data-r]').forEach(b=>b.onclick=async()=>{d.close();const id=b.dataset.r;const n=await askName('단면도 이름',slotName(id),'');if(n){SL.slots[id].name=n;persistNow()}openSlots()});
+ d.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{const id=b.dataset.d;if(!confirm(slotKind(id)==='joined'?`'${slotName(id)}' 의 내 작업 사본을 지울까요? 공유 집의 도면은 그대로 남아요.`:`'${slotName(id)}' 을(를) 지울까요? 되돌릴 수 없어요.`))return;d.close();delete SL.slots[id];
    if(id===SL.cur){const nx=Object.keys(SL.slots)[0];if(nx){SL.cur=nx;load(SL.slots[nx].doc)}else{SL.cur=id;SL.slots[id]={name:'',t:Date.now(),doc:blankDoc()};load(blankDoc())}}
-   persistNow();openSlots(kind)})}
-$('#bSlots').onclick=()=>openSlots('own');$('#bSlotsJ').onclick=()=>openSlots('joined');$('#uaAdd').onclick=openUaDialog;
+   persistNow();openSlots()})}
+$('#bSlots').onclick=()=>openSlots();$('#uaAdd').onclick=openUaDialog;
 $('#bSave').onclick=async()=>{if(HK.save&&await HK.save())return;   // 공유 집과 연결된 단면도면 서버 저장
   const n=await askName('이 단면도의 이름 (이 브라우저에 저장)',slotName(SL.cur),'');if(!n)return;SL.slots[SL.cur]=SL.slots[SL.cur]||{};SL.slots[SL.cur].name=n;persistNow();msg('저장했어요: '+n)};
 const dl=(blob,name)=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
@@ -939,6 +942,6 @@ window.__sec={get S(){return S},load,render,sync,weights:()=>weights(),stairGeo,
  S.items=S.items.filter(i=>AM[i.assetId]||!Object.keys(AM).length);hist=[JSON.stringify(S)];curF=BB();sync();renderLib();render();fit();btns();applyUI(false);persistNow();
 })();
 /* 비바리움 관찰 탭(viv.js)용 읽기 전용 연결부: 편집기 내부 함수·상태를 그대로 재사용하기 위해 필요한 항목만 노출 */
-function slotCreate(doc,name){const id=[1,2,3,4,5].map(String).find(i=>!SL.slots[i]);if(!id)return null;persistNow();SL.cur=id;SL.slots[id]={name:name||'',t:Date.now(),doc:clone(doc)};load(doc);return id}
+function slotCreate(doc,name){const id=Array.from({length:SLOT_MAX},(_,i)=>String(i+1)).find(i=>!SL.slots[i]);if(!id)return null;persistNow();SL.cur=id;SL.slots[id]={name:name||'',t:Date.now(),doc:clone(doc)};load(doc);return id}
 window.SectionBridge={get ready(){return READY},fit,get VP(){return VP},HK,slotBtn,slotCreate,slotOpen:openSlot,loadDoc:load,msg,get SLOT_MAX(){return SLOT_MAX},get S(){return S},set S(v){S=v},get sel(){return sel},set sel(v){sel=v},get SL(){return SL},get AM(){return AM},norm,render,exportSvg,EH,lvl,sl,fnameKo,OPT,STAIR_ASSET,art,ART,applyVP,persistNow,slotName,esc,roomsOf,stairGeo,roofGeo,fh,BB};
 })();

@@ -1,0 +1,57 @@
+/* 창(내 집 · 이웃하기 · 입장하기 · 이름 · 공유 …) 공통 디자인 — 비바리움 관찰·단면도 편집 첫 화면과 같은 톤:
+   둥근 카드, 알약형 입력·버튼, 짧은 문구. 직사각형 테두리와 긴 설명을 걷어 냄. */
+dialog{--dx-ink:#2b2b2a;--dx-mut:#7c7b75;--dx-ln:#e0dfd8;--dx-card:#fbfaf7;--dx-soft:#f1f0ea;
+ border:0;border-radius:24px;background:var(--dx-card);color:var(--dx-ink);padding:0;width:min(92vw,400px);max-width:400px;box-shadow:0 18px 50px rgba(30,30,25,.22),0 2px 8px rgba(30,30,25,.08)}
+dialog::backdrop{background:rgba(40,40,35,.28);backdrop-filter:blur(2px)}
+dialog>h3,dialog .vv-form>h3{margin:0 0 6px;font-size:20px;font-weight:700;letter-spacing:-.01em;font-style:normal;text-transform:none}
+dialog#dlg,dialog .vv-form{padding:24px 24px 20px}
+dialog#dlg>h3{margin-bottom:10px}
+dialog .hint,dialog p.hint{color:var(--dx-mut);font-size:13px;line-height:1.55;margin:2px 0 14px}
+dialog label{display:block;margin:12px 0 0;font-size:13px;color:var(--dx-mut);font-weight:600}
+dialog label>span{display:block;margin:0 0 5px 4px}
+dialog label small{font-weight:400}
+dialog input:not([type=checkbox]):not([type=radio]):not([type=range]),dialog select,dialog textarea{width:100%;box-sizing:border-box;display:block;border:1px solid var(--dx-ln);background:#fff;border-radius:999px;padding:11px 16px;font:inherit;font-size:15px;color:var(--dx-ink);outline:0;transition:border-color .15s,box-shadow .15s}
+dialog textarea{border-radius:16px}
+dialog select{appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%237c7b75' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 16px center;padding-right:38px}
+dialog input:focus,dialog select:focus,dialog textarea:focus{border-color:#2b2b2a;box-shadow:0 0 0 3px rgba(43,43,42,.1)}
+dialog input.vv-codein{text-align:center;letter-spacing:.28em;font-size:22px;font-weight:700;text-transform:uppercase;padding:13px 16px}
+dialog input.vv-codein::placeholder{letter-spacing:.1em;font-size:14px;font-weight:400;text-transform:none;color:#a8a7a0}
+dialog .vv-err{color:#b0443c;min-height:0;margin:8px 4px 0;font-size:13px}
+dialog .vv-err:empty{display:none}
+/* 버튼: 알약형 */
+dialog button,dialog .vv-btns button{border:1px solid var(--dx-ln);background:#fff;color:var(--dx-ink);border-radius:999px;padding:9px 18px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s}
+dialog button:hover:not(:disabled){background:var(--dx-soft);border-color:#c9c8c0}
+dialog button:disabled{opacity:.45;cursor:default}
+dialog button.vv-primary,dialog form[method=dialog] button[value=ok]{background:#1c1c1c;border-color:#1c1c1c;color:#fff}
+dialog button.vv-primary:hover:not(:disabled),dialog form[method=dialog] button[value=ok]:hover{background:#3a3a38;border-color:#3a3a38}
+dialog .vv-btns,dialog form[method=dialog]{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+dialog form[method=dialog]:has(button:only-child){margin-top:14px}
+dialog button.ex-add{background:#1c1c1c;border-color:#1c1c1c;color:#fff}dialog button.ex-add:hover:not(:disabled){background:#3a3a38;border-color:#3a3a38}
+dialog button.ex-del,dialog .vv-danger{color:#b0443c}
+/* 목록(내 집 · 이웃 신청) — 줄 대신 둥근 카드 */
+dialog .it-list,dialog .nb-list{display:flex;flex-direction:column;gap:8px;list-style:none;margin:8px 0 4px;padding:0}
+dialog .it,dialog .nb-list li{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--dx-ln);border-radius:16px;background:#fff;padding:11px 14px}
+dialog .it.it-empty{background:transparent;border-style:dashed}
+dialog .it-main{display:flex;flex-direction:column;min-width:0}
+dialog .it-main b{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+dialog .it-main small{color:var(--dx-mut);font-size:12px;margin-top:2px}
+dialog .it-on{font-style:normal;font-size:11px;font-weight:700;color:#fff;background:#1c1c1c;border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:1px}
+dialog .it-btn{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+dialog .it-btn button,dialog .nb-list button{padding:6px 12px;font-size:12.5px}
+dialog h4{margin:16px 0 4px 4px;font-size:13px;font-weight:700;color:var(--dx-mut);font-style:normal;text-transform:none;letter-spacing:0;border:0}
+dialog details.vv-rec{margin:14px 0 0;font-size:13px;color:var(--dx-mut)}dialog details.vv-rec summary{cursor:pointer;padding:4px 4px;font-weight:600}
+dialog .vv-code{border-radius:18px}
+/* ── 단면도 편집 · 건물 · 내벽·방 ── */
+#tHouse .rm{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}
+#tHouse .rm-div{height:0;border-top:1px solid var(--ex-ln,#d9d8d2);margin:16px 2px 12px}
+#tHouse .rm-h{font-size:12.5px;font-weight:700;margin:0 0 6px;color:var(--ex-ink,#2b2b2a)}#tHouse .rm-h small{font-weight:400;color:var(--ex-mut,#7c7b75);margin-left:4px}
+#tHouse .rm-fl .rm-nm{flex:1;min-width:60px;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tHouse .rm-fl select{flex:0 0 130px}
+#tHouse .wh{font-size:12.5px;font-weight:700;margin:2px 0 6px}
+/* 추가 · 바꾸기 · 붙이기 버튼 — 검정 바탕 + 흰 글씨로 통일 */
+#lib #pAdd,#lib #pDraw,#lib #xrAdd,#lib #chAdd,#lib #tfAdd,#lib #oAdd,#lib #sAdd,#lib #oxAdd,#lib #uaAdd,#lib #wpuAdd,#lib #wxApply,#lib #rowRF,#lib #raAdd{background:#1c1c1c!important;border-color:#1c1c1c!important;color:#fff!important}
+#lib #pAdd:hover,#lib #pDraw:hover,#lib #xrAdd:hover,#lib #chAdd:hover,#lib #tfAdd:hover,#lib #oAdd:hover,#lib #sAdd:hover,#lib #oxAdd:hover,#lib #uaAdd:hover,#lib #wpuAdd:hover,#lib #wxApply:hover,#lib #rowRF:hover,#lib #raAdd:hover{background:#3a3a38!important}
+#lib #pDraw.on{background:#fff!important;color:#1c1c1c!important;border-color:#1c1c1c!important}
+#lib #pAdd{white-space:nowrap;padding-left:10px;padding-right:10px}
+#tHouse .row{align-items:stretch}
+#tHouse [hidden],#lib [hidden]{display:none!important}

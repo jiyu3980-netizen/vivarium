@@ -10,6 +10,7 @@ const MIN=60000,HOUR=3600000,DAY=86400000;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const hash=s=>{let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0};
 const mulberry=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const SOC=()=>api._soc||null,DEC=()=>api._dec||null,CHN=()=>api._chn||null;
 const tvOf=(A,k)=>(A&&A.traits&&A.traits[k])||0;
 const ga=n=>{n=String(n||'');const c=n.charCodeAt(n.length-1);return c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28?`${n}이`:`${n}가`};
 const eun=n=>{n=String(n||'');const c=n.charCodeAt(n.length-1);return c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28?`${n}은`:`${n}는`};
@@ -228,6 +229,15 @@ function targets(s,c,env,loc){
   for(const o of loc.sameRoom||[]){const R=s.rel[pk(c.id,o)];if(!R)continue;const g2=agg(s,c.id,o,env.now),nm=env.name(o);
     if(g2.negPow>=25){const k=Math.min(30,g2.negPow*.4);T.anxious+=k*.6;T.irritated+=k*.5;C.anxious=C.irritated=`${nm}와(과) 함께 있으니 지난 일이 떠올라서`}
     if(g2.posPow>=25&&R.aff>=20){const k=Math.min(18,g2.posPow*.25);T.happy+=k;C.happy=`${nm}와(과) 함께 있어서`;T.lonely*=.6}}
+  /* v23.22 위화감 → 현재 감정: 체류가 길어지고 이상현상을 겪어 마음이 무거울수록 감정이 달라짐. 성격(반응 유형)마다 방향이 다르다 */
+  {const U=env.unc&&!sleeping&&!out?env.unc(c.id):null;
+    if(U&&U.st&&U.st!=='stable'){const lv={uneasy:1,unstable:2,damaged:3}[U.st]||0,b=U.b||0,stay=Math.min(12,Math.max(0,U.days-2)*.8),rc=U.rc||'rational';
+      const k=Math.min(55,b*.55+stay);   // 위화감의 무게(0~55)
+      const mul={anxious:{anxious:1.15,irritated:.25,tired:.15},curious:{anxious:.35,curious:.5},rational:{anxious:.75,irritated:.15},avoidant:{anxious:.5,lonely:.45},resigned:{anxious:.55,sad:.45,tired:.2}}[rc]||{anxious:.7};
+      for(const id in mul)T[id]=(T[id]||0)+k*mul[id]*(1+.12*lv);
+      T.calm=Math.max(0,T.calm-Math.min(30,k*.5));
+      if(k>=8){const why={anxious:'이 집에서 자꾸 이상한 느낌이 들어서',curious:'이 집의 이상한 점이 계속 마음에 걸려서',rational:'설명되지 않는 위화감이 이어져서',avoidant:'이상한 느낌을 애써 외면하다 보니 마음이 가라앉아서',resigned:'바뀌지 않는 이상한 일상에 지쳐서'}[rc]||'이상한 느낌이 이어져서';
+        if(mul.anxious)C.anxious=why;if(mul.sad)C.sad=why;if(mul.lonely&&(T.lonely||0)>=SHOW_MIN)C.lonely=why;if(mul.curious&&(T.curious||0)>=SHOW_MIN)C.curious=why}}}
   for(const k of EMO_IDS)T[k]=clamp(T[k],0,100);
   return {T,C}}
 function tickChar(s,c,env,loc){
@@ -277,6 +287,7 @@ function applyEvent(s,ev,env){
   if(E.after==='closeQuarrel'){   // 사과를 받으면 다툼 기억의 영향력이 줄어든다(지워지지는 않음)
     for(const [x,y] of [[ev.a,ev.b],[ev.b,ev.a]])for(const m of mems(s,x)){if(m.t==='quarrel'&&m.o===y&&m.open){m.pow=effPow(m,ev.at)*.6;m.at=ev.at;m.open=false}}}
   for(const [x,y] of [[ev.a,ev.b],[ev.b,ev.a]]){reclassify(s,x,y,env);updateThought(s,x,y,env)}
+  if(SOC())SOC().onEvent(s,ev,env);   // v24 관계의 한살이: 다차원 감정·사건 기록·갈등 열기
   return {id:ev.id,type:ev.type,a:ev.a,b:ev.b}}
 
 /* =====================================================================
@@ -285,9 +296,11 @@ function applyEvent(s,ev,env){
    ===================================================================== */
 const PAIR_VERB={bg_pair:'play',bg_floor:'play',pillow:'affection',love_aff:'affection',love_crush:'talk'};
 function makeEnv(s,inp){const byId={};inp.chars.forEach(c=>byId[c.id]=c);
-  return {now:inp.now,hour:inp.hour,day:inp.day,char:id=>byId[id]||null,name:id=>(byId[id]||{}).name||'상대',A:id=>inp.A(byId[id]||{id,name:'',profile:''})}}
+  return {now:inp.now,hour:inp.hour,day:inp.day,char:id=>byId[id]||null,name:id=>(byId[id]||{}).name||'상대',A:id=>inp.A(byId[id]||{id,name:'',profile:''}),unc:id=>(inp.unc?inp.unc(id):null)}}
 function update(s,inp){
   s=migrate(s);const env=makeEnv(s,inp),now=inp.now,log=[],ids=inp.chars.map(c=>c.id);
+  if(!inp.__cu&&SOC()&&SOC().catchUp){try{SOC().catchUp(s,inp,env,i2=>update(s,i2))}catch(e){console.error('[viv catchup]',e)}}   // v24 오프라인 경과 요약(기록만)
+  if(SOC()&&SOC().setPlace)SOC().setPlace(inp);
   /* 0) 같은 집 캐릭터끼리는 처음 만날 때 관계(유형·친밀도)와 첫 생각을 준비 — 프로필에 적힌 관계가 있으면 그대로 반영 */
   for(const x of ids)for(const y of ids)if(x!==y){const had=!!s.rel[pk(x,y)];rel(s,x,y,env);if(!had)updateThought(s,x,y,env)}
   /* 같은 방(함께 있음) 판정 */
@@ -319,6 +332,10 @@ function update(s,inp){
     const a=home[i],b=home[j];if(inp.cur[a].seg==null||inp.cur[a].seg!==inp.cur[b].seg)continue;
     if(inp.cur[a].action==='sleep'||inp.cur[b].action==='sleep')continue;
     const ev=ambient(s,a,b,slice,inp,env);if(ev){const r=applyEvent(s,ev,env);if(r)log.push(r)}}
+  /* 3.5) v24 갈등의 갈래·목격·소문·관계 확인·재회 */
+  if(SOC()){try{SOC().step(s,inp,env,log,log.slice())}catch(e){console.error('[viv social]',e)}}
+  if(CHN()){try{CHN().step(s,inp,env,log)}catch(e){console.error('[viv chain]',e)}}
+  if(DEC()){try{DEC().step(s,inp,env)}catch(e){console.error('[viv decide]',e)}}
   /* 4) 생각 갱신(시간이 지나며 기억 영향력이 줄어드는 것을 반영) — 같은 집 안의 쌍만 */
   for(let i=0;i<ids.length;i++)for(let j=0;j<ids.length;j++)if(i!==j){const k=pk(ids[i],ids[j]);if(s.rel[k]||s.th[k])updateThought(s,ids[i],ids[j],env)}
   /* 5) 오래되어 영향력이 거의 없는 기억 정리 */
@@ -381,7 +398,7 @@ function hooks(s,now){
     const g=agg(s,c,o,now);return {quarrel:g.open,rejected,rejecting}};
   const seed=(c,o,k)=>mulberry(hash(pairKey(c,o)+'|'+k+'|'+c+'|'+Math.floor(now/(15*MIN))));
   const aff=(c,o)=>{const R=s.rel[pk(c,o)];return R?R.aff:0};
-  return {
+  const H={
     /* 둘이서 하는 일반 행동의 지문을 연애 상태에 맞게 바꾼 문장(해당 없으면 null) */
     romLine(c,o,A,B,rng,cname,oname,room,force){const L=LV();if(!L)return null;const role=roleOf(c,o);if(!role)return null;
       const pr=(role==='beloved_u'||role==='beloved_a')?.35:.62;if(!force&&rng()>pr)return null;
@@ -433,7 +450,8 @@ function hooks(s,now){
     acceptMul(o,c){const r=R(o,c);let m=1;
       if(r){const g=agg(s,o,c,now);m=1+r.aff/120;m*=1-Math.min(.5,g.negPow/180);if(r.type==='hostile')m*=.25;else if(r.type==='uneasy')m*=.6}
       m*=1-.35*lvl(o,'irritated')/100-.25*lvl(o,'sad')/100-.2*lvl(o,'tired')/100;
-      return clamp(m,.1,1.6)}}}
+      return clamp(m,.1,1.6)}};
+  const H2=SOC()?SOC().extend(H,s,now,{}):H;const H3=DEC()?DEC().extend(H2,s,now):H2;return CHN()&&CHN().extend?CHN().extend(H3,s,now):H3}
 
 
 /* =====================================================================
@@ -481,6 +499,7 @@ function romSugApply(s,a,b,env){
   if(g.to==='oneside'){setRomance(s,from,to,'oneside',env)}
   else if(g.to==='lover'){setRomance(s,a,b,'lover',env)}
   else if(g.to==='spouse'){setRomance(s,a,b,'spouse',env)}
+  else if(g.to==='ended'){setRomance(s,a,b,'none',env)}
   rv.sug=null;rv.until.confess=Math.max(rv.until.confess||0,env.now+3*HOUR);return romState(s,a,b)}
 function romSugDismiss(s,a,b,env){s=migrate(s);const rv=romRev(s,a,b);rv.sug=null;rv.until.confess=env.now+3*DAY;rv.until.propose=Math.max(rv.until.propose||0,env.now+3*DAY)}
 /* 시뮬레이션이 고른 이벤트 계획이 실제 일어났을 때(update) 결과를 반영 */
@@ -534,12 +553,36 @@ function prune(s,alive){
   for(const k of Object.keys(s.mem)){if(!ok.has(k))delete s.mem[k];else s.mem[k]=s.mem[k].filter(m=>ok.has(m.o))}
   for(const k of Object.keys(s.rel)){const [a,b]=k.split('>');if(!ok.has(a)||!ok.has(b)){delete s.rel[k];delete s.th[k];delete s.rom[k]}}
   for(const k of Object.keys(s.rev)){const [a,b]=k.split('|');if(!ok.has(a)||!ok.has(b))delete s.rev[k]}
+  if(s.soc&&SOC()){const S=s.soc;const ids=new Set();[...Object.keys(S.know||{}),...Object.keys(S.feel||{}).flatMap(k=>k.split('>'))].forEach(x=>ids.add(x));ids.forEach(x=>{if(!ok.has(x))SOC().forget(s,x)})}
   return s}
 
 /* 특정 캐릭터가 삭제될 때만 그 캐릭터의 감정·관계·기억을 지움(다른 기기·다른 집의 데이터는 건드리지 않음) */
-function forget(s,id){s=migrate(s);delete s.emo[id];delete s.last[id];delete s.mem[id];for(const k of Object.keys(s.mem))s.mem[k]=s.mem[k].filter(m=>m.o!==id);for(const k of Object.keys(s.rel)){const [a,b]=k.split('>');if(a===id||b===id){delete s.rel[k];delete s.th[k];delete s.rom[k]}}for(const k of Object.keys(s.rev)){const [a,b]=k.split('|');if(a===id||b===id)delete s.rev[k]}return s}
+function forget(s,id){s=migrate(s);delete s.emo[id];delete s.last[id];delete s.mem[id];for(const k of Object.keys(s.mem))s.mem[k]=s.mem[k].filter(m=>m.o!==id);for(const k of Object.keys(s.rel)){const [a,b]=k.split('>');if(a===id||b===id){delete s.rel[k];delete s.th[k];delete s.rom[k]}}for(const k of Object.keys(s.rev)){const [a,b]=k.split('|');if(a===id||b===id)delete s.rev[k]}if(s.soc&&SOC())SOC().forget(s,id);return s}
+
+/* ---------- v24 공유 집: 서버와 주고받는 부분(그 집 캐릭터 것만) ---------- */
+const inSet=(ids,k,sep)=>{const [a,b]=k.split(sep);return ids.has(a)&&ids.has(b)};
+function slice(s,ids){s=migrate(s);ids=new Set(ids);const o={v:1,emo:{},rel:{},th:{},mem:{},seen:[],last:{},rom:{},rev:{}};
+  for(const k of Object.keys(s.emo))if(ids.has(k))o.emo[k]=s.emo[k];
+  for(const k of Object.keys(s.last))if(ids.has(k))o.last[k]=s.last[k];
+  for(const k of Object.keys(s.mem))if(ids.has(k))o.mem[k]=s.mem[k].filter(m=>ids.has(m.o));
+  for(const k of Object.keys(s.rel))if(inSet(ids,k,'>')){o.rel[k]=s.rel[k];if(s.th[k])o.th[k]=s.th[k];if(s.rom[k])o.rom[k]=s.rom[k]}
+  for(const k of Object.keys(s.rev))if(inSet(ids,k,'|'))o.rev[k]=s.rev[k];
+  o.seen=s.seen.slice(-300);
+  if(s.soc&&SOC())o.soc=SOC().slice(s.soc,ids);
+  return o}
+function mergeSlice(s,sl,ids){s=migrate(s);ids=new Set(ids);if(!sl||typeof sl!=='object')return s;
+  for(const k of Object.keys(s.emo))if(ids.has(k))delete s.emo[k];
+  for(const k of Object.keys(s.last))if(ids.has(k))delete s.last[k];
+  for(const k of Object.keys(s.mem))if(ids.has(k))delete s.mem[k];
+  for(const k of Object.keys(s.rel))if(inSet(ids,k,'>')){delete s.rel[k];delete s.th[k];delete s.rom[k]}
+  for(const k of Object.keys(s.rev))if(inSet(ids,k,'|'))delete s.rev[k];
+  Object.assign(s.emo,sl.emo||{});Object.assign(s.last,sl.last||{});Object.assign(s.mem,sl.mem||{});Object.assign(s.rel,sl.rel||{});Object.assign(s.th,sl.th||{});Object.assign(s.rom,sl.rom||{});Object.assign(s.rev,sl.rev||{});
+  const seen=new Set(s.seen);(sl.seen||[]).forEach(x=>seen.add(x));s.seen=[...seen].slice(-LIMITS.seen);
+  if(sl.soc&&SOC())SOC().mergeSlice(s,sl.soc,ids);
+  return s}
 const envOf=(chars,A,now,day)=>makeEnv(null,{chars,A,now,day,hour:0});
-const api={forget,env:envOf,EMOTIONS,REL_TYPES,THOUGHTS,MEM_TYPES,EVENTS,LIMITS,LEVELS,create,migrate,update,applyEvent,hooks,view,memories,setRelType,setRelAff,romState,setRomance,setRomBits,romSugApply,romSugDismiss,ROM_LABEL,prune,rep,effPow,agg,updateThought,reclassify,ensureEmo,addEmo,rel,initRel,profileRel,tickChar,targets,pk,pairKey,hash,mulberry};
+const api={_i:null,slice,mergeSlice,forget,env:envOf,EMOTIONS,REL_TYPES,THOUGHTS,MEM_TYPES,EVENTS,LIMITS,LEVELS,create,migrate,update,applyEvent,hooks,view,memories,setRelType,setRelAff,romState,setRomance,setRomBits,romSugApply,romSugDismiss,ROM_LABEL,prune,rep,effPow,agg,updateThought,reclassify,ensureEmo,addEmo,rel,initRel,profileRel,tickChar,targets,pk,pairKey,hash,mulberry};
+api._i={pk,pairKey,clamp,hash,mulberry,tvOf,agg,addEmo,applyEvent,romState,romBits,romRev,mems,rel,ensureEmo,effPow};
 
 /* ---------- 브라우저 저장(도면·캐릭터·시뮬레이션 키와 별도) ---------- */
 if(typeof localStorage!=='undefined'){

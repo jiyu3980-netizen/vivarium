@@ -572,6 +572,8 @@ function view(s,cid,now){const u=s&&s.u&&s.u[cid];if(!u)return {st:'stable',miss
     miss:m?{vanished:now>=m.vanish,msgStage:MSGS[m.a],msgProfile:MSGS[m.b],at:m.at,until:m.until,nid:m.nid}:null,
     flash:u.flash&&now-u.flash.at<9000?u.flash:null}}
 function dump(s,now){const o={};for(const cid in (s&&s.u)||{}){const u=s.u[cid];o[cid]={days:stayDays(u,now),burden:Math.round(u.b*10)/10,state:u.miss?'unknown':u.st,sev:u.sev,nMiss:u.nMiss,seen:u.seen,missUntil:u.miss?u.miss.until:0}}return o}
+/* 감정 연동용: 이 캐릭터가 지금 느끼는 위화감의 크기(감정 계산 viv-mind.js 가 읽기만 함) */
+function mood(s,cid,now){const u=s&&s.u&&s.u[cid];if(!u||u.miss)return null;return {b:u.b,st:u.st,days:stayDays(u,now),rc:u.rc||null}}
 const forget=(s,cid)=>{if(s&&s.u)delete s.u[cid]};
 
 /* =====================================================================
@@ -583,6 +585,6 @@ const store={
   save(){try{localStorage.setItem(KEY,JSON.stringify(cache||create()))}catch(e){}},
   reset(){cache=create();store.save()}};
 
-const api={UNCANNY,EVENTS,OUT_EVENTS,KINDS,MSGS,RETURN_SAY,STATE_KO,create,migrate,ensure,stayDays,reaction,progress,tierMax,tierWeight,update,hooks,view,dump,forget,store,dayNum};
+const api={UNCANNY,EVENTS,OUT_EVENTS,KINDS,MSGS,RETURN_SAY,STATE_KO,create,migrate,ensure,stayDays,reaction,progress,tierMax,tierWeight,update,hooks,view,dump,mood,forget,store,dayNum};
 root.Uncanny=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

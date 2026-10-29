@@ -134,7 +134,7 @@ function analyze(profile,name,others){
   const KIN_RE=/(엄마|아빠|어머니|아버지|부모님?|할머니|할아버지|친구|동생|언니|누나|형|오빠|남편|아내|아들|딸|삼촌|이모|고모|연인|애인|남자친구|여자친구)(가|는|은|의|이|도)?\s/,SELF_RE=/나는|저는|본인|자신|내가|제가|직업은|직업이/;
   /* 직업: 고정 근무(직장인·알바)인지 자유 근무(프리랜서)인지. 부정·무직 표현이 있는 절은 무시 */
   /* v20: 신분(학생·백수·취준생·무직)은 직업 추정보다 먼저·우선 판별 — 본인을 가리키는 절에서만 인정(가족·친구 서술, 과거·부정·지망 표현은 제외) */
-  const STAT_RE=[['student',/대학원생|대학생|고등학생|중학생|초등학생|휴학생|복학생|재수생|수험생|학생/],['jobseeker',/취준생|취업 ?준비|구직 ?중|구직자|공시생|고시생/],['jobless',/백수|놀고 ?먹/],['unemployed',/무직|직업이? ?없|직업 ?없/]];
+  const STAT_RE=[['student',/대학원생|대학생|고등학생|중학생|초등학생|휴학생|복학생|재수생|수험생|학생/],['jobseeker',/취준생|취업 ?준비|구직 ?중|구직자|공시생|고시생/],['jobless',/백수|놀고 ?먹/],['unemployed',/(?<!사)무직|직업이? ?없|직업 ?없/]];
   const STAT_BAD=/(학생|수험생)\s?(시절|때)|학생이었|학생였|졸업|전직|예전|과거|옛날|학생들?(을|를|에게|한테|이)\s?(가르|지도|돌보)|학생증|되고 ?싶|되려|꿈|지망|희망|아니|아닌|않|못/;
   let status=null;
   for(const c of cl.flatMap(x=>x.split(/이고|이며|인데|이지만|,/))){
@@ -143,14 +143,17 @@ function analyze(profile,name,others){
     for(const [k,re] of STAT_RE){const m=re.exec(c);if(m){status={kind:k,words:[m[0]]};break}}
     if(status)break}
   const HOME_JOB_RE=/집에서 ?(일|근무|작업|출퇴근|출근|퇴근)|집으로 ?(출퇴근|출근|퇴근)|집에 ?출근|집이 ?직장|재택|홈 ?오피스/;
+  const TASK_STOP=/^(매일|열심히|항상|주로|가끔|늘|많이|조용히|묵묵히|밤낮|하루종일|바쁘게|회사|직장|사무|집안|가사|살림|집|바깥|밖|자기|스스로|혼자|함께|같이|요즘|지금|계속|오래|힘들게|성실히|꾸준히)$/;
+  const NAMED_JOB_RE=/간호사|의사|교사|선생님|공무원|은행원|연구원|엔지니어|기자|변호사|약사|점원|판매원|요리사|바리스타|승무원|경찰|소방관|군인|개발자|프로그래머|디자이너|농부|어부|청소부|택배기사|배달원|미용사|사서|회계사/;
   let job=null;const JOBNEG=/백수|무직|퇴사|퇴직|은퇴|실직|휴직|방학|취준|구직/,JOB_ASPIRE=/지망|꿈|희망|되고 ?싶|되려|목표|준비 ?중/;
   for(const c of cl.flatMap(x=>x.split(/이고|이며|인데|이지만/))){if(NEG.test(c)||JOBNEG.test(c)||JOB_ASPIRE.test(c))continue;let k=null;
     if(/프리랜서|프리랜스|프리 ?랜서|자영업|1인 ?기업|외주|재택 ?근무|재택근무/.test(c)||HOME_JOB_RE.test(c))k='freelance';   // v23.11 '집에서 일한다·집으로 출퇴근' 도 프리랜서와 같은 분류
     else if(/알바|아르바이트|파트 ?타임/.test(c))k='parttime';
     else if(KIN_RE.test(c)&&!SELF_RE.test(c)){/* 가족·친구의 직업은 이 캐릭터의 직업이 아님 */}
     else if(JOB_FREE_RE.test(c))k='freelance';
-    else if(/직장인|회사원|회사에? ?다니|출근|퇴근|사무직|월급쟁이|근무|직장|공무원|은행원|간호사|의사|교사|선생님|연구원|엔지니어|기자|변호사|약사|점원|판매원|요리사|바리스타|승무원|경찰|소방관|군인|직업은|직업이|회사/.test(c)||JOB_NOUN_RE.test(c))k='office';
-    if(k&&(!job||(k==='freelance')))job={kind:k,home:HOME_JOB_RE.test(c),words:[(HOME_JOB_RE.exec(c)||/프리랜서|프리랜스|자영업|외주|재택/.exec(c)||/알바|아르바이트|파트/.exec(c)||/직장인|회사원|출근|사무직|근무|직장|회사|직업/.exec(c)||[k])[0]]}}
+    else if(/직장인|회사원|회사에? ?다니|출근|퇴근|사무직|월급쟁이|근무|직장|노동|(?<!집안|가사|살림|집|매)일을? ?(?:한다|함|합니다)|(?<!집안|가사|살림)일함|(?<!집안|가사|살림)일한다|직업|공무원|은행원|간호사|의사|교사|선생님|연구원|엔지니어|기자|변호사|약사|점원|판매원|요리사|바리스타|승무원|경찰|소방관|군인|직업은|직업이|회사/.test(c)||JOB_NOUN_RE.test(c))k='office';
+    if(k&&(!job||(k==='freelance')))job={kind:k,home:HOME_JOB_RE.test(c),words:[(HOME_JOB_RE.exec(c)||/프리랜서|프리랜스|자영업|외주|재택/.exec(c)||/알바|아르바이트|파트/.exec(c)||/직장인|회사원|출근|사무직|근무|직장|회사|직업/.exec(c)||[k])[0]]}
+    if(job&&!job.task&&!job.title){const tm=/([가-힣A-Za-z]{2,8}) ?일(?:을|은)? ?(?:한다|함|합니다|하고|해요|하는|해서)/.exec(c);if(tm&&!TASK_STOP.test(tm[1]))job.task=tm[1];const nm=NAMED_JOB_RE.exec(c);if(nm)job.title=nm[0]}}
   if(status&&job&&job.kind!=='parttime'&&!job.home)job=null;   // 신분이 명시돼 있으면 프리랜서·직장인으로 추정하지 않음
   if(status)fl.push({k:'status',label:'신분',text:({student:'학생',jobseeker:'취준생',jobless:'백수',unemployed:'무직'})[status.kind]});
   if(job){job.night=/새벽|야근|야간|심야|밤샘|나이트|올빼미 ?근무|교대 ?근무/.test(profile);
@@ -159,7 +162,19 @@ function analyze(profile,name,others){
   /* 문장·절별 해석: 어떤 절에서 어떤 행동 성향을 읽었는지 */
   const clauseList=cl.map(c=>{const labs=[];for(const [t,label,re] of TRAIT_RULES){if(re.test(c))labs.push((NEG.test(c)?'싫어함: ':'')+label)}
     if(PARTNER_RE.test(c))labs.push('연인·배우자 관계');if(/프리랜서|프리랜스|알바|아르바이트|직장인|회사원|출근|직업|근무/.test(c)&&job)labs.push('직업 → 일하는 시간 규칙');return {text:c,labels:labs}}).filter(x=>x.text);
-  const res={traits,ev,facts,job,status,hobbyWords,clauseList,likes:likes.slice(0,4),factList:fl,traitList:Object.keys(traits).map(t=>{const r=TRAIT_RULES.find(x=>x[0]===t);return {k:t,label:traits[t]<0?'싫어함: '+r[1].replace(/을 좋아함|를 좋아함|을 즐김|를 즐김/,''):r[1],v:traits[t],words:ev[t]}})};
+  /* v36 프로필의 싫어하는 것·버릇·기억을 지문에 쓸 수 있게 짧은 구절로 뽑음(문장을 지어내지 않고 적힌 말 그대로 구절만 사용) */
+  const bits={likes:[],dislikes:[],habits:[],memories:[],job:''},trimP=t=>t.replace(/^[\s,]+|[\s,]+$/g,'').replace(/(?:은|는|을|를|도)$/,'');
+  for(const c of cl){
+    for(const sub of c.split(/(?:하고|이고|하며|며|지만|는데|,|\.)\s*/)){
+      const dm=/^(.{2,40}?)\s*(?:은|는|을|를|이|가|도)?\s*(?:너무 |아주 |정말 )?(?:싫어|질색|못 ?먹|무서워|꺼려)/.exec(sub);
+      const lm=/^(.{2,40}?)\s*(?:은|는|을|를|이|가|도)?\s*(?:너무 |아주 |정말 |매우 )?(?:좋아|즐겨|즐긴|사랑)/.exec(sub);
+      if(lm&&!dm)for(const w of lm[1].split(/와|과|및|랑/).map(trimP))if(w.length>=2&&w.length<=10&&!bits.likes.includes(w)&&!/^(것|거|사람|때|편|혼자)$/.test(w))bits.likes.push(w);
+      if(dm)for(const w of dm[1].split(/와|과|및|랑/).map(trimP))if(w.length>=2&&w.length<=14&&!bits.dislikes.includes(w)&&!/^(것|거|사람|때)$/.test(w))bits.dislikes.push(w)}
+    let m;const hr=/([가-힣 ]{2,18}?)\s?(버릇|습관)/g;while((m=hr.exec(c))){const w=m[1].trim().replace(/^.*(?:있고|하고|이고|하며|며|지만|는데)\s+/,'');if(w.length>=3&&!/^(나쁜|좋은|오랜|못된|이상한|특이한|독특한|작은|큰|어떤)/.test(w)&&!bits.habits.some(h=>h.w===w))bits.habits.push({w,k:m[2]})}
+    const mr=/([가-힣 ]{3,26}?)\s?(?:기억|추억)/.exec(c);if(mr){const w=mr[1].trim();if(w.length>=3&&!/없|지우고|잊/.test(w)&&!bits.memories.includes(w))bits.memories.push(w)}}
+  {const jm=JOB_FREE_RE.exec(profile)||JOB_NOUN_RE.exec(profile);if(jm&&job)bits.job=jm[0]}
+  bits.likes=[...new Set([...(likes||[]).slice(0,4),...bits.likes])];bits.likes=bits.likes.filter(w=>!bits.likes.some(x=>x!==w&&x.length>w.length&&x.endsWith(w))).slice(0,6);bits.dislikes=bits.dislikes.slice(0,4);bits.habits=bits.habits.slice(0,3);bits.memories=bits.memories.slice(0,3);
+  const res={bits,traits,ev,facts,job,status,hobbyWords,clauseList,likes:likes.slice(0,4),factList:fl,traitList:Object.keys(traits).filter(t=>TRAIT_RULES.some(x=>x[0]===t)).map(t=>{const r=TRAIT_RULES.find(x=>x[0]===t);return {k:t,label:traits[t]<0?'싫어함: '+r[1].replace(/을 좋아함|를 좋아함|을 즐김|를 즐김/,''):r[1],v:traits[t],words:ev[t]}})};
   if(_acache.size>200)_acache.clear();_acache.set(key,res);return res}
 const tv=(A,t)=>(A&&A.traits[t])||0;
 const hobbyPool=A=>[...new Set([...(A.likes||[]),...(A.hobbyWords||[])])].filter(w=>w&&w!=='취미').slice(0,6);
@@ -452,6 +467,7 @@ V('prep_out','wake',null,'stand',[4,10],['{r}에서 외출 준비를 하는 중'
 V('chat_sofa','chat','sofa','sit',[10,35],['{r}에서 소파에 앉아 {p}와(과) 이야기하는 중','{r}에서 {p}와(과) 소파에서 수다를 떠는 중'],{social:1.8},{pair:true,cp:['{r}에서 {p}에게 어깨를 기대고 이야기하는 중','{r}에서 소파에서 {p}와(과) 손을 잡고 도란도란 이야기하는 중']});
 V('chat_table','chat','dining','sit',[12,40],['{r}에서 식탁에서 {p}와(과) 이야기를 나누는 중','{r}에서 {p}와(과) 마주 앉아 수다를 떠는 중'],{social:1.8},{pair:true,cp:['{r}에서 {p}와(과) 마주 앉아 웃으며 이야기하는 중']});
 V('chat_chair','chat','chair','sit',[10,30],['{r}에서 의자에 앉아 {p}와(과) 이야기하는 중','{r}에서 의자를 당겨 앉아 {p}와(과) 수다를 떠는 중'],{social:1.6},{pair:true,cp:['{r}에서 의자를 가까이 당겨 앉아 {p}와(과) 속삭이는 중']});
+V('chat_guest','chat',null,'stand',[8,25],['{r}에서 {p}와(과) 이야기를 나누는 중','{r}에서 놀러 온 {p}에게 말을 거는 중','{r}에서 {p}와(과) 서서 수다를 떠는 중'],{social:1.7},{special:'guest'});   // v25: 이웃집에서 놀러 온 손님과 대화(손님은 이 집 데이터가 아니라 ctx.guests)
 V('chat_stand','chat',null,'stand',[6,20],['{r}에서 {p}와(과) 서서 이야기하는 중','{r}에서 {p}에게 말을 거는 중'],{social:1.5},{pair:true,cp:['{r}에서 {p}와(과) 눈을 맞추며 이야기하는 중']});
 V('pillow','chat','bed','lie',[10,35],['{r}에서 침대에 누워 {p}와(과) 필로우톡을 하는 중'],{social:1},{pair:true,couple:true,hr:[21,27],cp:['{r}에서 침대에서 {p}와(과) 속닥속닥 필로우톡 중','{r}에서 침대에서 {p}에게 오늘 있었던 일을 이야기하는 중','{r}에서 {p}의 곁에 누워 도란도란 이야기하는 중']});
 /* v19 연애 행동: 연애 상태(짝사랑·맞짝사랑·외사랑·연인·부부)가 있는 쌍에서만 후보가 된다. 지문은 viv-love.js 가 두 사람의 성격을 조합해 만든다.
@@ -665,10 +681,36 @@ function ptCands(A,H){const minor=A&&A.facts&&A.facts.adult===false;
   return PT_WHY.filter(o=>inHr(o.hr,H)&&(minor?o.minor:!o.minorOnly)&&!(minor&&o.noMinor))}
 function pickPt(A,rng,H,hash0){const c=ptCands(A,H);return c.length?wpick(rng,c,o=>mult(A,o.w)*(PT_RG[o.rg]||1)):null}
 const OFF_ONLY=new Set(['cinema','park','themepark','dept','conv','matjip','friendhome','sea']);
+/* v24: 직업·'~일' 이 명시된 캐릭터의 근무 행동지문. 명시가 없으면 업무 전반 문구 */
+const JOB_DICT=[
+ [/제초|풀 ?뽑|잡초|풀베|예초/,['나가서 풀을 뽑고 있어요','뽑은 풀을 한쪽에 모으고 있어요','허리를 펴며 잠깐 숨을 돌리는 중이에요','일을 마치고 보수를 받고 있어요']],
+ [/청소|미화/,['나가서 청소 도구를 챙겨 일하는 중이에요','구석구석 쓸고 닦고 있어요','쓰레기를 분리해 내놓는 중이에요','일을 마치고 보수를 받고 있어요']],
+ [/배달|택배/,['짐을 싣고 배달을 다니는 중이에요','골목을 돌며 물건을 전달하고 있어요','배송 목록을 확인하며 다음 집으로 가는 중이에요','일을 마치고 보수를 받고 있어요']],
+ [/농사|농장|밭|과수원|수확/,['밭에 나가 작물을 돌보고 있어요','수확한 작물을 상자에 담는 중이에요','땀을 닦으며 새참을 먹는 중이에요','일을 마치고 보수를 받고 있어요']],
+ [/공사|건설|목수|미장|용접|인테리어/,['공사 현장에서 자재를 나르고 있어요','안전모를 쓰고 작업을 이어가는 중이에요','현장 동료들과 점심을 먹는 중이에요','일을 마치고 보수를 받고 있어요']],
+ [/요리|주방|조리|설거지/,['주방에서 재료를 손질하고 있어요','불 앞에서 음식을 만들고 있어요','쌓인 그릇을 설거지하는 중이에요','일을 마치고 보수를 받고 있어요']],
+ [/세차/,['세차장에서 차를 닦고 있어요','거품을 내어 차를 씻기는 중이에요','일을 마치고 보수를 받고 있어요']],
+ [/번역|통역/,['원문을 읽으며 번역하는 중이에요','어색한 표현을 다듬고 있어요','마감 전에 번역본을 검수하는 중이에요']],
+ [/코딩|개발|프로그래/,['코드를 작성하며 기능을 만드는 중이에요','버그를 찾아 고치고 있어요','작업한 코드를 정리해 올리는 중이에요']],
+ [/간호/,['병동을 돌며 환자를 살피고 있어요','차트를 확인하며 기록을 남기는 중이에요','교대 전에 인수인계를 하는 중이에요']],
+ [/의사|진료/,['진료실에서 환자를 만나는 중이에요','검사 결과를 살피며 설명하는 중이에요','진료 기록을 정리하는 중이에요']],
+ [/교사|선생|강사/,['교실에서 수업을 하는 중이에요','학생들의 과제를 확인하고 있어요','다음 수업을 준비하는 중이에요']],
+ [/바리스타|카페/,['머신 앞에서 커피를 내리고 있어요','손님에게 주문받은 음료를 건네는 중이에요','카운터를 정리하며 마감하는 중이에요']],
+ [/경찰|소방/,['순찰을 돌며 주변을 살피는 중이에요','상황실에서 보고서를 정리하는 중이에요','장비를 점검하는 중이에요']],
+ [/기자/,['취재한 내용을 기사로 쓰는 중이에요','기사 마감에 맞춰 문장을 다듬고 있어요','취재원에게 전화를 거는 중이에요']]];
+function jobLines(A){const J=A&&A.job;if(!J)return null;
+  const key=(J.task||'')+' '+(J.title||'');
+  for(const [re,ls] of JOB_DICT)if(re.test(key))return ls;
+  if(J.task)return [J.task+' 일을 하러 나가서 일하는 중이에요',J.task+' 일에 몰두하고 있어요',J.task+' 일을 마무리하는 중이에요','일을 마치고 보수를 받고 있어요'];
+  if(J.title)return [J.title+'로서 열심히 일하는 중이에요',J.title+'로 맡은 업무를 처리하는 중이에요','잠시 숨을 돌리며 다음 일을 준비하는 중이에요'];
+  return null}
+const whyFor=(why,A)=>{if(!why||why.id!=='job')return why;const ls=jobLines(A);return ls?{...why,d:ls}:why};
+/* 알바생·백수·취준생·무직: 근무 시간이 정해져 있지 않아 아무 때나(성격·시각에 맞는 자리가 있을 때) 알바하러 나감 */
+const freePt=A=>!!(A&&((A.job&&A.job.kind==='parttime')||(A.status&&['jobseeker','jobless','unemployed'].includes(A.status.kind))));
 /* 일하는 시간: 직장인·알바 = 평일(공휴일 제외) 9~18시 (밤·새벽 근무 단어가 있으면 18시 이후·새벽에도 가능) */
-function jobSlot(A,now){const J=A&&A.job;if(!J||J.kind==='freelance')return null;
+function jobSlot(A,now){const J=A&&A.job;if(!J||J.kind==='freelance'||J.kind==='parttime')return null;   // 알바는 근무시간 자유(아래 freePt)
   const sp=seoul(now);if(isOffDay(now))return null;const hm=sp.hm;
-  if(hm>=9&&hm<18)return {end:18,p:J.kind==='parttime'?.8:.88};
+  if(hm>=9&&hm<18)return {end:18,p:.97};
   if(J.night){if(hm>=18)return {end:24,p:.45};if(hm<6)return {end:6,p:.35}}
   return null}
 function freeJobNow(A,now){const J=A&&A.job;if(!J||J.kind!=='freelance')return false;const sp=seoul(now);return !isOffDay(now)&&sp.hm>=9&&sp.hm<18}
@@ -712,7 +754,9 @@ function spotFor(W,it,pose,rng,slot){
   return {f:it.f,x:W.clampX(s,it.x+off,pose==='lie'?Math.min(60,(s.right-s.left)/2-1):20),e:(s.yard?(it.e!=null?it.e:s.e):(it.e||fl.e))+dy,dy:it.e>fl.e+3&&pose==='stand'?0:dy,pose,uid:it.uid,seg:s.id}}
 function occupancy(ctx,exceptId){const occ={};for(const o of ctx.chars){if(o.id===exceptId||o.pet)continue;const p=ctx.getPlace(o.id);if(p.mode==='home'&&p.tgt)occ[p.tgt]=(occ[p.tgt]||0)+1}return occ}
 const isCouple=(A,B)=>A.facts.partners.includes(B.name);
-function coupleOf(ctx,c,A){return ctx.chars.find(o=>o.id!==c.id&&!o.pet&&A.facts.partners.includes(o.name))||null}
+function coupleOf(ctx,c,A){   // v24: 연인이 여럿이어도 헤어진 사이는 제외하고, 지금 같은 집에 있는 쪽을 우선
+  const L=ctx.chars.filter(o=>o.id!==c.id&&!o.pet&&A.facts.partners.includes(o.name)&&!(ctx.mind&&ctx.mind.sep&&ctx.mind.sep(c.id,o.id)));
+  return L.find(o=>ctx.getPlace(o.id).mode==='home')||L[0]||null}
 
 
 /* ---------- 문구 재료: TV 서비스·공부·보드게임·게임·외출 세부 ---------- */
@@ -781,6 +825,7 @@ function candidates(ctx,c,A,st,pos,hm,opts){
     if(v.internal||v.special==='prep')continue;
     if(v.sp){if(!c.pet||c.pet.sp!==v.sp||!petCond(v,ctx,c,myPs,ctx.now))continue}else if(c.pet)continue;   // v17: 반려동물은 자기 종 행동만, 사람은 반려동물 행동 제외
     if(v.wishOnly&&!opts.wish)continue;
+    if(String(c.id).startsWith('vg:')&&(v.g==='sleep'||v.couple||v.rom||v.care||v.special==='friend'))continue;   // v25: 손님은 남의 집에서 자지 않고, 연인·돌봄 행동도 하지 않음
     if(v.req&&!(opts.wish&&v.jobv&&v.id!=='job_free')&&!v.req(A))continue;   // 일하기를 직접 고른 경우에는 직업·성향이 없어도 책상류 가구만 있으면 가능
     const softStudy=v.g==='study'&&!(tv(A,'studious')>0)&&!opts.wish;
     if(v.trait&&!(tv(A,v.trait)>0)&&!(opts.wish&&v.wishAny)&&!softStudy)continue;
@@ -803,12 +848,13 @@ function candidates(ctx,c,A,st,pos,hm,opts){
         if(opts.wish&&v.care==='clean'&&need<=0)continue;
         out.push({v,partner:pe,petNeed:need,dist:Math.abs(ps.x-pos.x)+(ps.f!==pos.f?400:0)})}
       continue}
+    if(v.special==='guest'){const g=(ctx.guests||[])[0];if(g&&!c.pet&&g.f!=null&&posOf(W,{f:g.f,x:g.x}).seg&&R.has(posOf(W,{f:g.f,x:g.x}).seg.id))out.push({v,guest:g,dist:Math.abs(g.x-pos.x)+(g.f!==pos.f?400:0)});continue}
     if(v.pair){   // 상대가 필요한 행동
       if(!others.length)continue;
       for(const o of others){
         const pp=ctx.getPlace(o.id);if(pp.action==='sleep'&&!(v.couple))continue;
         if(pp.verb==='love_confess'||pp.verb==='love_propose'){if(ctx.getSim(o.id).decideAt>ctx.now)continue}   // 고백·프로포즈 중인 사람에게는 다른 캐릭터가 끼어들지 못함
-        const B=ctx.analysis(o);const cpl=isCouple(A,o)||!!(ctx.mind&&ctx.mind.isCouple&&ctx.mind.isCouple(c.id,o.id));if(v.couple&&!cpl)continue;
+        const B=ctx.analysis(o);let cpl=isCouple(A,o)||!!(ctx.mind&&ctx.mind.isCouple&&ctx.mind.isCouple(c.id,o.id));if(cpl&&ctx.mind&&ctx.mind.sep&&ctx.mind.sep(c.id,o.id))cpl=false;if(v.couple&&!cpl)continue;
         if(v.rom&&!(ctx.mind&&ctx.mind.romCan&&ctx.mind.romCan(v.rom,c.id,o.id,A,B)))continue;
         if(v.ev){const ws=ctx.getSim(o.id).wish;if(ws&&!ws.done)continue}   // 상대가 직접 지정한 행동을 하고 있으면 특별 이벤트로 끊지 않음
         const oPos=posOf(W,pp);if(!oPos.seg||!R.has(oPos.seg.id))continue;
@@ -858,7 +904,7 @@ function decide(ctx,c,p,st,reason){
   if(p.mode==='out'){
     if(st.outUntil&&now<st.outUntil&&!reason){
       /* 외출이 길면 30분 단위로 하고 있는 일이 바뀐다(공원이면 낙엽 사진 → 피크닉 …). 같이 나간 연인은 같은 문구가 나오도록 시각 기반으로 고른다 */
-      const why0=OUT_WHY.find(o=>'out_'+o.id===p.verb),dd0=why0&&((c.pet&&why0.pd)||why0.d);
+      const why0=whyFor(OUT_WHY.find(o=>'out_'+o.id===p.verb),A),dd0=why0&&((c.pet&&why0.pd)||why0.d);
       if(why0&&dd0&&dd0.length>1&&st.outUntil-now>20*MIN){
         const n0=dd0.length,at=st.outAt||st.outUntil-120*MIN,prog=Math.max(0,Math.min(.999,(now-at)/Math.max(1,st.outUntil-at)));
         const pre=/^\S+ 함께 /.exec(p.say||''),off=why0.seq?0:hash(p.verb+'|'+at)%n0,idx=(off+Math.floor(prog*n0))%n0;   // 순서가 있는 외출(영화관 등)은 처음부터 차례대로, 그 외는 임의의 자리에서 시작해 차례로 돈다
@@ -879,12 +925,13 @@ function decide(ctx,c,p,st,reason){
   const setStop=(patch)=>ctx.setSim(c.id,{...stUp,...patch});
   let forcedPet=null,forcedNb=null;
   const doOut=(why,durMin)=>{
+    if(String(c.id).startsWith('vg:'))return false;   // v25: 놀러 온 손님은 이웃집에서 다시 외출하지 않음
     const ex=exitSpot(W,rng);if(!ex)return false;
     const seg=W.segAt(ex.f,ex.x);if(!pos.seg||!W.reach(pos.seg.id).has(seg.id))return false;
     const rt=W.route({f:pos.f,x:pos.x},{f:ex.f,x:ex.x});if(!rt)return false;
     const dur=durMin||Math.round(why.dur[0]+rng()*(why.dur[1]-why.dur[0]));
     /* 연인·부부 사이라면 집에 있는 상대와 함께 나감 (둘 다 집에서 사라지고 화면 왼쪽 위에 나란히 표시) */
-    let dsay=why.d&&why.d.length?why.d[why.seq?0:hash('out_'+why.id+'|'+now)%why.d.length]:why.t;if(why.id==='visit'){if(!forcedNb)return false;dsay=dsay.replace(/\{n\}/g,forcedNb.name)}let mate=null,say=dsay;
+    why=whyFor(why,A);let dsay=why.d&&why.d.length?why.d[why.seq?0:hash('out_'+why.id+'|'+now)%why.d.length]:why.t;if(why.id==='visit'){if(!forcedNb)return false;dsay=dsay.replace(/\{n\}/g,forcedNb.name)}let mate=null,say=dsay;
     if(why.together){const cp=coupleOf(ctx,c,A);
       if(cp){const pp=ctx.getPlace(cp.id);
         if(pp.mode==='home'&&pp.house===ctx.houseId&&pp.action!=='sleep'&&pp.action!=='out'&&rng()<.85){const pPos=posOf(W,pp);
@@ -899,6 +946,7 @@ function decide(ctx,c,p,st,reason){
       if(!pm)return false;
       say=wa(pm.pe.name)+' 함께 '+dsay}
     if(mate)say=wa(mate.cp.name)+' 함께 '+dsay;
+    if(!pm&&!mate&&!c.pet&&ctx.mind&&ctx.mind.out){try{const ot=ctx.mind.out(c.id,A,id=>{const o=ctx.chars.find(x=>x.id===id);return o?o.name:''});if(ot)say=say+', '+ot}catch(e){}}   // v37: 외출 지문에도 마음이 드러남
     ctx.setPlace(c.id,{mode:'out',action:'out',verb:'out_'+why.id,tgt:null,pose:'stand',dy:0,f:ex.f,x:ex.x,say,e:null});
     setStop({outAt:now,decideAt:dur>40?qd(now,30):qd(now,dur),outUntil:qd(now,dur),outFrom:ex.side,outTo:why.id==='visit'?forcedNb.hid:null,outNb:why.id==='visit'?forcedNb.name:null,then:null,wish:wish?{...wish,done:true}:null,recent:[...recent,'out'].slice(-5)});
     moves.push({id:c.id,from,route:rt,leave:true});
@@ -911,7 +959,7 @@ function decide(ctx,c,p,st,reason){
       ctx.setSim(pe.id,{...pst0,outAt:now,decideAt:dur>40?qd(now,30):qd(now,dur),outUntil:qd(now,dur),outFrom:ex.side,then:null,wish:null,updatedAt:now,dirty:false,pet:applyCare(pst0.pet,'walk',now)});
       moves.push({id:pe.id,from:{f:pPos.f,x:pPos.x,e:pp.e!=null?pp.e:W.standE(pPos.seg,pPos.f)},route:rt2,leave:true})}
     return true};
-  const pickWhy=(forced)=>{const off=isOffDay(now),inSlot=!!jobSlot(A,now);
+  const pickWhy=(forced)=>{const off=isOffDay(now),inSlot=!!jobSlot(A,now)&&!(st.noJobUntil&&now<st.noJobUntil);
     if(!forced&&inSlot)return OUT_WHY.find(o=>o.id==='job');   // 일하는 시간에는 일하러 가는 것이 우선
     const cand=OUT_WHY.filter(o=>!o.jobOnly&&!o.wishOnly&&(!OFF_ONLY.has(o.id)||off)&&(inHr(o.hr,H)||forced&&forced===o.id));
     if(forced){const f=OUT_WHY.find(o=>o.id===forced);if(f)return f}
@@ -943,16 +991,19 @@ function decide(ctx,c,p,st,reason){
       else{forcedGroup=wo.g;bonusGroup=wo.g;forcedJobV=!!wo.job;forcedVerb=wo.vid||null;forcedPet=wo.pet||null;ctx.setSim(c.id,{bias:{g:wo.g,until:now+90*MIN}})}}}
   /* 일하는 시간(직장인·알바): 평일 9~18시에는 일하러 나감 */
   if(!c.pet&&(!forcedGroup&&p.mode!=='out'||returned&&!forcedGroup)){
-    const js=jobSlot(A,now);
+    const js=(st.noJobUntil&&now<st.noJobUntil)?null:jobSlot(A,now);
     if(js&&canExit(ctx,pos)&&!(st.lastBack&&now-st.lastBack<45*MIN&&!returned)&&rng()<js.p){
       const wj=OUT_WHY.find(o=>o.id==='job');if(doOut(wj,Math.max(30,Math.round((js.end-hm)*60))))return moves}}
+  /* 알바생·백수·취준생·무직: 정해진 근무시간 없이 가끔 알바하러 나감 (행동지문은 알바 문구) */
+  if(!c.pet&&!forcedGroup&&p.mode!=='out'&&freePt(A)&&!(st.noJobUntil&&now<st.noJobUntil)&&canExit(ctx,pos)&&!(st.lastBack&&now-st.lastBack<90*MIN)&&rng()<.06){
+    const why=ptOdd(A,rng,st,now)||pickPt(A,rng,H);if(why&&inHr(why.hr,H)&&doOut(why)){if(why.odd)ctx.setSim(c.id,{ptOddAt:now,ptOdd:why.id});return moves}}
   /* 일반 선택: 그룹 → 행동 */
   let cs=candidates(ctx,c,A,st,pos,hm,{wish:!!forcedGroup,ignoreHr:!!forcedGroup,sleepAnyTime:!!forcedGroup&&forcedGroup==='sleep'});
   if(forcedJobV){const jv=cs.filter(x=>x.v.jobv);if(jv.length)cs=jv}   // v19: '일하기'는 일하기 행동 10종 중에서 성격 가중치로 고름
   if(forcedVerb)cs=cs.filter(x=>x.v.id===forcedVerb&&(!forcedPet||x.partner&&x.partner.id===forcedPet));   // v17: '○○ 밥주기'처럼 대상까지 정한 선택
   const groups={};cs.forEach(x=>(groups[x.v.g]=groups[x.v.g]||[]).push(x));
   const eh=effHour(A,hm),eH=Math.floor(eh);
-  if(!forcedGroup&&!c.pet&&canExit(ctx,pos)&&!groups.out){groups.out=[{v:{id:'out',g:'out'},special:true}]}
+  if(!forcedGroup&&!c.pet&&!String(c.id).startsWith('vg:')&&canExit(ctx,pos)&&!groups.out){groups.out=[{v:{id:'out',g:'out'},special:true}]}
   const gnames=Object.keys(groups).filter(g=>!forcedGroup||g===forcedGroup);
   if(forcedGroup&&!gnames.length){ctx.setSim(c.id,{...stUp,wish:{...wish,done:true,fail:'지금은 할 수 없어요'}});return decideFallback(ctx,c,A,p,st,pos,from,moves,rng,stUp,hm,recent)}
   const lastOut=st.lastBack&&now-st.lastBack<60*MIN;
@@ -1020,6 +1071,7 @@ function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepW
   const standSeg=ch.seg||(pos.seg);
   if(v.special==='wander'){const s=ch.seg;const its=W.bySeg.get(s.id).filter(i=>!i.kinds.includes('window'));const it=its.length?pick(rng,its):null;
     const x=it?it.x+(rng()-.5)*Math.min(it.w,80):(s.left+s.right)/2;spot={f:s.f,x:W.clampX(s,x,24),e:W.standE(s),dy:0,pose:'stand',uid:null,seg:s.id};roomSeg=s}
+  else if(ch.guest){const gp=posOf(W,{f:ch.guest.f,x:ch.guest.x}),sg=gp.seg;spot={f:gp.f,x:W.clampX(sg,gp.x+(gp.x>W.mid?-70:70),20),e:W.standE(sg,gp.f),dy:0,pose:'stand',uid:null,seg:sg.id};roomSeg=sg}
   else if(ch.win){const w=ch.win,s=W.segOf(w.seg);spot={f:w.f,x:W.clampX(s,w.x,40),e:W.floorE(w.f),dy:0,pose:'stand',uid:null,seg:s.id};roomSeg=s}
   else if(ch.item){const it=ch.seat||ch.item;
     let slot=0;if(v.pair&&partner)slot=1;
@@ -1043,18 +1095,24 @@ function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepW
   const cpl=ch.couple;
   const tpls=(cpl&&v.cp&&rng()<.6)?v.cp:(v.care&&partner&&partner.pet?careTexts(v,partner,'o'):(v.t&&v.t.length?v.t:null));
   if(v.special==='wander'&&!v.petsay){const fromSeg=pos.seg;say=fromSeg&&fromSeg.id!==roomSeg.id?`${fromSeg.name}에서 ${ro(roomSeg.name)} 자리를 옮기는 중`:`${eul(room)} 이리저리 걸어 다니는 중`}
-  else say=fillSay(pick(rng,tpls||['{r}에서 지내는 중']),room,partner&&partner.name);
+  else say=fillSay(pick(rng,tpls||['{r}에서 지내는 중']),room,ch.guest?ch.guest.name:(partner&&partner.name));
   const pfood=(c.pet?c.pet:partner&&partner.pet)&&SPECIES[(c.pet||partner.pet).sp].food;if(pfood)say=say.replace(/\{f\}을\(를\)/g,eul(pfood)).replace(/\{f\}/g,pfood);
   const brng=partner?mulberry(hash([c.id,partner.id].sort().join('|')+'bg'+Math.floor(now/(15*MIN)))):null;
   say=fillExtra(say,rng,A,H,c.profile,brng);
   const uv=ch.uncRep||(v.unc?v:null);
   if(uv&&ctx.unc){const ut=ctx.unc.say(c.id,uv.id,A,rng,{nb:(ctx.neighbors||[]).length});if(ut)say=fillSay(ut,room,ch.near?ch.near.name:'')}
   if(ch.like)say=say.replace(/\{L\}을\(를\)/g,eul(ch.like)).replace(/\{L\}/g,ch.like);
+  if(!uv&&!partner&&!c.pet&&v.g==='wander'&&ctx.mind&&ctx.mind.alt){try{const al=ctx.mind.alt(c.id,v,A,room,id=>{const o=ctx.chars.find(x=>x.id===id);return o?o.name:''});if(al)say=al}catch(e){}}   // v33: 서성임은 상태별 문장으로
+  if(!uv&&!partner&&!c.pet&&ctx.mind&&ctx.mind.tone){try{const tn=ctx.mind.tone(c.id,v,A,id=>{const o=ctx.chars.find(x=>x.id===id);return o?o.name:''});if(tn)say=say+', '+tn}catch(e){}}   // v31: 지금 마음 상태가 혼자 하는 행동의 지문에 드러남
+  if(!uv&&partner&&ctx.mind&&!c.pet){try{const nmf=id=>{const o=ctx.chars.find(x=>x.id===id);return o?o.name:''};   // v37: 반려동물 돌봄·대화에도 지금의 마음이 드러남
+    const tn=v.care&&partner.pet?(ctx.mind.petTone&&ctx.mind.petTone(c.id,partner.name,A,nmf)):(v.g==='chat'&&!partner.pet&&ctx.mind.talk?ctx.mind.talk(c.id,partner.id,A,nmf):'');if(tn)say=say+', '+tn}catch(e){}}
   let evB=null;   // v19: 연애 상태가 있는 쌍이면 두 사람의 성격을 조합한 지문(특별 이벤트는 결과까지 정해 두 사람에게 함께 표시)
   if(partner&&v.pair&&!partner.pet&&!c.pet&&ctx.mind&&ctx.mind.romLine){
     try{const B2=ctx.analysis(partner);
       if(v.ev){const pl=ctx.mind.romPlan(v.rom,c.id,partner.id,A,B2,c.name,partner.name,room,rng);if(pl){say=pl.a;evB=pl.b}}
-      else{const rl=ctx.mind.romLine(c.id,partner.id,A,B2,rng,c.name,partner.name,room,!!v.rom);if(rl)say=rl}}catch(e){}}
+      else{let rl=ctx.mind.romLine(c.id,partner.id,A,B2,rng,c.name,partner.name,room,!!v.rom);
+        if(!(ctx.mind.sep&&ctx.mind.sep(c.id,partner.id))||!rl){const rl3=ctx.mind.relLine&&ctx.mind.relLine(c.id,partner.id,A,B2,rng,c.name,partner.name,room);if(rl3)rl=rl3}
+        if(rl)say=rl}}catch(e){}}
   if(v.id==='sleep_bed'&&ch.item){const cp=coupleOf(ctx,c,A);if(cp){const pp=ctx.getPlace(cp.id);if(pp.mode==='home'&&pp.action==='sleep'&&pp.tgt===ch.item.uid&&ctx.getSim(cp.id).decideAt>now)say=fillSay(pick(rng,['{r}에서 {p}를 꼭 안고 잠든 중','{r}에서 {p}의 곁에서 서로 기대어 곤히 자는 중','{r}에서 {p}의 팔을 베고 잠든 중']),room,cp.name)}}
   const patch={mode:'home',action:uv?'unc':v.g,verb:uv?uv.id:v.id,tgt:spot.uid||null,pose:spot.pose,dy:spot.dy||0,f:spot.f,x:Math.round(spot.x),say,e:spot.e,partner:partner?partner.id:null,seg:spot.seg};
   ctx.setPlace(c.id,patch);
@@ -1077,7 +1135,9 @@ function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepW
       let psayF=psay;   // v19: 상대 쪽 지문도 연애 상태·성격에 맞게
       if(!partner.pet&&!c.pet&&ctx.mind&&ctx.mind.romLine){try{
         if(evB)psayF=evB;
-        else{const rl2=ctx.mind.romLine(partner.id,c.id,B,A,rng,partner.name,c.name,room,!!v.rom);if(rl2)psayF=rl2}}catch(e){}}
+        else{let rl2=ctx.mind.romLine(partner.id,c.id,B,A,rng,partner.name,c.name,room,!!v.rom);
+          if(!rl2||(ctx.mind.sep&&ctx.mind.sep(partner.id,c.id))){const rl4=ctx.mind.relLine&&ctx.mind.relLine(partner.id,c.id,B,A,rng,partner.name,c.name,room);if(rl4)rl2=rl4}
+          if(rl2)psayF=rl2}}catch(e){}}
       const pfrom={f:ppos.f,x:ppos.x,e:pp.e!=null?pp.e:W.standE(ppos.seg,ppos.f)};
       ctx.setPlace(partner.id,{mode:'home',action:v.g,verb:v.id,tgt:ps.uid||null,pose:ps.pose,dy:ps.dy||0,f:ps.f,x:Math.round(ps.x),say:psayF,e:ps.e,partner:c.id,seg:ps.seg});
       ctx.setSim(partner.id,{...pst,n:(pst.n||0)+1,updatedAt:now,decideAt:nxt.decideAt,recent:[...(pst.recent||[]),v.id].slice(-5),then:null,...(v.care&&partner.pet?{pet:applyCare(pst.pet,v.care,now)}:{})});
@@ -1147,7 +1207,8 @@ function setWish(ctx,c,id){
   ensure(ctx);
   const wo=wishById(ctx,c,id);if(!wo)return {ok:false,why:'알 수 없는 선택이에요'};
   const r=wishCheck(ctx,c,wo);if(!r.ok)return r;
-  ctx.setSim(c.id,{wish:{k:id,at:ctx.now,done:false},decideAt:0});return {ok:true}}
+  const hist=(ctx.getSim(c.id).wishHist||[]).filter(h=>ctx.now-h.at<3*3600000).slice(-11);   // v29: 직접 지정이 짧은 시간에 너무 잦거나 같은 것만 반복되는지 마음 쪽에서 읽음(감정에 부담이 쌓임)
+  ctx.setSim(c.id,{wish:{k:id,at:ctx.now,done:false},wishHist:[...hist,{k:id,at:ctx.now}],decideAt:0});return {ok:true}}
 
 /* =====================================================================
    7) 한 집 전체 갱신 — 접속·관찰 화면을 열 때와 주기 확인 때 호출
@@ -1205,6 +1266,6 @@ function reconcile(ctx){
     if(together&&!AFF.test(p.say||''))ctx.setPlace(c.id,{say:fillSay(pick(r,['{r}에서 {p}를 꼭 안고 잠든 중','{r}에서 {p}의 곁에서 서로 기대어 곤히 자는 중','{r}에서 {p}의 팔을 베고 잠든 중']),room,cp.name)});
     else if(!together&&AFF.test(p.say||''))ctx.setPlace(c.id,{say:fillSay(pick(r,['{r}에서 침대에서 곤히 자는 중','{r}에서 이불을 덮고 잠든 중','{r}에서 새근새근 자고 있는 중']),room,'')})}}
 
-const api={resolveWish,parsePet,petTag,SPECIES,SPECIES_IDS,CARE,petNeeds,careNeed,petInit,wishList,fillSay,_candidates:candidates,_posOf:posOf,GROUPS,seoul,analyze,kindsOf,buildWorld,stepHouse,revalidate,wishOptions,setWish,VERBS,OUT_WHY,WISHES,BASE,hash,mulberry,KNAME,TRAIT_RULES,effHour,wa,ro,jobSlot,isOffDay,HOLIDAYS,hobbyPool};
+const api={jobLines,freePt,jobSlot,resolveWish,parsePet,petTag,SPECIES,SPECIES_IDS,CARE,petNeeds,careNeed,petInit,wishList,fillSay,_candidates:candidates,_posOf:posOf,GROUPS,seoul,analyze,kindsOf,buildWorld,stepHouse,revalidate,wishOptions,setWish,VERBS,OUT_WHY,WISHES,BASE,hash,mulberry,KNAME,TRAIT_RULES,effHour,wa,ro,jobSlot,isOffDay,HOLIDAYS,hobbyPool};
 root.Sim=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
