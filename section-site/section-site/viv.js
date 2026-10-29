@@ -613,6 +613,25 @@ function socDetail(M,s,c,o,nm){const SO=M._soc;if(!SO)return '';const f=SO.feelO
   const li=evs.map(x=>{const par=x.cause&&by.get(x.cause);return `<li><span class="vm-ms">${esc(x.why)}${x.off?' <small>(접속하지 않은 동안)</small>':''}${x.place?` <small>· ${esc(x.place)}</small>`:''}${par?`<br><small>↳ 원인: ${esc(par.why)}</small>`:''}</span><span class="vm-mt">${esc(mindTime(x.t))}</span></li>`}).join('');
   return `<h4>마음의 결 <small>${esc(c.name)}이(가) ${esc(nm(o))}에게 느끼는 것</small></h4><div class="vm-box vm-feel">${bars}<div class="vm-sub">숫자가 아니라 쌓인 사건으로 움직여요. 서운함·질투·경계는 시간이 지나며 가라앉아요.</div></div>
    <h4>최근 있었던 일 <small>원인과 함께</small></h4>${li?`<ul class="vm-mem">${li}</ul>`:'<p class="hint">아직 기록할 만한 일이 없어요.</p>'}`}
+/* 관찰 일지: 사회 기록(감정·관계·사건·세계 자각)을 시간순으로 모아 보는 화면. 알림이 아니라 열어 볼 때만 보이고, 원인이 있으면 함께 보여 준다. */
+const JR_CAT={rel:['conflict','conf_branch','apology','talk_out','bicker_end','breakup','divorce','reunion','sep','confess_ok','confess_no','propose_ok','propose_no'],news:['witness','gossip','check','care','contagion','intent'],odd:['trap','strain','mannerism','deja','reflect','dislike','aware']};
+const JR_NAME={rel:'관계',news:'소식·돌봄',odd:'이상·세계',life:'일상'},jrCat=t=>Object.keys(JR_CAT).find(k=>JR_CAT[k].includes(t))||'life';
+function openJournal(){
+  const M=MD(),d=dlgOf(),cur=houses[activeIdx];if(!M||!M._soc||!d||!cur)return;
+  const mem=inHouse(cur.id).filter(c=>!petOfChar(c)),ids=new Set(mem.map(c=>c.id)),nm=id=>(mem.find(c=>c.id===id)||Viv.chars().find(c=>c.id===id)||{}).name||'';
+  const S=M._soc.soc(M.store.get()),by=new Map(S.log.map(e=>[e.id,e]));
+  const rows=S.log.filter(e=>ids.has(e.a)||ids.has(e.b)||(e.pair||[]).some(x=>ids.has(x))||(!e.a&&!e.b)).sort((x,y)=>y.t-x.t);
+  let cat='all',who='',lim=40;
+  d.innerHTML=`<form class="vv-form" onsubmit="return false"><h3>관찰 일지 <small>${esc(cur.name)}</small></h3><p class="hint">캐릭터들에게 일어난 일을 시간순으로 모아 보여 줘요. 열어 볼 때만 보이고 알림은 뜨지 않아요. 접속하지 않은 동안의 일은 표시가 붙어요.</p>
+   <div class="vj-f"><select id="vjCat"><option value="all">전체</option>${Object.keys(JR_NAME).map(k=>`<option value="${k}">${JR_NAME[k]}</option>`).join('')}</select><select id="vjWho"><option value="">모든 캐릭터</option>${mem.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select></div>
+   <ul class="vj-list" id="vjList"></ul><div class="vv-btns"><button type="button" id="vjMore">더 보기</button><button type="button" id="vjClose">닫기</button></div></form>`;
+  const draw=()=>{const f=rows.filter(e=>(cat==='all'||jrCat(e.type)===cat)&&(!who||e.a===who||e.b===who||(e.pair||[]).includes(who))),part=f.slice(0,lim);let day='',h='';
+    for(const e of part){const sp=Viv.seoul(new Date(e.t)),dk=sp.month+'/'+sp.day;if(dk!==day){day=dk;h+=`<li class="vj-day">${dk}</li>`}
+      const ac=[...new Set([e.a,e.b].filter(Boolean).map(nm).filter(Boolean))],pre=ac.length&&!ac.some(n=>String(e.why).includes(n))?`<b>${esc(ac.join(' · '))}</b> `:'',par=e.cause&&by.get(e.cause);
+      h+=`<li class="vj-${jrCat(e.type)}"><span class="vj-t">${esc(sp.text)}</span>${pre}${esc(e.why)}${e.off?' <small>(접속하지 않은 동안)</small>':''}${e.place?` <small>· ${esc(e.place)}</small>`:''}${par?`<br><small>↳ 원인: ${esc(par.why)}</small>`:''}</li>`}
+    q('#vjList',d).innerHTML=h||'<li class="hint">아직 기록된 일이 없어요. 시간이 지나 캐릭터들이 어울리고 부딪히면 여기에 쌓여요.</li>';q('#vjMore',d).hidden=f.length<=lim};
+  q('#vjCat',d).onchange=e=>{cat=e.target.value;lim=40;draw()};q('#vjWho',d).onchange=e=>{who=e.target.value;lim=40;draw()};q('#vjMore',d).onclick=()=>{lim+=40;draw()};q('#vjClose',d).onclick=()=>d.close();
+  draw();if(!d.open)d.showModal()}
 function mindFill(el,c){
   const M=MD();if(!M||!el)return;
   const p=Viv.getPlace(c.id);
@@ -708,6 +727,8 @@ function runSimNow(i,animate){
   try{guestGC()}catch(e){}
   const mprev=mindSnap(h.id);let moves;try{const go=()=>Sim.stepHouse(simCtx(h,slide._snap));moves=h.shared?SH().auto(go):go()}catch(e){console.error('[viv sim]',e);return false}
   mindStep(h,slide._snap,mprev);uncStep(h);if(h.shared)mindSync(h,true);
+  /* 이웃집에 놀러 온 손님의 지문은 '그 집에서 계산한 문장' 하나만 진짜로 둔다: 원래 캐릭터의 말풍선에 복사해 서버로 올라가 상대 브라우저에도 같은 문장이 보이게 함 */
+  try{for(const gid of Viv.guestIds()){const gp=Viv.getPlace(gid);if(gp.house!==h.id||gp.mode!=='home'||!gp.say)continue;const rid=gid.slice(3),rp=Viv.getPlace(rid);if(rp.mode==='out'&&rp.verb==='out_visit'&&rp.say!==gp.say)Viv.setPlace(rid,{...rp,say:gp.say})}}catch(e){}
   if(!moves.length){if(outSig()!==sig0){drawChars(slide);return true}return false}
   if(animate&&!REDUCE){drawChars(slide);moves.forEach(m=>walk(slide,m))}
   drawChars(slide);return true}
@@ -1264,8 +1285,8 @@ async function openManage(hid){
 
 /* ---------- 시작 ---------- */
 function init(){
-  const nav=document.createElement('nav');nav.className='vnav';nav.innerHTML='<button data-m="viv">비바리움 관찰</button><button data-m="edit" class="on">단면도 편집</button><button class="vjoin" id="vvJoin" title="초대 코드로 다른 사람의 집에 들어가기">입장하기</button><button class="vjoin vnb" id="vvNb" title="초대 코드를 등록한 집과 이웃이 되어 서로 놀러 가기">이웃하기</button>';
-  q('#top .logo').after(nav);qa('button[data-m]',nav).forEach(b=>b.onclick=()=>go(b.dataset.m));q('#vvJoin',nav).onclick=()=>{if(!booted){booted=true;build()}openJoin()};q('#vvNb',nav).onclick=()=>{if(!booted){booted=true;build()}openNb()};if(SH())SH().onChange(onShareChange);
+  const nav=document.createElement('nav');nav.className='vnav';nav.innerHTML='<button data-m="viv">비바리움 관찰</button><button data-m="edit" class="on">단면도 편집</button><button class="vjoin" id="vvJoin" title="초대 코드로 다른 사람의 집에 들어가기">입장하기</button><button class="vjoin vnb" id="vvNb" title="초대 코드를 등록한 집과 이웃이 되어 서로 놀러 가기">이웃하기</button><button class="vjoin" id="vvJr" title="캐릭터들에게 일어난 일을 시간순으로 보기">관찰 일지</button>';
+  q('#top .logo').after(nav);qa('button[data-m]',nav).forEach(b=>b.onclick=()=>go(b.dataset.m));q('#vvJoin',nav).onclick=()=>{if(!booted){booted=true;build()}openJoin()};q('#vvNb',nav).onclick=()=>{if(!booted){booted=true;build()}openNb()};q('#vvJr',nav).onclick=()=>{if(!booted){booted=true;build()}openJournal()};if(SH())SH().onChange(onShareChange);
   const sec=document.createElement('section');sec.id='viv';document.body.appendChild(sec);
   window.addEventListener('hashchange',()=>go(location.hash==='#edit'?'edit':'viv'));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)simTick()});
