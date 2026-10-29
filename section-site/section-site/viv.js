@@ -546,7 +546,11 @@ function mindStep(h,snap,prev){
     chars.forEach(c=>{if(gsts.some(g=>g.realId===c.id))return;const p=Viv.getPlace(c.id),st=Viv.getSim(c.id),sg=p.mode==='home'?W.segAt(p.f|0,p.x==null?W.mid:p.x):null;
       cur[c.id]={mode:p.mode,action:p.action,verb:p.verb,seg:sg?sg.id:null,segName:sg?sg.name:'',partner:chars.some(o=>o.id===gRaw(p.partner))?gRaw(p.partner):null,say:p.say||'',n:st.n||0,outAt:st.outAt||0,...reachInfo(W,sg),wh:st.wishHist||[]}});
     const sp=Viv.seoul(new Date()),A=c=>Sim.analyze(c.profile,c.name,chars);
+<<<<<<< HEAD:section-site/section-site/viv.js
     M.update(M.store.get(),{now:Date.now(),hour:sp.hour+sp.minute/60,day:`${sp.year}-${sp.month}-${sp.day}`,chars,A,cur,prev:prev||{},unc:cid=>{const U2=UC();return U2&&U2.mood?U2.mood(U2.store.get(),cid,Date.now()):null},stay:cid=>{const U2=UC();if(!U2||!U2.dayNum)return 0;try{const u=(U2.store.get().u||{})[cid];return u&&u.since!=null?Math.max(0,U2.dayNum(Date.now())-U2.dayNum(u.since)):0}catch(e){return 0}}});
+=======
+    M.update(M.store.get(),{now:Date.now(),hour:sp.hour+sp.minute/60,day:`${sp.year}-${sp.month}-${sp.day}`,chars,A,cur,prev:prev||{},unc:cid=>{const U2=UC();return U2&&U2.mood?U2.mood(U2.store.get(),cid,Date.now()):null}});
+>>>>>>> 74002c90140e2bda6ec17f1629638a16e224d397:section-site/viv.js
     /* v19: 고백·프로포즈 결과가 새로 생기면 한 번 알려 준다(관계 상태는 직접 확인하기 전에는 바뀌지 않음) */
     try{const st=M.store.get(),ids=new Set(chars.map(c=>c.id));
       for(const k of Object.keys(st.rev||{})){const rv=st.rev[k],g=rv&&rv.sug;if(!g||g.shown)continue;const [x,y]=k.split('|');if(!ids.has(x)||!ids.has(y))continue;g.shown=1;note(g.text+' (캐릭터를 누르고 관계에서 확인할 수 있어요)')}}catch(e){}
@@ -842,7 +846,11 @@ function renderDetail(){
   <div id="vdAn">${anHtml(A)}</div>`}
   ${canPen?kindEditHtml(c,pet):''}
   <label>크기(높이 cm) <span class="row"><input type="range" id="vdSz" min="${HMIN}" max="${HMAX}" value="${Math.round(p.h)}" ${placed&&!out&&!ro?'':'disabled'}><input type="number" id="vdSzN" min="${HMIN}" max="${HMAX}" value="${Math.round(p.h)}" ${placed&&!out&&!ro?'':'disabled'}></span></label>
+<<<<<<< HEAD:section-site/section-site/viv.js
   <div class="vv-btns"><button id="vdDel" class="vv-danger" ${ro||!canSetC(c)?'disabled':''}>삭제</button></div>`;
+=======
+  <div class="vv-btns"><button id="vdDel" class="vv-danger" ${ro?'disabled':''}>삭제</button></div>`;
+>>>>>>> 74002c90140e2bda6ec17f1629638a16e224d397:section-site/viv.js
   if(mm)ucCorruptDetail(el,c,mm);else if(!pet)mindFill(q('#vvMind',el),c);
   /* 이름·이미지는 상세 머리말의 연필로 바로 고침(수정 대화상자 없이 같은 저장 경로 사용) */
   const quick=async(d,prep)=>{if(c.remote)await SH().updateChar(c.id,Viv.validate?Viv.validate(d):d,prep);else await Viv.saveChar(d,prep,c.id);

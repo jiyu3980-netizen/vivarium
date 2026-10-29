@@ -134,5 +134,8 @@ body.mode-viv #viv{display:block}body.mode-viv main{display:none}body.mode-viv #
 .vv-out1 .bub{background-clip:padding-box}.vv-out1 .bub::after{z-index:0}
 
 .vv-roomsel{font-size:12px;padding:3px 6px;border:1px solid var(--rule);background:#fff;border-radius:6px;margin-left:8px;max-width:140px;cursor:pointer}
+<<<<<<< HEAD:section-site/section-site/viv.css
 
 .vm-feel .vm-fl{display:grid;grid-template-columns:5.5em 1fr;align-items:center;gap:6px;font-size:12px}.vm-soctag{background:#f3e4e1;color:#7a3b32}.vm-box .vm-fl .vm-bar{margin:3px 0}
+=======
+>>>>>>> 74002c90140e2bda6ec17f1629638a16e224d397:section-site/viv.css
