@@ -638,6 +638,11 @@ function mindFill(el,c){
      ${ms.length?`<ul class="vm-mem">${ms.map(m=>`<li class="${m.val>0?'pos':'neg'}"><span class="vm-ms">${esc(m.sum)}${m.cnt>1?` <small>(${m.cnt}번)</small>`:''}</span><span class="vm-mt">${esc(mindTime(m.at))}</span><span class="vm-mp" title="지금 남은 영향력 ${m.pow}/100"><i style="width:${Math.max(4,m.pow)}%"></i></span><small>영향력 ${powLabel(m.pow)}${m.fading?' · 점점 희미해지는 중':''}${m.open?' · 아직 풀리지 않음':''}</small></li>`).join('')}</ul>`:'<p class="hint">아직 남아 있는 기억이 없어요. 함께한 일이 쌓이면 기억이 생기고, 시간이 지나면 희미해져요.</p>'}`}
   h+=`<p class="hint vm-foot">${c.remote?'공유 집 캐릭터의 감정·관계는 시뮬레이션을 돌리는 기기에서 갱신되고 서버를 통해 함께 보여요. ':'이 기기에만 저장돼요. '}<button type="button" id="vmReset" class="vm-link">감정·관계 기록 지우기</button></p>`;
   el.innerHTML=h;
+  /* 친밀도·관계 유형·연애 상태 등은 이 캐릭터를 등록한 사람만 바꿀 수 있다(코드로 입장한 사람·이웃·공동 집주인은 보기만) */
+  const ctl=canSetC(c),oc=mindSel&&Viv.char(mindSel),both2=ctl&&(!oc||canSetC(oc));
+  if(!ctl){qa('#vmAff,#vmBoth,#vmType,#vmRom,.vmRb,#vmSugOk,#vmSugNo',el).forEach(x=>{x.disabled=true});
+    const sel=q('#vmAff',el)||q('#vmType',el);const box=sel&&(sel.closest('.vm-box')||sel.parentNode);if(box)box.insertAdjacentHTML('beforeend','<div class="vm-sub vm-lock">이 캐릭터를 등록한 사람만 관계를 바꿀 수 있어요</div>')}
+  else if(!both2){const b=q('#vmBoth',el);if(b){b.checked=false;b.disabled=true;b.parentNode.insertAdjacentHTML('beforeend',' <small>(상대 캐릭터는 등록한 사람만 바꿀 수 있어요)</small>')}}
   qa('.vm-rel',el).forEach(b=>b.onclick=()=>{mindSel=mindSel===b.dataset.o?null:b.dataset.o;mindFill(el,c)});
   const mkEnv=()=>{const chars=humansIn(p.house),sp=Viv.seoul(new Date());return M.env(chars,ch=>Sim.analyze(ch.profile||'',ch.name||'',chars),Date.now(),`${sp.year}-${sp.month}-${sp.day}`)};
   const both=()=>{const b=q('#vmBoth',el);return !b||b.checked};
