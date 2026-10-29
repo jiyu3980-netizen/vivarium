@@ -81,7 +81,7 @@ body.mode-viv #msg{display:none}
  #viv .vv-detail{position:fixed;left:0;right:0;top:auto;bottom:62px;width:auto;max-height:46vh;border-radius:18px 18px 0 0;z-index:19}
  #viv #vvNote{bottom:76px}
 }
-.vv-guests img,.vv-guests .ph{display:none}
+
 
 /* v23.12 머리말 연필(이름·이미지 바로 수정) */
 .vv-pen{border:0;background:transparent;color:var(--vx-mut,#777);cursor:pointer;font-size:13px;line-height:1;padding:2px 4px;margin-left:4px;vertical-align:middle}

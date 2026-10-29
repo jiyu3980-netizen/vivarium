@@ -342,10 +342,11 @@ setInterval(()=>{if(typeof mode!=='undefined'&&mode==='viv'&&!document.hidden)up
 function renderOuts(slide){const el=q('#vvOuts');if(el){el.hidden=true;el.innerHTML=''}
   const wrap=q('.vv-stagewrap',slide);if(!wrap)return;renderGuests(slide,wrap);let box=q('.vv-outtop',wrap);
   const hid=slide.dataset.house;const outs=Viv.chars().filter(c=>{const p=Viv.getPlace(c.id);return p.house===hid&&p.mode==='out'&&!ANIM[c.id]});
-  if(!outs.length){if(box)box.remove();return}
+  const gh=guestHtml(hid);
+  if(!outs.length&&!gh){if(box)box.remove();return}
   if(!box){box=document.createElement('div');box.className='vv-outtop';wrap.appendChild(box)}
   // 집 밖에 있는 캐릭터: 도면에는 없고, 화면 왼쪽 위에 그림과 말풍선으로 나란히 보임 (같이 나간 사이면 붙어서)
-  box.innerHTML=outs.map(c=>{const p=Viv.getPlace(c.id),img=IMG[c.id];return `<div class="vv-out1" data-id="${esc(c.id)}">${img?`<img src="${img}" alt="" onerror="VivUI.imgBad('${esc(c.id)}')">`:`<span class="ph">${esc([...c.name][0]||'?')}</span>`}<div class="bub"><b>${esc(c.name)}</b>${esc(outSay(c,p))}</div></div>`}).join('')}
+  box.innerHTML=outs.map(c=>{const p=Viv.getPlace(c.id),img=IMG[c.id];return `<div class="vv-out1" data-id="${esc(c.id)}">${img?`<img src="${img}" alt="" onerror="VivUI.imgBad('${esc(c.id)}')">`:`<span class="ph">${esc([...c.name][0]||'?')}</span>`}<div class="bub"><b>${esc(c.name)}</b>${esc(outSay(c,p))}</div></div>`}).join('')+gh}
 /* 이웃집에 놀러 간 캐릭터: 그 집에서 실제로 하고 있는 행동 문구를 우리 집 화면에도 똑같이 보여 줌 */
 function outSay(c,p){if(p.verb==='out_visit'&&Viv.guestHas&&Viv.guestHas('vg:'+c.id)){const gp=Viv.getPlace('vg:'+c.id);if(gp&&gp.mode==='home'&&gp.say){const hn=houseOf(gp.house);return (hn?hn.name+' · ':'')+gp.say}}return p.say||'외출 중이에요'}
 function makeChar(c,p,geo,ov,slide,L1,L2,guest){
@@ -1120,10 +1121,11 @@ function guestChars(hid){const out=[];
   return out}
 function guestGC(){const live=new Set();houses.forEach(h=>visitorsOf(h.id).forEach(c=>{if(!c.srvVisit)live.add('vg:'+c.id)}));
   Viv.guestIds().forEach(id=>{if(!live.has(id)){Viv.guestDrop(id);delete IMG[id]}})}
-function renderGuests(slide,wrap){let box=q('.vv-guests',wrap);const gs=visitorsOf(slide.dataset.house);
-  if(!gs.length){if(box)box.remove();return}
-  if(!box){box=document.createElement('div');box.className='vv-outtop vv-guests';wrap.appendChild(box)}
-  box.innerHTML=gs.map(c=>{const p=c.srvVisit?{house:null}:Viv.getPlace(c.id),img=IMG[c.id],hn=c.srvVisit?{name:c.fromName}:houseOf(p.house);return `<div class="vv-out1" data-id="${esc(c.id)}">${img?`<img src="${img}" alt="" onerror="VivUI.imgBad('${esc(c.id)}')">`:`<span class="ph">${esc([...c.name][0]||'?')}</span>`}<div class="bub"><b>${esc(c.name)}</b>${esc((hn?hn.name+'에서 ':'')+'놀러 왔어요')}</div></div>`}).join('')}
+/* 놀러 온 손님은 외출 중인 캐릭터와 같은 왼쪽 위 줄에, 그림과 함께 '어디서 놀러 왔는지·지금 하는 행동'을 보여 줌 */
+function guestHtml(hid){const gs=visitorsOf(hid);
+  return gs.map(c=>{const p=c.srvVisit?{house:null}:Viv.getPlace(c.id),gp=c.srvVisit?null:Viv.getPlace('vg:'+c.id),img=IMG[c.id]||IMG['vg:'+c.id],hn=c.srvVisit?{name:c.fromName}:houseOf(p.house),act=c.srvVisit?(c.say||''):((gp&&gp.mode==='home'&&gp.say)||'');
+    return `<div class="vv-out1 vv-g1" data-id="${esc(c.id)}">${img?`<img src="${img}" alt="" onerror="VivUI.imgBad('${esc(c.id)}')">`:`<span class="ph">${esc([...c.name][0]||'?')}</span>`}<div class="bub"><b>${esc(c.name)} · 손님</b>${esc((hn?hn.name+'에서 ':'')+'놀러 왔어요'+(act?' — '+act:''))}</div></div>`}).join('')}
+function renderGuests(slide,wrap){const old=q('.vv-guests',wrap);if(old)old.remove()}   // 예전 오른쪽 위 손님 상자는 쓰지 않음(왼쪽 위 줄에 합침)
 /* 동네 보기: 이웃 집들을 같은 축척으로, 땅 높이를 맞춰 작은 간격으로 나란히 보여 줌 (눌러서 그 집으로 이동) */
 async function renderHood(slide){
   const wrap=q('.vv-stagewrap',slide);if(!wrap)return;let box=q('.vv-hood',wrap);
