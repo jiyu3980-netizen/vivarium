@@ -449,7 +449,6 @@ function coupleLines(s,id,nm,now){
 
 /* v37 싫어하는 것 마주침: 프로필의 '싫어하는 것' 말이 지금 하는 행동·장소·곁의 사람 이름에 들어 있으면 짜증이 조금 오르고, 한동안 그 반응이 지문에 드러난다 */
 const GEN=/^(음식|곳|것|거|사람|소리|일|장소|상황|때|날씨|냄새)$/;
-const wg=w=>w+(jong(w)?'과':'와');
 function observe(s,inp,env){
   const S=SO.soc(s),now=env.now,ch=chn(s),pos=ch.pos||(ch.pos={}),L2=S.lg2||(S.lg2={});
   for(const c of inp.chars){const cu=inp.cur[c.id];if(cu)pos[c.id]={seg:cu.mode==='home'?cu.seg:null,m:cu.mode,sl:cu.action==='sleep'?1:0}}

@@ -155,8 +155,9 @@ async function lease(hid){try{const r=await api('POST',`/api/houses/${hid}/lease
 const MR={};
 async function mindPull(hid){try{const r=await api('GET',`/api/houses/${hid}/mind?sinceRev=${MR[hid]||0}`,{hid});
   if(r.unchanged)return null;MR[hid]=r.rev;if(!r.data)return null;return JSON.parse(r.data)}catch(e){return null}}
-async function mindPush(hid,data){try{const r=await api('PUT',`/api/houses/${hid}/mind`,{hid,body:{data:JSON.stringify(data),baseRev:MR[hid]||0}});MR[hid]=r.rev;return {ok:true}}
+async function mindPush(hid,data){try{const r=await api('PUT',`/api/houses/${hid}/mind`,{hid,body:{data:JSON.stringify(data),baseRev:MR[hid]||0}});MR[hid]=r.rev;if(r.fixed&&r.data){try{return {ok:true,fixed:true,data:JSON.parse(r.data)}}catch(x){}}return {ok:true}}
   catch(e){if(e.status===409&&e.data){if(e.data.conflict){MR[hid]=e.data.rev;try{return {ok:false,conflict:true,data:JSON.parse(e.data.data)}}catch(x){}}if(e.data.notLeader&&H[hid])H[hid].leaderPid=null}return {ok:false}}}
+async function mindRel(hid,body){try{await api('POST',`/api/houses/${hid}/mind/rel`,{hid,body});return {ok:true}}catch(e){return {ok:false,error:e.message||'관계를 바꾸지 못했어요'}}}
 const isLeader=hid=>!!(H[hid]&&H[hid].me&&H[hid].leaderPid===H[hid].me.pid);
 let polling=null;
 async function poll(){if(!enabled()||!Object.keys(reg.houses).length)return false;if(polling)return polling;
@@ -188,6 +189,6 @@ const linkedSlots=()=>new Set(Object.entries(reg.houses).filter(([hid,h])=>h.lin
 
 const notify=()=>emit('poll');
 window.VivShare={notify,enabled,store,api,syncAll,poll,refresh,flush,takeLost,onChange:f=>listeners.push(f),
-  createHouse,join,joinRecovery,recoveryKey,leave,deleteHouse,rename,setNick,rotate,rotateNb,visitorImageUrl,revoke,kick,saveDoc,getDoc,setLink,lease,isLeader,mindPull,mindPush,auto,takeDocEvents,docHash,
+  createHouse,join,joinRecovery,recoveryKey,leave,deleteHouse,rename,setNick,rotate,rotateNb,visitorImageUrl,revoke,kick,saveDoc,getDoc,setLink,lease,isLeader,mindPull,mindPush,mindRel,auto,takeDocEvents,docHash,
   adopt,createChar,updateChar,removeChar,info,sharedHouses,linkedSlots,regHouses,reg:()=>reg,saveReg,ShareErr};
 })();

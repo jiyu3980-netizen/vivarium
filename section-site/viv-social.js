@@ -283,6 +283,8 @@ function reunions(s,env,inp,log){
     /* 이별 자체의 기억(오래가는 큰 기억)은 '상처' 문턱에서 빼고 따로 반영한다: 그대로 두면 석 달 가까이 재회가 불가능해진다 */
     const bkPow=[[a,b],[b,a]].reduce((t,[x,y])=>t+mems(s,x).filter(m=>m.o===y&&m.t==='breakup').reduce((u,m)=>u+effPow(m,now),0),0);
     if(aff<-10||ga_.posPow+gb.posPow<20||(ga_.hurt+gb.hurt-bkPow)>130)continue;
+    /* 헤어진 사람이 모두 다시 만나지는 않는다: 쌍마다 '다시 이을 마음'이 있는지가 이별 시점으로 정해짐(다정할수록 있을 확률↑, 냉담할수록↓) */
+    if(hash('ruw|'+key+'|'+sp.at)%100>=clamp(48+14*(tvOf(A,'caring')+tvOf(B,'caring'))-12*(tvOf(A,'aloof')+tvOf(B,'aloof')),20,75))continue;
     const p=.007*clamp((aff+30)/70,.2,1.4)*(1+.8*Math.max(0,tvOf(A,'bold')+tvOf(B,'bold'))/2+.5*Math.max(0,tvOf(A,'caring')+tvOf(B,'caring'))/2)*(1-.5*Math.max(0,tvOf(A,'aloof')+tvOf(B,'aloof'))/2);
     if(rng()>p*clamp(1-bkPow/420,.45,1))continue;
     const r=applyEvent(s,{id:`soc|${key}|ru|${now}`,type:'reunion',a,b,at:now},env);if(r)log.push(r);
@@ -402,6 +404,7 @@ function slice(S,ids){const o={feel:{},know:{},expect:{},conf:{},sep:{},todo:[],
   for(const k of Object.keys(S.estr||{}))if(ok1(ids,k,'|'))o.estr[k]=S.estr[k];
   for(const k of Object.keys(S.res||{}))if(ok1(ids,k,'|'))o.res[k]=S.res[k];
   o.cx={};for(const f of CX)if(S[f]){o.cx[f]={};for(const k of Object.keys(S[f]))if(ids.has(k))o.cx[f][k]=S[f][k]}   // 갇힘·매너리즘·기시감·생활 기록·성찰 상태(리더가 바뀌어도 이어지게)
+  if(S.awr)o.awr=S.awr;   // 세계 자각의 집 전체 상태(V 게이지·틈·자가 진화) — 리더가 계산한 값을 다른 기기도 같이 봄
   o.todo=(S.todo||[]).filter(t=>ids.has(t.w)&&ids.has(t.to));const lg=(S.log||[]).filter(x=>ids.has(x.a)&&(x.b==null||ids.has(x.b)));   // 서버로 보낼 때도 중요한 기록(이별·재회·갈등 갈래·돌봄 등)은 지키고 일상 기록만 최근 것으로 줄임
   const imp=lg.filter(x=>KEEP.has(x.type)),oth=lg.filter(x=>!KEEP.has(x.type)).slice(-200);o.log=imp.slice(-300).concat(oth).sort((x,y)=>x.t-y.t);return o}
 function mergeSlice(s,sl,ids){const S=soc(s);
@@ -415,6 +418,7 @@ function mergeSlice(s,sl,ids){const S=soc(s);
   S.int=S.int||{};for(const k of Object.keys(S.int))if(k!=='_lg'&&ids.has(k))delete S.int[k];Object.assign(S.int,sl.int||{});
   S.todo=S.todo.filter(t=>!(ids.has(t.w)&&ids.has(t.to)));S.log=S.log.filter(x=>!(ids.has(x.a)&&(x.b==null||ids.has(x.b))));
   Object.assign(S.feel,sl.feel||{});Object.assign(S.know,sl.know||{});Object.assign(S.expect,sl.expect||{});Object.assign(S.conf,sl.conf||{});Object.assign(S.sep,sl.sep||{});Object.assign(S.estr,sl.estr||{});Object.assign(S.res,sl.res||{});
+  if(sl.awr&&typeof sl.awr==='object')S.awr=sl.awr;
   for(const f of CX){S[f]=S[f]||{};for(const k of Object.keys(S[f]))if(ids.has(k))delete S[f][k];Object.assign(S[f],(sl.cx||{})[f]||{})}
   S.todo.push(...(sl.todo||[]));S.log.push(...(sl.log||[]));S.log.sort((x,y)=>x.t-y.t)}
 M._soc={jr,setPlace,catchUp,CU,slice,mergeSlice,onEvent,step,extend,journal,view,forget,soc,feelOf,addKnow,knows,BRANCH_NAME};

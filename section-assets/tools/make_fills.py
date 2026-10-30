@@ -8,6 +8,7 @@ ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAD=16
 RULES_PATH=ROOT+'/catalog/fill_rules.json'
 RULES=json.load(open(RULES_PATH)) if os.path.exists(RULES_PATH) else {}
+LEAK=.5   # 선의 이 비율 미만만 실루엣 안이면 '샌 것'으로 본다
 R=800  # 긴 변 해상도(부드러운 윤곽을 위해 400→800)
 TOK=re.compile(r'([MLAa])([^MLAa]*)');NUM=re.compile(r'-?\d+\.?\d*(?:e-?\d+)?')
 def raster(svg):
@@ -52,6 +53,12 @@ def work(args):
         filled=cv2.erode(filled,cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3)))
         # 윤곽 다듬기: 가우시안 블러 후 재이진화(계단·잔 요철 제거, 모서리 위치는 유지) → 윤곽 좌표 이동평균
         filled=cv2.threshold(cv2.GaussianBlur(filled,(0,0),0.8 if (rules or {}).get('fine') else 2.2),127,255,cv2.THRESH_BINARY)[1]
+        # 윤곽이 열려 있어(문 틀처럼 아래·옆이 안 그려진 도면) 바깥 flood-fill 이 안으로 샌 경우: 선의 대부분이 실루엣 밖에 남는다 →
+        # 이때만 선 전체의 볼록 껍질을 흰 채움(=클릭 영역)으로 쓴다. 선 SVG 는 그대로. 사용자 지정 규칙이 있으면 건드리지 않는다.
+        inkm=im>0;cov=float((filled[inkm]>0).mean()) if inkm.any() else 1.0
+        if os.environ.get('FILL_DRY'):return rel,round(cov,3)
+        if cov<LEAK and not rules and inkm.any():
+            hull=cv2.convexHull(cv2.findNonZero(im));filled=np.zeros_like(filled);cv2.fillConvexPoly(filled,hull,255);filled=cv2.erode(filled,cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3)))
         cs,hier=cv2.findContours(filled,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_NONE)
         def smooth(c,win=5):
             p=c[:,0,:].astype(np.float32)

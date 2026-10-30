@@ -812,6 +812,7 @@ function uncCandidates(ctx,c,A,st,pos,R,itemsR,winOps,others,out){
     else if(E.kind==='items'){for(const it of itemsR)if(it.kinds.some(k=>E.k.includes(k)))out.push({v,item:it,dist:dist(it.x,it.f)})}
     else if(E.kind==='near'){for(const o of sameRoom)out.push({v,seg:pos.seg,near:o,dist:0})}
     else if(E.kind==='rep'){const again=lastNormal&&out.find(x=>x.v.id===lastNormal&&!x.v.unc&&!x.v.care&&!x.v.pair&&x.v.g!=='sleep'&&x.v.g!=='p_sleep');if(again)out.push({v,seg:pos.seg,rep:again,dist:0})}}}
+const dislikes=(A,v)=>{const ws=((A.bits&&A.bits.dislikes)||[]).map(w=>w.replace(/(하기|하는 ?것|하는 ?일|기)$/,'').trim()).filter(w=>w.length>=2);if(!ws.length)return false;const txt=v._txt||(v._txt=(v.t||[]).join(' '));return ws.some(w=>txt.includes(w))};
 function candidates(ctx,c,A,st,pos,hm,opts){
   opts=opts||{};const W=ctx.world,R=(c.pet&&SPECIES[c.pet.sp].room&&pos.seg)?new Set([pos.seg.id]):W.reach(pos.seg?pos.seg.id:0),H=Math.floor(hm),out=[];   // v17: 작은 반려동물(햄스터·새·물고기)은 있는 방 안에서만 움직임
   {const st0=ctx.getSim(c.id);if(H<7||H>=21||(st0.yardSince&&ctx.now-st0.yardSince>150*60000))W.segs.forEach(sg=>{if(sg.yard)R.delete(sg.id)})}   // 마당은 서울 07~21시에만, 한 번에 2시간 반까지만 후보
@@ -831,6 +832,7 @@ function candidates(ctx,c,A,st,pos,hm,opts){
     if(v.internal||v.special==='prep')continue;
     if(v.sp){if(!c.pet||c.pet.sp!==v.sp||!petCond(v,ctx,c,myPs,ctx.now))continue}else if(c.pet)continue;   // v17: 반려동물은 자기 종 행동만, 사람은 반려동물 행동 제외
     if(v.wishOnly&&!opts.wish)continue;
+    if(!opts.wish&&!c.pet&&dislikes(A,v))continue;   // 싫어한다고 적힌 것('청소하기' 등)과 같은 말이 든 행동은 스스로 고르지 않음(직접 시키면 함)
     if(String(c.id).startsWith('vg:')&&(v.g==='sleep'||v.couple||v.rom||v.care||v.special==='friend'))continue;   // v25: 손님은 남의 집에서 자지 않고, 연인·돌봄 행동도 하지 않음
     if(v.req&&!(opts.wish&&v.jobv&&v.id!=='job_free')&&!v.req(A))continue;   // 일하기를 직접 고른 경우에는 직업·성향이 없어도 책상류 가구만 있으면 가능
     const softStudy=v.g==='study'&&!(tv(A,'studious')>0)&&!opts.wish;
@@ -841,7 +843,6 @@ function candidates(ctx,c,A,st,pos,hm,opts){
     if(v.nap&&(H>=21||H<6)&&!opts.ignoreHr&&have('bed'))continue;
     if(v.nobed&&have('bed'))continue;
     if(!v.nap&&v.g==='sleep'&&v.id.startsWith('sleep_')&&!opts.sleepAnyTime&&H>=9&&H<20&&!opts.wish)continue;
-    if(v.nap&&!(H>=21||H<6)&&H>=6&&false)continue;
     if(v.need&&!v.need.some(k=>have2(k)))continue;
     if(v.care){   // v17: 반려인이 자기 반려동물을 돌보는 행동 — 반려동물이 같은 집에 있어야 함
       for(const pe of ownPets(ctx,c)){
@@ -1278,6 +1279,6 @@ function reconcile(ctx){
     if(together&&!AFF.test(p.say||''))ctx.setPlace(c.id,{say:fillSay(pick(r,['{r}에서 {p}를 꼭 안고 잠든 중','{r}에서 {p}의 곁에서 서로 기대어 곤히 자는 중','{r}에서 {p}의 팔을 베고 잠든 중']),room,cp.name)});
     else if(!together&&AFF.test(p.say||''))ctx.setPlace(c.id,{say:fillSay(pick(r,['{r}에서 침대에서 곤히 자는 중','{r}에서 이불을 덮고 잠든 중','{r}에서 새근새근 자고 있는 중']),room,'')})}}
 
-const api={jobLines,freePt,jobSlot,resolveWish,parsePet,petTag,SPECIES,SPECIES_IDS,CARE,petNeeds,careNeed,petInit,wishList,fillSay,_candidates:candidates,_posOf:posOf,GROUPS,seoul,analyze,kindsOf,buildWorld,stepHouse,revalidate,wishOptions,setWish,VERBS,OUT_WHY,WISHES,BASE,hash,mulberry,KNAME,TRAIT_RULES,effHour,wa,ro,jobSlot,isOffDay,HOLIDAYS,hobbyPool};
+const api={jobLines,freePt,jobSlot,resolveWish,parsePet,petTag,SPECIES,SPECIES_IDS,CARE,petNeeds,careNeed,petInit,wishList,fillSay,_candidates:candidates,_dislikes:dislikes,_posOf:posOf,GROUPS,seoul,analyze,kindsOf,buildWorld,stepHouse,revalidate,wishOptions,setWish,VERBS,OUT_WHY,WISHES,BASE,hash,mulberry,KNAME,TRAIT_RULES,effHour,wa,ro,jobSlot,isOffDay,HOLIDAYS,hobbyPool};
 root.Sim=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

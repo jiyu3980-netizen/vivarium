@@ -22,7 +22,7 @@ body.mode-viv #viv{display:block}body.mode-viv main{display:none}body.mode-viv #
 .vv-ov{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
 .vv-ch{pointer-events:auto;cursor:grab;touch-action:none}.vv-ch:active{cursor:grabbing}
 .vv-out,.vv-handle{display:none}.vv-ch.sel .vv-out{display:block;stroke:#d0382c}.vv-ch.sel .vv-handle{display:block;fill:#fff;stroke:#d0382c;stroke-width:2;cursor:nesw-resize}
-.vv-lb{display:none;fill:#1c1c1c;stroke:#fff;paint-order:stroke;font-weight:700;pointer-events:none}.vv-ch.sel .vv-lb,.vv-ch:hover .vv-lb{display:block}
+
 .vv-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:34px;height:54px;font-size:26px;line-height:1;padding:0;background:rgba(255,255,255,.9)}#vvPrev{left:0}#vvNext{right:0}.vv-arrow[hidden]{display:none}
 .vv-dots{display:flex;gap:7px;justify-content:center;padding:6px}.vv-dots button{width:11px;height:11px;padding:0;border-radius:50%;background:#fff}.vv-dots button.on{background:var(--ink)}
 .vv-wait{color:var(--mut);padding:40px}

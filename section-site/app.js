@@ -248,6 +248,16 @@ function grainPattern(defs,id,base,n,seed){const p=mk('pattern',{id,width:80,hei
  for(let i=0;i<n;i++)mk('circle',{cx:(rnd()*80).toFixed(1),cy:(rnd()*80).toFixed(1),r:(.5+rnd()*1.3).toFixed(2),fill:rnd()>.35?'rgba(0,0,0,.10)':'rgba(255,255,255,.28)'},p)}
 const pts2=(a)=>a.map(p=>p[0].toFixed(1)+','+(-p[1]).toFixed(1)).join(' ');
 let LASTW={},MASKN=0;
+/* 클릭 영역 계획(에셋마다 한 번 계산해 저장): 실루엣의 서브패스를 각각 따로 채워 구멍(도넛·문 안쪽 면)도 눌리게 한다.
+   선이 실루엣 밖에 많이 나가는 에셋(윤곽이 열려 손잡이만 채워진 문 등)은 전체 상자를 클릭 영역으로 쓴다. */
+const HC=document.createElement('canvas');HC.width=HC.height=96;const HX=HC.getContext('2d',{willReadFrequently:true});
+function hitPlan(A0,F0){if(F0.hp)return F0.hp;let hp={sub:null};
+ try{const S=96,sx=S/A0.w,sy=S/A0.h,sub=F0.fd.split(/(?=M)/).filter(q=>q.trim()),px=()=>HX.getImageData(0,0,S,S).data;
+  HX.setTransform(1,0,0,1,0,0);HX.clearRect(0,0,S,S);HX.setTransform(sx,0,0,sy,0,0);HX.lineWidth=Math.max(A0.w,A0.h)/150;HX.strokeStyle='#000';if(A0.d)HX.stroke(new Path2D(A0.d));const ink=px();
+  HX.setTransform(1,0,0,1,0,0);HX.clearRect(0,0,S,S);HX.setTransform(sx,0,0,sy,0,0);HX.fillStyle='#000';for(const q of sub)HX.fill(new Path2D(q));const fil=px();
+  let n=0,c=0;for(let i=3;i<ink.length;i+=4)if(ink[i]>60){n++;if(fil[i]>60)c++}
+  hp=n&&c/n<.95?{sub:null}:{sub:sub.length<=60?sub:[F0.fd]}}catch(e){hp={sub:[F0.fd]}}
+ return F0.hp=hp}
 function renderItem(it,gp,WT,pseudo){const gg=mk('g',{...(pseudo?{'data-id':it.uid}:{class:'itm','data-uid':it.uid}),transform:`translate(${it.x-it.w/2} ${-it.e-it.h})`+(it.flip?` translate(${it.w} 0) scale(-1 1)`:'')},gp);
  const a=AM[it.assetId];const v=a&&a.views[it.view]||(a&&Object.values(a.views).find(Boolean));
  if(!v){mk('rect',{width:it.w,height:it.h,fill:'rgba(200,0,0,.1)',stroke:'#c00'},gg);return}
@@ -255,7 +265,9 @@ function renderItem(it,gp,WT,pseudo){const gg=mk('g',{...(pseudo?{'data-id':it.u
  if(!A0||(OPT.fill&&v.fill&&!F0)){mk('rect',{width:it.w,height:it.h,fill:'rgba(0,0,0,.04)',stroke:'#999','stroke-dasharray':'4 4','stroke-width':1},gg);return}
  const sx=it.w/A0.w,sy=it.h/A0.h,k=(sx+sy)/2,w=WT[it.uid]||(()=>{const wo=Math.min(S.lw.out,.04*Math.max(it.w,it.h));return {wo,wi:Math.min(S.lw.inn,wo/2)}})();const col=it.cs==='behind'?'#555':'#1c1c1c';const dsh=(it.cs==='behind'&&S.lw.bDash)?{'stroke-dasharray':`${(9/k).toFixed(2)} ${(6/k).toFixed(2)}`}:{};
  const sc=mk('g',{transform:`scale(${sx} ${sy})`},gg);   // 원경: 면(흰 채움)은 그대로 불투명 — 선만 반투명(아래 lg)
- if(F0&&F0.fd){mk('path',{d:F0.fd,fill:'#fff','fill-rule':'evenodd','pointer-events':'all'},sc)}
+ const hp=F0&&F0.fd?hitPlan(A0,F0):null;
+ if(F0&&F0.fd)mk('path',{d:F0.fd,fill:'#fff','fill-rule':'evenodd','pointer-events':'none'},sc);   // 흰 채움은 보이기만(구멍은 구멍으로 남김)
+ if(hp&&hp.sub)for(const d of hp.sub)mk('path',{d,fill:'#fff','fill-opacity':0,'pointer-events':'all'},sc);   // 클릭 영역: 구멍까지 채운 실루엣
  else mk('rect',{width:A0.w,height:A0.h,fill:'#fff','fill-opacity':0,'pointer-events':'all'},sc);
  if(A0.img)mk('image',{href:A0.img,x:0,y:0,width:A0.w,height:A0.h,preserveAspectRatio:'none','pointer-events':'none'},sc);   // 내 에셋(PNG)
  const L={fill:'none',stroke:col,'stroke-linecap':'round','stroke-linejoin':'round',...dsh};

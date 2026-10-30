@@ -340,7 +340,7 @@ function updNote(slide){slide=slide||qa('.vv-slide')[activeIdx];if(!slide)return
   el.textContent=m?`${m>=90?Math.round(m/60)+'시간':m+'분'} 뒤 행동이 갱신됩니다.`:'곧 행동이 갱신됩니다.'}
 setInterval(()=>{if(typeof mode!=='undefined'&&mode==='viv'&&!document.hidden)updNote()},15000);
 function renderOuts(slide){const el=q('#vvOuts');if(el){el.hidden=true;el.innerHTML=''}
-  const wrap=q('.vv-stagewrap',slide);if(!wrap)return;renderGuests(slide,wrap);let box=q('.vv-outtop',wrap);
+  const wrap=q('.vv-stagewrap',slide);if(!wrap)return;let box=q('.vv-outtop',wrap);
   const hid=slide.dataset.house;const outs=Viv.chars().filter(c=>{const p=Viv.getPlace(c.id);return p.house===hid&&p.mode==='out'&&!ANIM[c.id]});
   const gh=guestHtml(hid);
   if(!outs.length&&!gh){if(box)box.remove();return}
@@ -674,19 +674,21 @@ function mindFill(el,c){
   qa('.vm-rel',el).forEach(b=>b.onclick=()=>{mindSel=mindSel===b.dataset.o?null:b.dataset.o;mindFill(el,c)});
   const mkEnv=()=>{const chars=humansIn(p.house),sp=Viv.seoul(new Date());return M.env(chars,ch=>Sim.analyze(ch.profile||'',ch.name||'',chars),Date.now(),`${sp.year}-${sp.month}-${sp.day}`)};
   const both=()=>{const b=q('#vmBoth',el);return !b||b.checked};
+    /* 공유 집 캐릭터의 관계 변경은 서버가 '등록한 사람'을 확인해 받아들인다(리더의 저장으로는 바뀌지 않음) */
+  const relSave=()=>{M.store.save();const o=mindSel;if(!c.remote||!c.hid||!o)return;const sl=M.slice(M.store.get(),[c.id,o]);SH().mindRel(c.hid,{a:c.id,b:o,rel:sl.rel,rom:sl.rom,clearRom:true}).then(r=>{if(r&&r.error)alert(r.error)})};
   const ty=q('#vmType',el);if(ty)ty.onchange=()=>{const env=mkEnv(),v=ty.value||null;
     if(v==='lover'||v==='spouse'){M.setRomance(s,c.id,mindSel,v,env)}   // 연인·부부는 연애 상태와 함께 정해짐(세부 설정이 아래에 열림)
     else{const st=M.romState(s,c.id,mindSel);M.setRelType(s,c.id,mindSel,v,env);if(both())M.setRelType(s,mindSel,c.id,v,env);if(v&&(st.k==='lover'||st.k==='spouse'))M.setRomance(s,c.id,mindSel,'none',env)}
-    M.store.save();mindFill(el,c)};
+    relSave();mindFill(el,c)};
   const rm=q('#vmRom',el);if(rm)rm.onchange=()=>{const env=mkEnv(),v=rm.value;const o=mindSel;
     const map={none:[c.id,o,'none'],crush_c:[c.id,o,'crush'],crush_o:[o,c.id,'crush'],oneside_c:[c.id,o,'oneside'],oneside_o:[o,c.id,'oneside'],mutual:[c.id,o,'mutual'],lover:[c.id,o,'lover'],spouse:[c.id,o,'spouse']}[v];
-    if(map){M.setRomance(s,map[0],map[1],map[2],env);M.store.save();mindFill(el,c)}};
+    if(map){M.setRomance(s,map[0],map[1],map[2],env);relSave();mindFill(el,c)}};
   const rb=qa('.vmRb',el);if(rb.length)rb.forEach(x=>x.onchange=()=>{const env=mkEnv(),g=id=>q('#'+id,el).checked;
-    M.setRomBits(s,c.id,mindSel,{lv:g('vmRb1'),kn:g('vmRb2')},{lv:g('vmRb3'),kn:g('vmRb4')},env);M.store.save();mindFill(el,c)});
-  const sa=q('#vmSugOk',el);if(sa)sa.onclick=()=>{M.romSugApply(s,c.id,mindSel,mkEnv());M.store.save();mindFill(el,c)};
-  const sd=q('#vmSugNo',el);if(sd)sd.onclick=()=>{M.romSugDismiss(s,c.id,mindSel,mkEnv());M.store.save();mindFill(el,c)};
+    M.setRomBits(s,c.id,mindSel,{lv:g('vmRb1'),kn:g('vmRb2')},{lv:g('vmRb3'),kn:g('vmRb4')},env);relSave();mindFill(el,c)});
+  const sa=q('#vmSugOk',el);if(sa)sa.onclick=()=>{M.romSugApply(s,c.id,mindSel,mkEnv());relSave();mindFill(el,c)};
+  const sd=q('#vmSugNo',el);if(sd)sd.onclick=()=>{M.romSugDismiss(s,c.id,mindSel,mkEnv());relSave();mindFill(el,c)};
   const af=q('#vmAff',el);if(af){af.oninput=()=>{const o=q('#vmAffO',el);if(o)o.textContent=(+af.value>0?'+':'')+af.value};
-    af.onchange=()=>{const env=mkEnv();M.setRelAff(s,c.id,mindSel,af.value,env);if(both())M.setRelAff(s,mindSel,c.id,af.value,env);M.store.save();mindFill(el,c)}}
+    af.onchange=()=>{const env=mkEnv();M.setRelAff(s,c.id,mindSel,af.value,env);if(both())M.setRelAff(s,mindSel,c.id,af.value,env);relSave();mindFill(el,c)}}
   const rs=q('#vmReset',el);if(rs)rs.onclick=()=>{if(!confirm('이 기기에 저장된 모든 캐릭터의 감정·관계·기억 기록을 지울까요? 캐릭터와 도면은 그대로예요.'))return;M.store.reset();mindSel=null;mindFill(el,c)}}
 function mindRefresh(){const el=q('#vvMind'),c=selChar&&Viv.char(selChar);if(!el||!c)return;const a=document.activeElement;if(a&&el.contains(a)&&/SELECT/.test(a.tagName))return;mindFill(el,c)}
 const mindEmoTag=id=>{const M=MD();if(!M)return '';const s=M.store.get();if(!s.emo[id])return '';return ' · '+M.rep(s,id,Date.now()).name};
@@ -718,7 +720,7 @@ async function mindSync(h,push){
   try{const ids=mindIds(h);
     if(push&&SH().isLeader(hid)){
       const res=await SH().mindPush(hid,M.slice(M.store.get(),ids));
-      if(res&&res.conflict&&res.data){M.mergeSlice(M.store.get(),res.data,ids);M.store.save()}}
+      if(res&&(res.conflict||res.fixed)&&res.data){M.mergeSlice(M.store.get(),res.data,ids);M.store.save()}}
     else{const d=await SH().mindPull(hid);if(d){M.mergeSlice(M.store.get(),d,ids);M.store.save();try{renderList();softDetail()}catch(e){}}}}
   catch(e){console.warn('[viv mind sync]',e.message)}finally{mindBusy[hid]=0}}
 function runSimNow(i,animate){
@@ -728,11 +730,20 @@ function runSimNow(i,animate){
   const mprev=mindSnap(h.id);let moves;try{const go=()=>Sim.stepHouse(simCtx(h,slide._snap));moves=h.shared?SH().auto(go):go()}catch(e){console.error('[viv sim]',e);return false}
   mindStep(h,slide._snap,mprev);uncStep(h);if(h.shared)mindSync(h,true);
   /* 이웃집에 놀러 온 손님의 지문은 '그 집에서 계산한 문장' 하나만 진짜로 둔다: 원래 캐릭터의 말풍선에 복사해 서버로 올라가 상대 브라우저에도 같은 문장이 보이게 함 */
-  try{for(const gid of Viv.guestIds()){const gp=Viv.getPlace(gid);if(gp.house!==h.id||gp.mode!=='home'||!gp.say)continue;const rid=gid.slice(3),rp=Viv.getPlace(rid);if(rp.mode==='out'&&rp.verb==='out_visit'&&rp.say!==gp.say)Viv.setPlace(rid,{...rp,say:gp.say})}}catch(e){}
+  try{for(const gid of Viv.guestIds()){const gp=Viv.getPlace(gid);if(gp.house!==h.id||gp.mode!=='home'||!gp.say)continue;const rid=gid.slice(3),rp=Viv.getPlace(rid);if(rp.mode==='out'&&rp.verb==='out_visit'&&rp.say!==gp.say){const put=()=>Viv.setPlace(rid,{...rp,say:gp.say});SH()&&SH().auto?SH().auto(put):put()}}}catch(e){}
   if(!moves.length){if(outSig()!==sig0){drawChars(slide);return true}return false}
   if(animate&&!REDUCE){drawChars(slide);moves.forEach(m=>walk(slide,m))}
   drawChars(slide);return true}
-function simTick(){if(mode!=='viv'||document.hidden||!houses.length)return;tick();
+/* 방문 중인 캐릭터의 행동 문구는 방문자 쪽(원래 집의 기기)이 집 탭 유무와 상관없이 계속 갱신해 서버로 올린다 → 주인 브라우저도 같은 문구를 본다.
+   그 집이 이 기기에 있으면 그 집의 실제 계산(runSim)을 돌리고, 없으면 15분마다 방문 행동 문구를 새로 고른다. */
+function visitKeep(){const now=Date.now(),mark=Math.floor(now/900000);
+  for(const c of Viv.chars()){const p=Viv.getPlace(c.id),st=Viv.getSim(c.id);if(p.mode!=='out'||p.verb!=='out_visit'||!st.outTo)continue;
+    if(Viv.guestHas('vg:'+c.id)){const i=houses.findIndex(h=>h.id===Viv.getPlace('vg:'+c.id).house);if(i>=0&&i!==activeIdx)runSim(i,false);continue}
+    if(!String(st.outTo).startsWith('srv:')||st.vMark===mark)continue;
+    const W=(Sim.OUT_WHY||[]).find(x=>x.id==='visit');if(!W||!W.d||!W.d.length)continue;
+    let say=W.d[Sim.hash(c.id+'|v|'+mark)%W.d.length].replace(/\{n\}/g,st.outNb||'이웃');if(window.Ko)say=Ko.fix(say);
+    const put=()=>{Viv.setSim(c.id,{...st,vMark:mark});Viv.setPlace(c.id,{...p,say})};SH()&&SH().auto?SH().auto(put):put()}}
+function simTick(){if(mode!=='viv'||document.hidden||!houses.length)return;tick();try{visitKeep()}catch(e){console.warn('[viv visitKeep]',e.message)}
   /* 이웃집을 보고 있는 동안에도, 방문 시간이 끝난 손님은 자기 집에서 돌아와야 한다(전에는 보고 있는 집만 갱신해서 제 집을 열 때까지 손님이 남아 있었음) */
   try{const now=Date.now();houses.forEach((hh,i)=>{if(i===activeIdx)return;if(inHouse(hh.id).some(c=>{const p=Viv.getPlace(c.id),st=Viv.getSim(c.id);return p.mode==='out'&&p.verb==='out_visit'&&st.outUntil&&st.outUntil<=now}))runSim(i,false)})}catch(e){console.warn('[viv visit return]',e.message)}
   if(houses[activeIdx]&&houses[activeIdx].shared){stepShared(activeIdx,true).then(ok=>{if(!ok)renderDetailTimes()});return}
@@ -1029,8 +1040,6 @@ const nbState=()=>{const u=Viv.getUi().nb||{};
   const codes=Array.isArray(u.codes)?u.codes.filter(x=>typeof x==='string').slice(0,20):[];     // v19 이전 방식(모든 집의 이웃)으로 등록해 둔 코드 — 아래 nbMigrate 가 집별 연결로 바꾸고 비움
   return {codes,view:!!u.view,ids:u.ids&&typeof u.ids==='object'?u.ids:{},links}};
 const nbSave=p=>Viv.setUi({nb:{...nbState(),...p}});
-function nbCodeOf(h){if(!h||!h.shared||!shareOn())return '';const i=SH().info(h.shared.hid);return i&&i.code?normCode(i.code):''}
-const nbHasLink=(a,b,links)=>(links||nbState().links).some(p=>(p[0]===a&&p[1]===b)||(p[0]===b&&p[1]===a));
 /* 예전에 코드만 등록해 모든 집에서 이웃으로 보이던 집들을, 이 기기의 모든 집과의 개별 연결로 한 번만 바꿔 줌(동네 보기가 그대로 유지되고, 이후에는 집별로 해제할 수 있음) */
 function nbMigrate(){const st=nbState();if(!st.codes.length&&!st.links.length)return;nbSave({codes:[],ids:{},links:[]})}   // v23: 예전 코드·기기 내 연결은 자동 동네를 만들지 않도록 비움 — 이웃은 서버에서 수락된 신청만 인정
 /* v22: 이웃 = (1) 서버에 저장된 쌍방 연결(이웃 신청 수락) + (2) 예전 방식으로 이 기기에 저장된 연결. 서버 연결은 양쪽 집에서 모두 보임 */
@@ -1122,7 +1131,9 @@ function openNb(){
 function nbChanged(){hoodUi();const sl=qa('.vv-slide')[activeIdx];if(sl){drawChars(sl)}renderDetail()}
 /* 놀러 간 캐릭터는 놀러 간 집 화면의 오른쪽 위에 '손님'으로 보임 (이 기기에서만) */
 function visitTargetOf(c,p){const st=Viv.getSim(c.id);if(st.outTo)return st.outTo;const say=p.say||'',h=nbFor(p.house).find(x=>say.startsWith(x.name));return h?h.id:null}
-function visitorsOf(hid){const loc=Viv.chars().filter(c=>{const p=Viv.getPlace(c.id);return p.mode==='out'&&p.house!==hid&&p.verb==='out_visit'&&visitTargetOf(c,p)===hid});
+function visitorsOf(hid){const h0=houses.find(x=>x.id===hid),i0=h0&&h0.shared&&SH().info(h0.shared.hid),sv=new Set(((i0&&i0.visitors)||[]).map(v=>v.charId));
+  /* 내가 조작하지 못하는(다른 브라우저 주인의) 손님은 이 브라우저에서 따로 시뮬레이션하지 않고 서버가 알려 준 모습·지문 하나만 따름 → 주인·방문자 화면의 지문이 같아짐 */
+  const loc=Viv.chars().filter(c=>{const p=Viv.getPlace(c.id);return p.mode==='out'&&p.house!==hid&&p.verb==='out_visit'&&visitTargetOf(c,p)===hid&&!(c.remote&&!c.mine&&sv.has(c.id))});
   /* v24: 서버가 알려 주는 방문 캐릭터 — 보낸 집 토큰이 없는 사람(다른 브라우저의 공동 집주인·이웃 방문자)도 같은 손님을 봄 */
   const h=houses.find(x=>x.id===hid),i=h&&h.shared&&SH().info(h.shared.hid);if(!i||!i.visitors||!i.visitors.length)return loc;
   const have=new Set(loc.map(c=>c.id)),now=Date.now(),extra=[];
@@ -1146,7 +1157,6 @@ function guestGC(){const live=new Set();houses.forEach(h=>visitorsOf(h.id).forEa
 function guestHtml(hid){const gs=visitorsOf(hid);
   return gs.map(c=>{const p=c.srvVisit?{house:null}:Viv.getPlace(c.id),gp=c.srvVisit?null:Viv.getPlace('vg:'+c.id),img=IMG[c.id]||IMG['vg:'+c.id],hn=c.srvVisit?{name:c.fromName}:houseOf(p.house),act=c.srvVisit?(c.say||''):((gp&&gp.mode==='home'&&gp.say)||'');
     return `<div class="vv-out1 vv-g1" data-id="${esc(c.id)}">${img?`<img src="${img}" alt="" onerror="VivUI.imgBad('${esc(c.id)}')">`:`<span class="ph">${esc([...c.name][0]||'?')}</span>`}<div class="bub"><b>${esc(c.name)} · 손님</b>${esc((hn?hn.name+'에서 ':'')+'놀러 왔어요'+(act?' — '+act:''))}</div></div>`}).join('')}
-function renderGuests(slide,wrap){const old=q('.vv-guests',wrap);if(old)old.remove()}   // 예전 오른쪽 위 손님 상자는 쓰지 않음(왼쪽 위 줄에 합침)
 /* 동네 보기: 이웃 집들을 같은 축척으로, 땅 높이를 맞춰 작은 간격으로 나란히 보여 줌 (눌러서 그 집으로 이동) */
 async function renderHood(slide){
   const wrap=q('.vv-stagewrap',slide);if(!wrap)return;let box=q('.vv-hood',wrap);

@@ -1,1 +1,0 @@
-{"version":3,"file":"oleframe.d.ts","sourceRoot":"","sources":["../../../src/database/entities/oleframe.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,SAAS,EAAE,MAAM,aAAa,CAAA;AAEvC,MAAM,WAAW,iBAAkB,SAAQ,SAAS;IAClD;;OAEG;IACH,IAAI,EAAE,UAAU,CAAA;IAChB,IAAI,EAAE,MAAM,CAAA;IACZ,IAAI,EAAE,MAAM,CAAA;IACZ;;OAEG;IACH,QAAQ,EAAE,MAAM,CAAA;IAChB;;OAEG;IACH,UAAU,EAAE,MAAM,CAAA;CACnB"}
