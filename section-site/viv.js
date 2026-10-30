@@ -651,14 +651,15 @@ function openJournal(){
   const mem=inHouse(cur.id).filter(c=>!c.remote||(cur.shared&&c.hid===cur.shared.hid)),nmOf={};Viv.chars().forEach(c=>{nmOf[c.id]=c.name});
   const srv=cur.shared&&SH().engineOn&&SH().engineOn(cur.shared.hid);
   d.innerHTML=`<form class="vv-form" onsubmit="return false"><h3>관찰일지 <small>${esc(cur.name)}</small></h3>
-   <p class="hint">${srv?'서버가 서울 시각 자정마다 캐릭터별로 그날의 일을 한 줄로 확정해요. 접속하지 않은 날도 날짜 순서대로 채워지고, 한 번 확정된 문장은 바뀌지 않아요.':'이 기기에만 있는 집이에요. 이 기기에서 실제로 있었던 사건 중 그날 가장 큰 일 한 문장만 날짜별로 보여 줘요(오늘 일은 서울 자정이 지나면 확정, 사건이 없던 날은 「기록 부족」). 서버 공유 집과 달리 이 브라우저를 열어 둔 시간만 기록돼요.'}</p>
+   <p class="hint">${srv?'서버가 서울 시각 자정마다 캐릭터별로 그날의 일을 한 줄로 확정해요. 접속하지 않은 날도 날짜 순서대로 채워지고, 한 번 확정된 문장은 바뀌지 않아요.':'이 기기에만 있는 집이에요. 이 기기에서 실제로 있었던 사건 중 그날 가장 큰 일 한 문장만 날짜별로 보여 줘요(오늘 일은 서울 자정이 지나면 확정돼요. 기록이 없는 날은 보이지 않아요). 서버 공유 집과 달리 이 브라우저를 열어 둔 시간만 기록돼요.'}</p>
    <div class="vj-f"><label>캐릭터 <select id="vjWho"><option value="">모든 캐릭터</option>${mem.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select></label>
-   <label>날짜 <input type="date" id="vjDay"></label><button type="button" id="vjAll">전체 날짜</button></div>
+   <label>날짜 <input type="date" id="vjDay"></label><button type="button" id="vjAll" class="vj-go">조회</button></div>
    <ul class="vj-list" id="vjList"></ul><div class="vv-btns"><button type="button" id="vjMore">더 보기</button><button type="button" id="vjClose">닫기</button></div></form>`;
   let who='',day='',lim=60,rows=[],seq=0;
-  const draw=()=>{let h='',last='';for(const r of rows.slice(0,lim)){if(r.day!==last){last=r.day;h+=`<li class="vj-day">${esc(r.day)}</li>`}
+  const draw=()=>{let h='',last='';rows=rows.filter(r=>r.kind!=='sparse'&&r.text!=='기록 부족');   /* 기록이 없던 날은 보여 주지 않는다(없던 과거를 채워 넣지 않음) */
+    for(const r of rows.slice(0,lim)){if(r.day!==last){last=r.day;h+=`<li class="vj-day">${esc(r.day)}</li>`}
       h+=`<li class="vj-${esc(r.kind||'life')}"><b>${esc(nmOf[r.char]||'')}</b> ${esc(r.text)}</li>`}
-    q('#vjList',d).innerHTML=h||`<li class="hint">${srv?'아직 확정된 날이 없어요. 서울 시각 자정이 지나면 전날이 확정돼요. 오늘 일은 오늘 자정에 확정돼요.':'아직 기록된 일이 없어요.'}</li>`;q('#vjMore',d).hidden=rows.length<=lim};
+    q('#vjList',d).innerHTML=h||`<li class="hint">${srv?'조건에 맞는 기록이 없어요. 서울 시각 자정이 지나면 그날 일이 확정돼요(기록이 쌓이기 전 날짜는 비어 있어요).':'아직 기록된 일이 없어요.'}</li>`;q('#vjMore',d).hidden=rows.length<=lim};
   const load=async()=>{const my=++seq;
     if(srv){try{const r=await SH().journal(cur.shared.hid,{char:who,from:day,to:day,limit:400});if(my!==seq)return;r.chars.forEach(c=>{nmOf[c.id]=c.name});rows=r.days}catch(e){rows=[];q('#vjList',d).innerHTML='<li class="hint">일지를 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.</li>';return}}
     else{const M=MD();rows=[];if(M&&M._soc){const ids=new Set(mem.map(c=>c.id)),S=M._soc.soc(M.store.get());
@@ -667,10 +668,10 @@ function openJournal(){
       for(const e of S.log){const dk=dkOf(e.t);if(dk>=today)continue;if(!first||dk<first)first=dk;
         for(const w of [e.a,e.b].filter(x=>x&&ids.has(x))){const k=w+'|'+dk,sc=(SC[e.type]||20),o=best[k];if(!o||sc>o.sc||(sc===o.sc&&e.t<o.t))best[k]={sc,t:e.t,text:e.why,char:w,day:dk}}}
       if(first){const DAYMS=86400000,t0=Date.parse(first+'T00:00:00+09:00'),t1=Date.parse(today+'T00:00:00+09:00');
-        for(let t=t0;t<t1;t+=DAYMS){const dk=dkOf(t+3600000);for(const w of ids){if(who&&w!==who)continue;if(day&&dk!==day)continue;const o=best[w+'|'+dk];rows.push({char:w,day:dk,text:o?o.text:'기록 부족',kind:o?'life':'sparse',t:o?o.t:t})}}}
+        for(let t=t0;t<t1;t+=DAYMS){const dk=dkOf(t+3600000);for(const w of ids){if(who&&w!==who)continue;if(day&&dk!==day)continue;const o=best[w+'|'+dk];if(o)rows.push({char:w,day:dk,text:o.text,kind:'life',t:o.t})}}}
       rows.sort((a,b)=>b.t-a.t)}}
     draw()};
-  q('#vjWho',d).onchange=e=>{who=e.target.value;lim=60;load()};q('#vjDay',d).onchange=e=>{day=e.target.value;lim=60;load()};q('#vjAll',d).onclick=()=>{day='';q('#vjDay',d).value='';lim=60;load()};
+  q('#vjAll',d).onclick=()=>{who=q('#vjWho',d).value;day=q('#vjDay',d).value;lim=60;load()};   // 고른 캐릭터·날짜로 「조회」를 눌렀을 때만 불러옴(날짜를 비우면 전체 날짜)
   q('#vjMore',d).onclick=()=>{lim+=60;draw()};q('#vjClose',d).onclick=()=>d.close();
   load();if(!d.open)d.showModal()}
 function mindFill(el,c){
@@ -712,6 +713,9 @@ function mindFill(el,c){
   if(!ctl){qa('#vmAff,#vmBoth,#vmType,#vmRom,.vmRb,#vmSugOk,#vmSugNo',el).forEach(x=>{x.disabled=true});
     const sel=q('#vmAff',el)||q('#vmType',el);const box=sel&&(sel.closest('.vm-box')||sel.parentNode);if(box)box.insertAdjacentHTML('beforeend','<div class="vm-sub vm-lock">이 캐릭터를 등록한 사람만 관계를 바꿀 수 있어요</div>')}
   else if(!both2){const b=q('#vmBoth',el);if(b){b.checked=false;b.disabled=true;b.parentNode.insertAdjacentHTML('beforeend',' <small>(상대 캐릭터는 등록한 사람만 바꿀 수 있어요)</small>')}}
+  /* 연애 상태를 정한 사람이 따로 있으면 다른 사람은 보기만 한다(서버도 같은 규칙으로 거절) */
+  try{if(c.remote&&c.hid&&mindSel){const rm0=M.store.get().rom||{},ent=rm0[c.id+'>'+mindSel]||rm0[mindSel+'>'+c.id],by=ent&&ent.by,me0=SH().info(c.hid),myp=me0&&me0.me&&me0.me.pid;
+    if(by&&myp&&by!==myp){qa('#vmRom,.vmRb,#vmSugOk,#vmSugNo',el).forEach(x=>{x.disabled=true});const sel=q('#vmRom',el);if(sel)sel.closest('.vm-rom').insertAdjacentHTML('beforeend','<div class="vm-sub vm-lock">다른 참여자가 정한 연애 상태라서 보기만 할 수 있어요</div>')}}}catch(e){}
   qa('.vm-rel',el).forEach(b=>b.onclick=()=>{mindSel=mindSel===b.dataset.o?null:b.dataset.o;mindFill(el,c)});
   const mkEnv=()=>{const chars=humansIn(p.house),sp=Viv.seoul(new Date());return M.env(chars,ch=>Sim.analyze(ch.profile||'',ch.name||'',chars),Date.now(),`${sp.year}-${sp.month}-${sp.day}`)};
   const both=()=>{const b=q('#vmBoth',el);return !b||b.checked};
