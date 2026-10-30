@@ -48,7 +48,8 @@ function applyState(hid,s){
     if(!c){c=C[sc.id]={id:sc.id,hid,remote:true,pend:null}}
     Object.assign(c,{hid,name:sc.name,profile:sc.profile,owner:sc.owner,mine,canEdit,canSet,img:sc.img,updatedAt:sc.updatedAt});
     if(c.pend&&canEdit){c.rev=sc.rev;   /* 내가 바꾼 값(대기 중)은 유지: 주인의 직접 조작이 우선 */}
-    else{c.pend=null;c.place=sc.place;c.sim=sc.sim;c.rev=sc.rev}}
+    else if(c.pred&&sc.rev===c.rev){/* 서버가 아직 내 명령을 반영하지 않은 상태: 화면의 예상 상태를 유지 */}
+    else{c.pend=null;c.pred=0;c.place=sc.place;c.sim=sc.sim;c.rev=sc.rev}}
   for(const id of Object.keys(C))if(C[id].hid===hid&&!seen.has(id)){if(imgCache[id]){URL.revokeObjectURL(imgCache[id].url);delete imgCache[id]}delete C[id]}}
 /* 서버에서 받은 도면이 형식에 맞는지 확인(서버도 저장 시 검사하지만, 손상·변조된 응답이 화면을 망가뜨리지 않게 한 번 더 확인) */
 function docShapeOk(d){
@@ -81,8 +82,11 @@ const store={
   char:id=>C[id]||null,
   place:id=>(C[id]&&C[id].place)||{},
   sim:id=>(C[id]&&C[id].sim)||{},
-  setPlace(id,patch,next){const c=C[id];if(!c)return;c.place=next;c.pend=c.pend||{place:{},sim:{},kind:'auto'};Object.assign(c.pend.place,patch);if(!autoDepth)c.pend.kind='user';queue()},
-  setSim(id,patch,next){const c=C[id];if(!c)return;c.sim=next;c.pend=c.pend||{place:{},sim:{},kind:'auto'};Object.assign(c.pend.sim,patch);if(!autoDepth)c.pend.kind='user';queue()},
+  setPlace(id,patch,next){const c=C[id];if(!c)return;c.place=next;c.pend=c.pend||{place:{},sim:{},kind:'auto'};Object.assign(c.pend.place,patch);if(!autoDepth)c.pend.kind='user';queue(c)},
+  setSim(id,patch,next){const c=C[id];if(!c)return;c.sim=next;c.pend=c.pend||{place:{},sim:{},kind:'auto'};Object.assign(c.pend.sim,patch);if(!autoDepth)c.pend.kind='user';queue(c)},
+  /* 서버 결과가 오기 전에 화면이 먼저 보여 주는 '예상' 상태: 서버에 보내지 않고, 서버 결과(또는 더 새로운 서버 상태)가 오면 그걸로 바뀐다 */
+  predict(id,place,sim){const c=C[id];if(!c)return;c.place=place;c.sim=sim;c.pred=1},
+  pendingUser(hid){return Object.values(C).filter(c=>c.hid===hid&&((c.pend&&c.pend.kind==='user')||c.inflight)).map(c=>c.id)},
   async imageUrl(id){const c=C[id];if(!c||!c.img)return null;const u=imgCache[id];if(u&&u.rev===c.img.rev)return u.url;
     const b=await api('GET',`/api/houses/${c.hid}/chars/${id}/image`,{hid:c.hid,blob:true});
     if(u)URL.revokeObjectURL(u.url);const url=URL.createObjectURL(b);imgCache[id]={rev:c.img.rev,url};return url}
@@ -91,20 +95,20 @@ let ft=0,flushing=null,autoDepth=0;
 /* 시뮬레이션 엔진이 쓰는 값('자율 행동')과 사용자의 직접 조작을 구분: 자율 행동은 대표만 저장할 수 있다 */
 const auto=fn=>{autoDepth++;try{return fn()}finally{autoDepth--}};
 const saveFail={};
-function queue(){clearTimeout(ft);ft=setTimeout(()=>{flush()},400)}
+function queue(c){clearTimeout(ft);const quick=c&&c.pend&&c.pend.kind==='user'&&engineOn(c.hid);ft=setTimeout(()=>{flush()},quick?0:400)}   // 서버 계산 집에서 내가 내린 명령은 기다리지 않고 바로 보낸다(자율 행동 저장만 모아서 보냄)
 /* 바뀐 상태만 모아서 집마다 한 번에 보낸다. 자율 행동은 baseRev 가 맞을 때만 반영되고, 충돌하면 서버 상태를 받아 쓴다. */
 function flush(){
   if(flushing)return flushing;
   const run=(async()=>{try{
     const by={};for(const c of Object.values(C))if(c.pend){(by[c.hid]=by[c.hid]||[]).push(c)}
     let adopted=false;
-    for(const hid of Object.keys(by)){const list=by[hid];const send=list.map(c=>{const p=c.pend;c.pend=null;return {c,body:{id:c.id,baseRev:c.rev,kind:p.kind,place:p.place,sim:p.sim},p}});
+    for(const hid of Object.keys(by)){const list=by[hid];const send=list.map(c=>{const p=c.pend;c.pend=null;c.inflight=1;return {c,body:{id:c.id,baseRev:c.rev,kind:p.kind,place:p.place,sim:p.sim},p}});
       try{const r=await api('PUT',`/api/houses/${hid}/states`,{hid,body:{states:send.map(s=>s.body)}});
-        r.results.forEach((res,i)=>{const {c,p}=send[i];if(res.gone){delete C[c.id];adopted=true}
+        r.results.forEach((res,i)=>{const {c,p}=send[i];c.inflight=0;if(res.ok)c.pred=0;if(res.gone){delete C[c.id];adopted=true}
           else if(res.ok){c.rev=res.rev;saveFail[hid]=0;if(res.place&&engineOn(hid)){c.place=res.place;c.sim=res.sim;adopted=true}}   // 서버가 계산하는 집: 서버가 정한 결과를 바로 받아 화면에 반영(다음 확인까지 기다리지 않음)
           else if(res.conflict||res.notLeader){c.rev=res.rev;c.place=res.place;c.sim=res.sim;adopted=true;if(res.notLeader&&H[hid])H[hid].leaderPid=null}})}
       catch(e){if(e.status===401||e.status===404){dropHouse(hid,'내보내졌거나 삭제된 집이에요');adopted=true}
-        else{console.warn('[viv share] 상태 저장 실패, 다시 시도해요:',e.status,e.message);saveFail[hid]=(saveFail[hid]||0)+1;if(saveFail[hid]===3)emit({type:'saveerr',msg:'서버에 저장하지 못하고 있어요 (오류 '+(e.status||'연결')+'). 잠시 뒤 다시 시도해요'});send.forEach(({c,p})=>{if(C[c.id]&&!C[c.id].pend)C[c.id].pend=p})}}}   // 네트워크 오류: 다음 기회에 다시 보냄
+        else{send.forEach(({c})=>{c.inflight=0;c.pred=0});console.warn('[viv share] 상태 저장 실패, 다시 시도해요:',e.status,e.message);saveFail[hid]=(saveFail[hid]||0)+1;if(saveFail[hid]===3)emit({type:'saveerr',msg:'서버에 저장하지 못하고 있어요 (오류 '+(e.status||'연결')+'). 잠시 뒤 다시 시도해요'});send.forEach(({c,p})=>{if(C[c.id]&&!C[c.id].pend)C[c.id].pend=p})}}}   // 네트워크 오류: 다음 기회에 다시 보냄
     if(adopted)emit('adopt')
   }finally{}})();
   const pr=run.finally(()=>{if(flushing===pr)flushing=null;if(Object.values(C).some(c=>c.pend))queue()});   // 보내는 동안 새로 쌓인 변경도 이어서 보냄
@@ -213,7 +217,7 @@ const sharedHouses=()=>Object.keys(reg.houses).filter(hid=>H[hid]&&H[hid].doc).m
 const linkedSlots=()=>new Set(Object.entries(reg.houses).filter(([hid,h])=>h.linkSlot!=null&&H[hid]&&H[hid].doc).map(([hid,h])=>String(h.linkSlot)));   // 서버 사본을 받은 집만(못 받았으면 내 단면도를 그대로 보여 줌)
 
 const notify=()=>emit('poll');
-window.VivShare={notify,enabled,store,api,syncAll,poll,refresh,flush,takeLost,onChange:f=>listeners.push(f),
+window.VivShare={notify,enabled,store,pendingUser:hid=>store.pendingUser(hid),api,syncAll,poll,refresh,flush,takeLost,onChange:f=>listeners.push(f),
   engineOn,uncPull,guestWish,uploadGeo,geoNeeded,journal,createHouse,join,joinRecovery,recoveryKey,leave,deleteHouse,rename,setNick,rotate,rotateNb,visitorImageUrl,revoke,kick,saveDoc,getDoc,setLink,lease,isLeader,mindPull,mindPush,mindRel,neighborRel,auto,takeDocEvents,docHash,
   adopt,createChar,updateChar,removeChar,info,sharedHouses,linkedSlots,regHouses,reg:()=>reg,saveReg,ShareErr};
 })();

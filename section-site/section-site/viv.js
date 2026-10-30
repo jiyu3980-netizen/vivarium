@@ -335,7 +335,8 @@ const MVSEEN={},MVBOOT={},MVPLAYED=[];
 function mvPlay(slide,hid){const first=!MVBOOT[hid];MVBOOT[hid]=1;const items=[];
   Viv.chars().forEach(c=>{if(!c.remote)return;const p=Viv.getPlace(c.id);if(p&&p.mv&&p.house===hid)items.push([c.id,p.mv])});
   visitorsOf(hid).filter(c=>c.srvVisit&&c.gp&&c.gp.mv).forEach(c=>items.push([c.id,c.gp.mv]));
-  for(const [id,mv] of items){if(MVSEEN[id]===mv.t)continue;MVSEEN[id]=mv.t;if(first||Date.now()-mv.t>20*60000)continue;walk(slide,{id,from:mv.from,route:mv.route});MVPLAYED.push(id+':'+(mv.leave?'leave':mv.enter?'enter':'walk')+(ANIM[id]?':anim':':short'))}}
+  for(const [id,mv] of items){if(MVSEEN[id]===mv.t)continue;MVSEEN[id]=mv.t;if(first||Date.now()-mv.t>20*60000)continue;const pr=PRED[id];if(pr&&Math.abs(pr.t-mv.t)<8000&&Math.abs((mv.route[mv.route.length-1]||{}).x-pr.x)<40){delete PRED[id];continue}   // 이미 예상으로 걷고 있던 같은 이동이면 다시 시작하지 않음
+      walk(slide,{id,from:mv.from,route:mv.route});MVPLAYED.push(id+':'+(mv.leave?'leave':mv.enter?'enter':'walk')+(ANIM[id]?':anim':':short'))}}
 function drawChars(slide){try{imgFill()}catch(e){}
   const snap=slide&&slide._snap;if(!snap)return;const ov=q('.vv-ov',slide);if(!ov)return;ov.innerHTML='';
   const hid=slide.dataset.house,geo=snap.geo,L1=mkv('g',{class:'vv-lc'},ov),L2=mkv('g',{class:'vv-lb2'},ov);Object.keys(NODES).forEach(k=>delete NODES[k]);
@@ -376,7 +377,7 @@ function renderOuts(slide){const el=q('#vvOuts');if(el){el.hidden=true;el.innerH
   if(!outs.length&&!gh){if(box)box.remove();return}
   if(!box){box=document.createElement('div');box.className='vv-outtop';wrap.appendChild(box)}
   // 집 밖에 있는 캐릭터: 도면에는 없고, 화면 왼쪽 위에 그림과 말풍선으로 나란히 보임 (같이 나간 사이면 붙어서)
-  box.innerHTML=outs.map(c=>{const p=Viv.getPlace(c.id),img=IMG[c.id];return `<div class="vv-out1" data-id="${esc(c.id)}">${img?`<img src="${img}" alt="" onerror="VivUI.imgBad('${esc(c.id)}')">`:`<span class="ph">${esc([...c.name][0]||'?')}</span>`}<div class="bub"><b>${esc(c.name)}</b><span class="bt" data-k="${esc(c.id)}">${esc(BUBX['h:'+c.id]&&BUBX['h:'+c.id].open&&BUBX['h:'+c.id].text?BUBX['h:'+c.id].text:outSay(c,p))}</span></div></div>`}).join('')+gh;bubClamp(box)}
+  box.innerHTML=outs.map(c=>{const p=Viv.getPlace(c.id),img=IMG[c.id];return `<div class="vv-out1" data-id="${esc(c.id)}">${img?`<img src="${img}" alt="" onerror="VivUI.imgBad('${esc(c.id)}')">`:`<span class="ph">${esc([...c.name][0]||'?')}</span>`}<div class="bub"><b>${esc(c.name)}</b><span class="bt" data-k="${esc(c.id)}">${esc(BUBX['h:'+c.id]&&BUBX['h:'+c.id].open&&BUBX['h:'+c.id].text?BUBX['h:'+c.id].text:outSay(c,p))}</span></div></div>`}).join('')+gh;bubClamp(box);qa('.vv-g1',box).forEach(e=>{e.style.cursor='pointer';e.onclick=()=>{selChar=e.dataset.id;try{drawChars(slide)}catch(x){}renderList();renderDetail()}})}   // 손님 칩을 눌러도 그 손님이 선택됨(도면 위 캐릭터를 눌러야만 선택되던 것 보완)
 /* 이웃집에 놀러 간 캐릭터: 그 집에서 실제로 하고 있는 행동 문구를 우리 집 화면에도 똑같이 보여 줌 */
 function outSay(c,p){if(p.verb==='out_visit'&&Viv.guestHas&&Viv.guestHas('vg:'+c.id)){const gp=Viv.getPlace('vg:'+c.id);if(gp&&gp.mode==='home'&&gp.say){const hn=houseOf(gp.house);return (hn?hn.name+' · ':'')+gp.say}}return p.say||'외출 중이에요'}
 function makeChar(c,p,geo,ov,slide,L1,L2,guest){
@@ -689,8 +690,8 @@ const NRL={},nrAt={};
 let relFH='all',relFW='all';
 const relPass=o=>!o||((relFH==='all'||o.hk===relFH)&&(relFW==='all'||(relFW==='mine'?o.mine:!o.mine)));
 function relFilterBar(others){
-  const hs=new Map();others.forEach(o=>{if(!hs.has(o.hk))hs.set(o.hk,o.hk==='own'?'우리집':o.hname)});
-  const multi=hs.size>1||others.some(o=>!o.mine);if(!multi)return '';
+  const hs=new Map([['own','우리집']]);others.forEach(o=>{if(!hs.has(o.hk))hs.set(o.hk,o.hname)});   // 우리집은 같은 집 상대가 없어도 항상 고를 수 있게
+  if(hs.size<2&&!others.some(o=>!o.mine))return '';
   if(relFH!=='all'&&!hs.has(relFH))relFH='all';
   return `<div class="vm-flt"><select id="vmFH" aria-label="집 필터"><option value="all">모든 집</option>${[...hs].map(([k,n])=>`<option value="${esc(k)}" ${relFH===k?'selected':''}>${esc(n)}</option>`).join('')}</select><select id="vmFW" aria-label="등록한 사람 필터"><option value="all">모든 캐릭터</option><option value="mine" ${relFW==='mine'?'selected':''}>내가 등록한 캐릭터</option><option value="other" ${relFW==='other'?'selected':''}>다른 사람이 등록한 캐릭터</option></select></div>`}
 function nrKick(h){if(!h||!h.shared||!shareOn())return;const hid=h.shared.hid,now=Date.now();if(now-(nrAt[hid]||0)<15000)return;nrAt[hid]=now;
@@ -770,9 +771,31 @@ const mindEmoTag=id=>{const M=MD();if(!M)return '';const s=M.store.get();if(!s.e
 /* 현재 서울 시각 기준으로 "지금 해야 할 행동"만 갱신. 이전 행동을 재생하지 않는다. */
 /* 공유 집: 같은 캐릭터의 행동을 여러 브라우저가 따로 결정해 저장하지 않도록, 서버가 정한 '리더' 한 곳만 결정한다.
    나머지 브라우저는 서버에 저장된 캐릭터 상태를 그대로 보여 준다(사용자가 고른 바람은 리더가 곧 반영). */
+/* 서버가 계산하는 집에서 내가 방금 내린 명령(행동 지정·돌아오기 등)은 서버 결과를 기다리지 않고, 같은 엔진으로 이 브라우저에서 먼저 한 번 돌려 바로 걷기 시작하게 한다.
+   저장·확정은 서버만 한다(여기서는 화면용 '예상'만 만들고 서버에 보내지 않음). 서버 결과가 오면 그 값으로 바뀐다. */
+const PRED={};
+function predictEngine(i,animate){
+  const h=houses[i];if(!h||!h.shared||!window.VivEngine||!SH().pendingUser)return false;
+  const ids=SH().pendingUser(h.shared.hid);if(!ids.length)return false;
+  const slide=qa('.vv-slide')[i];if(!slide||!slide._snap||!slide._snap.world)return false;
+  try{const now=Date.now(),ov={p:{},s:{}},res=inHouse(h.id).map(toSimChar),M=MD();
+    const gp=id=>ov.p[id]||Viv.getPlace(id),gs=id=>ov.s[id]||Viv.getSim(id);
+    const host={world:slide._snap.world,houseId:h.id,residents:res,guests:[],awayIds:new Set(),isMiss,
+      getPlace:gp,getSim:gs,
+      setPlace:(id,o)=>{const nx={...gp(id),...o};if(o.mode||o.action||o.house!==undefined)nx.since=now;ov.p[id]=nx},
+      setSim:(id,o)=>{ov.s[id]={...gs(id),...o}},
+      mind:M?JSON.parse(JSON.stringify(M.store.get())):null,unc:null,neighbors:nbFor(h.id).map(x=>({hid:x.id,name:x.name})),watch:null,mindAt:Infinity};   // mindAt 을 크게 두어 감정·관계 갱신은 건너뜀(서버만 함)
+    const tr=VivEngine.tick(host,now);
+    const mine=new Set(ids);let any=false;
+    for(const id of mine){if(!ov.p[id]&&!ov.s[id])continue;SH().store.predict(id,ov.p[id]||Viv.getPlace(id),ov.s[id]||Viv.getSim(id));any=true}
+    if(!any)return false;
+    drawChars(slide);
+    if(animate!==false&&!REDUCE)for(const m of tr.moves||[]){if(!mine.has(m.id))continue;PRED[m.id]={t:now,x:(m.route[m.route.length-1]||{}).x};walk(slide,{id:m.id,from:m.from,route:m.route})}
+    renderList();softDetail();return true}
+  catch(e){console.warn('[viv predict]',e);return false}}
 function runSim(i,animate){
   const h=houses[i];if(h&&h.shared){
-    if(SH().engineOn&&SH().engineOn(h.shared.hid)){mindLead[h.shared.hid]=0;mindSync(h,false);return false}   // 서버가 계산하는 집: 이 브라우저는 계산하지 않고 서버 상태를 보여 주기만 한다
+    if(SH().engineOn&&SH().engineOn(h.shared.hid)){mindLead[h.shared.hid]=0;predictEngine(i,animate);mindSync(h,false);return false}   // 서버가 계산하는 집: 이 브라우저는 계산하지 않고 서버 상태를 보여 주기만 한다
     if(SH().isLeader(h.shared.hid)){const hid=h.shared.hid;if(!mindLead[hid]){mindLead[hid]=1;mindSync(h,false).then(()=>{if(houses[i]===h)runSimNow(i,animate)});return false}return runSimNow(i,animate)}
     mindLead[h.shared.hid]=0;
     mindSync(h,false);stepShared(i,animate);return false}
@@ -781,7 +804,7 @@ const leaseAt={};
 async function stepShared(i,animate){
   const h=houses[i];if(!h||!h.shared||!shareOn())return false;
   const hid=h.shared.hid;let ok=false;
-  if(SH().engineOn&&SH().engineOn(hid)){if(mode==='viv')mindSync(h,false);return false}
+  if(SH().engineOn&&SH().engineOn(hid)){predictEngine(i,animate);if(mode==='viv')mindSync(h,false);return false}
   if(SH().isLeader(hid)&&Date.now()-(leaseAt[hid]||0)<45000)ok=true;   // 리더 임대(120초)는 45초마다만 갱신 — 변경 알림마다 서버를 부르지 않는다
   else{try{ok=await SH().lease(hid)}catch(e){}if(ok)leaseAt[hid]=Date.now()}
   if(!ok&&houses[i]===h&&mode==='viv'){mindLead[hid]=0;mindSync(h,false)}   // v28: 리더가 아닌 브라우저도 1분마다 서버의 감정·관계·기억을 받아 온다(전에는 집을 열 때만 받음)
@@ -1271,7 +1294,7 @@ function nbChanged(){hoodUi();const sl=qa('.vv-slide')[activeIdx];if(sl){drawCha
 function visitTargetOf(c,p){const st=Viv.getSim(c.id);if(st.outTo)return st.outTo;const say=p.say||'',h=nbFor(p.house).find(x=>say.startsWith(x.name));return h?h.id:null}
 function visitorsOf(hid){const h0=houses.find(x=>x.id===hid),i0=h0&&h0.shared&&SH().info(h0.shared.hid),sv=new Set(((i0&&i0.visitors)||[]).map(v=>v.charId));
   /* 내가 조작하지 못하는(다른 브라우저 주인의) 손님은 이 브라우저에서 따로 시뮬레이션하지 않고 서버가 알려 준 모습·지문 하나만 따름 → 주인·방문자 화면의 지문이 같아짐 */
-  const loc=Viv.chars().filter(c=>{const p=Viv.getPlace(c.id);return p.mode==='out'&&p.house!==hid&&p.verb==='out_visit'&&visitTargetOf(c,p)===hid&&!(c.remote&&!c.mine&&sv.has(c.id))});
+  const loc=Viv.chars().filter(c=>{const p=Viv.getPlace(c.id);return p.mode==='out'&&p.house!==hid&&p.verb==='out_visit'&&visitTargetOf(c,p)===hid&&!(c.remote&&!c.mine&&sv.has(c.id))&&!(h0&&h0.shared&&SH().engineOn&&SH().engineOn(h0.shared.hid))});   // 서버가 계산하는 집에서는 이 브라우저가 손님 복사본을 따로 만들지 않고 서버가 알려 주는 손님만 보여 준다(복사본이 생기면 행동 지정이 막히고 서버와 따로 움직임)
   /* v24: 서버가 알려 주는 방문 캐릭터 — 보낸 집 토큰이 없는 사람(다른 브라우저의 공동 집주인·이웃 방문자)도 같은 손님을 봄 */
   const h=houses.find(x=>x.id===hid),i=h&&h.shared&&SH().info(h.shared.hid);if(!i||!i.visitors||!i.visitors.length)return loc;
   const have=new Set(loc.map(c=>c.id)),now=Date.now(),extra=[];
@@ -1439,7 +1462,7 @@ function init(){
   window.addEventListener('hashchange',()=>go(location.hash==='#edit'?'edit':'viv'));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)simTick()});
   go(location.hash==='#edit'?'edit':'viv');   // v23.15 처음 열면 「비바리움 관찰」 탭(집이 없으면 「아직 내 집이 없어요!」 안내)
-  window.VivUI={mvSeen:()=>({...MVSEEN}),mvPlayed:()=>MVPLAYED.slice(),redraw:()=>{const sl=qa(".vv-slide")[activeIdx];if(sl)drawChars(sl)},nbFor:id=>nbFor(id).map(h=>h.name),nbDump:()=>({srv:nbSrv,houses:houses.map(h=>h.id+"|"+h.name),idx:activeIdx}),go,isBlank,getHouses,drawDoc,describe,runSim,simTick,note,imgBad,uc:{fx:ucFx,view:ucView,isMiss,refresh:ucRefresh,garble:ucGarble}};
+  window.VivUI={goHouse:i=>scrollTo(i),mvSeen:()=>({...MVSEEN}),mvPlayed:()=>MVPLAYED.slice(),redraw:()=>{const sl=qa(".vv-slide")[activeIdx];if(sl)drawChars(sl)},nbFor:id=>nbFor(id).map(h=>h.name),nbDump:()=>({srv:nbSrv,houses:houses.map(h=>h.id+"|"+h.name),idx:activeIdx}),go,isBlank,getHouses,drawDoc,describe,runSim,simTick,note,imgBad,uc:{fx:ucFx,view:ucView,isMiss,refresh:ucRefresh,garble:ucGarble}};
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
