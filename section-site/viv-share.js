@@ -101,7 +101,7 @@ function flush(){
     for(const hid of Object.keys(by)){const list=by[hid];const send=list.map(c=>{const p=c.pend;c.pend=null;return {c,body:{id:c.id,baseRev:c.rev,kind:p.kind,place:p.place,sim:p.sim},p}});
       try{const r=await api('PUT',`/api/houses/${hid}/states`,{hid,body:{states:send.map(s=>s.body)}});
         r.results.forEach((res,i)=>{const {c,p}=send[i];if(res.gone){delete C[c.id];adopted=true}
-          else if(res.ok){c.rev=res.rev;saveFail[hid]=0}
+          else if(res.ok){c.rev=res.rev;saveFail[hid]=0;if(res.place&&engineOn(hid)){c.place=res.place;c.sim=res.sim;adopted=true}}   // 서버가 계산하는 집: 서버가 정한 결과를 바로 받아 화면에 반영(다음 확인까지 기다리지 않음)
           else if(res.conflict||res.notLeader){c.rev=res.rev;c.place=res.place;c.sim=res.sim;adopted=true;if(res.notLeader&&H[hid])H[hid].leaderPid=null}})}
       catch(e){if(e.status===401||e.status===404){dropHouse(hid,'내보내졌거나 삭제된 집이에요');adopted=true}
         else{console.warn('[viv share] 상태 저장 실패, 다시 시도해요:',e.status,e.message);saveFail[hid]=(saveFail[hid]||0)+1;if(saveFail[hid]===3)emit({type:'saveerr',msg:'서버에 저장하지 못하고 있어요 (오류 '+(e.status||'연결')+'). 잠시 뒤 다시 시도해요'});send.forEach(({c,p})=>{if(C[c.id]&&!C[c.id].pend)C[c.id].pend=p})}}}   // 네트워크 오류: 다음 기회에 다시 보냄
@@ -159,6 +159,11 @@ async function mindPull(hid){try{const r=await api('GET',`/api/houses/${hid}/min
   if(r.unchanged)return null;MR[hid]=r.rev;if(!r.data)return null;return JSON.parse(r.data)}catch(e){return null}}
 async function mindPush(hid,data){try{const r=await api('PUT',`/api/houses/${hid}/mind`,{hid,body:{data:JSON.stringify(data),baseRev:MR[hid]||0}});MR[hid]=r.rev;if(r.fixed&&r.data){try{return {ok:true,fixed:true,data:JSON.parse(r.data)}}catch(x){}}return {ok:true}}
   catch(e){if(e.status===409&&e.data){if(e.data.conflict){MR[hid]=e.data.rev;try{return {ok:false,conflict:true,data:JSON.parse(e.data.data)}}catch(x){}}if(e.data.notLeader&&H[hid])H[hid].leaderPid=null}return {ok:false}}}
+const UR={};
+async function uncPull(hid){try{const r=await api('GET',`/api/houses/${hid}/unc?sinceRev=${UR[hid]||0}`,{hid});
+  if(r.unchanged)return null;UR[hid]=r.rev;if(!r.data)return null;return JSON.parse(r.data)}catch(e){return null}}
+/* 이웃집에 놀러 가 있는 내 캐릭터에게 그 집 가구·캐릭터와 할 행동을 지정(서버가 상대 집 기준으로 확인·반영) */
+async function guestWish(homeHid,charId,wish){try{const r=await api('PUT',`/api/houses/${homeHid}/states`,{hid:homeHid,body:{states:[{id:charId,kind:'guestwish',wish}]}});const x=(r.results||[])[0]||{};emit('adopt');return x.ok?{ok:true}:{ok:false,why:x.why||'지금은 고를 수 없어요'}}catch(e){return {ok:false,why:e.status===503?'서버가 잠시 바빠요. 다시 눌러 주세요':(e.message||'반영하지 못했어요')}}}
 async function neighborRel(hid){try{return await api('GET',`/api/houses/${hid}/neighbor-rel`,{hid})}catch(e){return null}}
 async function mindRel(hid,body){try{await api('POST',`/api/houses/${hid}/mind/rel`,{hid,body});return {ok:true}}catch(e){return {ok:false,error:e.message||'관계를 바꾸지 못했어요'}}}
 const engineOn=hid=>!!(H[hid]&&H[hid].engine&&H[hid].engine.on);
@@ -209,6 +214,6 @@ const linkedSlots=()=>new Set(Object.entries(reg.houses).filter(([hid,h])=>h.lin
 
 const notify=()=>emit('poll');
 window.VivShare={notify,enabled,store,api,syncAll,poll,refresh,flush,takeLost,onChange:f=>listeners.push(f),
-  engineOn,uploadGeo,geoNeeded,journal,createHouse,join,joinRecovery,recoveryKey,leave,deleteHouse,rename,setNick,rotate,rotateNb,visitorImageUrl,revoke,kick,saveDoc,getDoc,setLink,lease,isLeader,mindPull,mindPush,mindRel,neighborRel,auto,takeDocEvents,docHash,
+  engineOn,uncPull,guestWish,uploadGeo,geoNeeded,journal,createHouse,join,joinRecovery,recoveryKey,leave,deleteHouse,rename,setNick,rotate,rotateNb,visitorImageUrl,revoke,kick,saveDoc,getDoc,setLink,lease,isLeader,mindPull,mindPush,mindRel,neighborRel,auto,takeDocEvents,docHash,
   adopt,createChar,updateChar,removeChar,info,sharedHouses,linkedSlots,regHouses,reg:()=>reg,saveReg,ShareErr};
 })();
