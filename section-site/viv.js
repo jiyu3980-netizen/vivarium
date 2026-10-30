@@ -691,9 +691,9 @@ let relFH='all',relFW='all';
 const relPass=o=>!o||((relFH==='all'||o.hk===relFH)&&(relFW==='all'||(relFW==='mine'?o.mine:!o.mine)));
 function relFilterBar(others){
   const hs=new Map([['own','우리집']]);others.forEach(o=>{if(!hs.has(o.hk))hs.set(o.hk,o.hname)});   // 우리집은 같은 집 상대가 없어도 항상 고를 수 있게
-  if(hs.size<2&&!others.some(o=>!o.mine))return '';
+  const nbH=hs.size>1,othW=others.some(o=>!o.mine);if(!nbH&&!othW){relFH=relFW='all';return ''}   // 이웃이 없으면 집 필터를, 남이 등록한 캐릭터가 없으면 등록자 필터를 보여 주지 않음
   if(relFH!=='all'&&!hs.has(relFH))relFH='all';
-  return `<div class="vm-flt"><select id="vmFH" aria-label="집 필터"><option value="all">모든 집</option>${[...hs].map(([k,n])=>`<option value="${esc(k)}" ${relFH===k?'selected':''}>${esc(n)}</option>`).join('')}</select><select id="vmFW" aria-label="등록한 사람 필터"><option value="all">모든 캐릭터</option><option value="mine" ${relFW==='mine'?'selected':''}>내가 등록한 캐릭터</option><option value="other" ${relFW==='other'?'selected':''}>다른 사람이 등록한 캐릭터</option></select></div>`}
+  return `<div class="vm-flt">${nbH?`<select id="vmFH" aria-label="집 필터"><option value="all">모든 집</option>${[...hs].map(([k,n])=>`<option value="${esc(k)}" ${relFH===k?'selected':''}>${esc(n)}</option>`).join('')}</select>`:''}${othW?`<select id="vmFW" aria-label="등록한 사람 필터"><option value="all">모든 캐릭터</option><option value="mine" ${relFW==='mine'?'selected':''}>내가 등록한 캐릭터</option><option value="other" ${relFW==='other'?'selected':''}>다른 사람이 등록한 캐릭터</option></select>`:''}</div>`}
 function nrKick(h){if(!h||!h.shared||!shareOn())return;const hid=h.shared.hid,now=Date.now();if(now-(nrAt[hid]||0)<15000)return;nrAt[hid]=now;
   SH().neighborRel(hid).then(r=>{if(!r)return;const old=JSON.stringify(NRL[hid]||null);NRL[hid]=r;if(JSON.stringify(r)!==old){try{mindRefresh()}catch(e){}}})}
 function mindFill(el,c){
@@ -727,7 +727,6 @@ function mindFill(el,c){
     h+=`<h4>${esc(other)}에 대한 생각 <small>지금 어떻게 보는지</small></h4>
      <div class="vm-box"><b class="vm-th">${r.th?esc(r.th.name):'아직 잘 모르겠는 사람'}</b><div class="vm-cause">${r.th?esc(r.th.why):'아직 겪은 일이 많지 않아서'}</div>${r.th?`<div class="vm-sub">이 생각을 갖게 된 때: ${esc(mindTime(r.th.since))}</div>`:''}
      <label class="vm-type">친밀도 <span class="vm-affw"><input type="range" id="vmAff" min="-100" max="100" step="5" value="${r.aff}"><output id="vmAffO">${r.aff>0?'+':''}${r.aff}</output></span></label>
-     <label class="chk vm-both"><input type="checkbox" id="vmBoth" checked> ${esc(other)}도 ${esc(c.name)}을(를) 같게 느끼도록 같이 바꾸기</label>
      <label class="vm-type">관계 유형 <select id="vmType"><option value="">자동으로 (프로필·사건에 따라)</option>${Object.keys(M.REL_TYPES).map(k=>`<option value="${k}" ${r.lock==='user'&&r.type===k?'selected':''}>${esc(M.REL_TYPES[k].n)}</option>`).join('')}</select></label>
      <div class="vm-sub">${r.lock==='profile'?'프로필에 적힌 관계라서 자동으로 바뀌지 않아요.':r.lock==='user'?'직접 정한 관계라서 자동으로 바뀌지 않아요.':'관계 유형은 친밀도 점수만으로 정하지 않고, 쌓인 사건과 기억으로 천천히 바뀌어요.'} ${r.origin?'· '+esc(r.origin):''}</div></div>
      ${romPanel(M,r,c,other)}
@@ -739,21 +738,19 @@ function mindFill(el,c){
   {const a=q('#vmFH',el),b=q('#vmFW',el);if(a)a.onchange=()=>{relFH=a.value;mindFill(el,c)};if(b)b.onchange=()=>{relFW=b.value;mindFill(el,c)}}
   if(isCross){qa('#vmAff,#vmBoth,#vmType,#vmRom,.vmRb,#vmSugOk,#vmSugNo',el).forEach(x=>{x.disabled=true});const bx=q('#vmAff',el)||q('#vmType',el);const bb=bx&&(bx.closest('.vm-box')||bx.parentNode);if(bb)bb.insertAdjacentHTML('beforeend','<div class="vm-sub vm-lock">다른 집 캐릭터와 지내며 쌓인 관계예요. 이 화면에서는 보기만 할 수 있어요</div>')}
   /* 친밀도·관계 유형·연애 상태 등은 이 캐릭터를 등록한 사람만 바꿀 수 있다(코드로 입장한 사람·이웃·공동 집주인은 보기만) */
-  const ctl=canSetC(c),oc=mindSel&&Viv.char(mindSel),both2=ctl&&(!oc||canSetC(oc));
+  const ctl=canSetC(c);
   if(!ctl){qa('#vmAff,#vmBoth,#vmType,#vmRom,.vmRb,#vmSugOk,#vmSugNo',el).forEach(x=>{x.disabled=true});
     const sel=q('#vmAff',el)||q('#vmType',el);const box=sel&&(sel.closest('.vm-box')||sel.parentNode);if(box)box.insertAdjacentHTML('beforeend','<div class="vm-sub vm-lock">이 캐릭터를 등록한 사람만 관계를 바꿀 수 있어요</div>')}
-  else if(!both2){const b=q('#vmBoth',el);if(b){b.checked=false;b.disabled=true;b.parentNode.insertAdjacentHTML('beforeend',' <small>(상대 캐릭터는 등록한 사람만 바꿀 수 있어요)</small>')}}
   /* 연애 상태를 정한 사람이 따로 있으면 다른 사람은 보기만 한다(서버도 같은 규칙으로 거절) */
   try{if(c.remote&&c.hid&&mindSel){const rm0=M.store.get().rom||{},ent=rm0[c.id+'>'+mindSel]||rm0[mindSel+'>'+c.id],by=ent&&ent.by,me0=SH().info(c.hid),myp=me0&&me0.me&&me0.me.pid;
     if(by&&myp&&by!==myp){qa('#vmRom,.vmRb,#vmSugOk,#vmSugNo',el).forEach(x=>{x.disabled=true});const sel=q('#vmRom',el);if(sel)sel.closest('.vm-rom').insertAdjacentHTML('beforeend','<div class="vm-sub vm-lock">다른 참여자가 정한 연애 상태라서 보기만 할 수 있어요</div>')}}}catch(e){}
   qa('.vm-rel',el).forEach(b=>b.onclick=()=>{mindSel=mindSel===b.dataset.o?null:b.dataset.o;mindFill(el,c)});
   const mkEnv=()=>{const chars=humansIn(p.house),sp=Viv.seoul(new Date());return M.env(chars,ch=>Sim.analyze(ch.profile||'',ch.name||'',chars),Date.now(),`${sp.year}-${sp.month}-${sp.day}`)};
-  const both=()=>{const b=q('#vmBoth',el);return !b||b.checked};
     /* 공유 집 캐릭터의 관계 변경은 서버가 '등록한 사람'을 확인해 받아들인다(리더의 저장으로는 바뀌지 않음) */
   const relSave=()=>{M.store.save();const o=mindSel;if(!c.remote||!c.hid||!o)return;const sl=M.slice(M.store.get(),[c.id,o]);SH().mindRel(c.hid,{a:c.id,b:o,rel:sl.rel,rom:sl.rom,clearRom:true}).then(r=>{if(r&&r.error)alert(r.error)})};
   const ty=q('#vmType',el);if(ty)ty.onchange=()=>{const env=mkEnv(),v=ty.value||null;
     if(v==='lover'||v==='spouse'){M.setRomance(s,c.id,mindSel,v,env)}   // 연인·부부는 연애 상태와 함께 정해짐(세부 설정이 아래에 열림)
-    else{const st=M.romState(s,c.id,mindSel);M.setRelType(s,c.id,mindSel,v,env);if(both())M.setRelType(s,mindSel,c.id,v,env);if(v&&(st.k==='lover'||st.k==='spouse'))M.setRomance(s,c.id,mindSel,'none',env)}
+    else{const st=M.romState(s,c.id,mindSel);M.setRelType(s,c.id,mindSel,v,env);if(v&&(st.k==='lover'||st.k==='spouse'))M.setRomance(s,c.id,mindSel,'none',env)}
     relSave();mindFill(el,c)};
   const rm=q('#vmRom',el);if(rm)rm.onchange=()=>{const env=mkEnv(),v=rm.value;const o=mindSel;
     const map={none:[c.id,o,'none'],crush_c:[c.id,o,'crush'],crush_o:[o,c.id,'crush'],oneside_c:[c.id,o,'oneside'],oneside_o:[o,c.id,'oneside'],mutual:[c.id,o,'mutual'],lover:[c.id,o,'lover'],spouse:[c.id,o,'spouse']}[v];
@@ -763,7 +760,7 @@ function mindFill(el,c){
   const sa=q('#vmSugOk',el);if(sa)sa.onclick=()=>{M.romSugApply(s,c.id,mindSel,mkEnv());relSave();mindFill(el,c)};
   const sd=q('#vmSugNo',el);if(sd)sd.onclick=()=>{M.romSugDismiss(s,c.id,mindSel,mkEnv());relSave();mindFill(el,c)};
   const af=q('#vmAff',el);if(af){af.oninput=()=>{const o=q('#vmAffO',el);if(o)o.textContent=(+af.value>0?'+':'')+af.value};
-    af.onchange=()=>{const env=mkEnv();M.setRelAff(s,c.id,mindSel,af.value,env);if(both())M.setRelAff(s,mindSel,c.id,af.value,env);relSave();mindFill(el,c)}}
+    af.onchange=()=>{const env=mkEnv();M.setRelAff(s,c.id,mindSel,af.value,env);relSave();mindFill(el,c)}}
   const rs=q('#vmReset',el);if(rs)rs.onclick=()=>{if(!confirm('이 기기에 저장된 모든 캐릭터의 감정·관계·기억 기록을 지울까요? 캐릭터와 도면은 그대로예요.'))return;M.store.reset();mindSel=null;mindFill(el,c)}}
 function mindRefresh(){const el=q('#vvMind'),c=selChar&&Viv.char(selChar);if(!el||!c)return;const a=document.activeElement;if(a&&el.contains(a)&&/SELECT/.test(a.tagName))return;mindFill(el,c)}
 const mindEmoTag=id=>{const M=MD();if(!M)return '';const s=M.store.get();if(!s.emo[id])return '';return ' · '+M.rep(s,id,Date.now()).name};
