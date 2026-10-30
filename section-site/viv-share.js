@@ -90,6 +90,7 @@ const store={
 let ft=0,flushing=null,autoDepth=0;
 /* 시뮬레이션 엔진이 쓰는 값('자율 행동')과 사용자의 직접 조작을 구분: 자율 행동은 대표만 저장할 수 있다 */
 const auto=fn=>{autoDepth++;try{return fn()}finally{autoDepth--}};
+const saveFail={};
 function queue(){clearTimeout(ft);ft=setTimeout(()=>{flush()},400)}
 /* 바뀐 상태만 모아서 집마다 한 번에 보낸다. 자율 행동은 baseRev 가 맞을 때만 반영되고, 충돌하면 서버 상태를 받아 쓴다. */
 function flush(){
@@ -100,10 +101,10 @@ function flush(){
     for(const hid of Object.keys(by)){const list=by[hid];const send=list.map(c=>{const p=c.pend;c.pend=null;return {c,body:{id:c.id,baseRev:c.rev,kind:p.kind,place:p.place,sim:p.sim},p}});
       try{const r=await api('PUT',`/api/houses/${hid}/states`,{hid,body:{states:send.map(s=>s.body)}});
         r.results.forEach((res,i)=>{const {c,p}=send[i];if(res.gone){delete C[c.id];adopted=true}
-          else if(res.ok)c.rev=res.rev;
+          else if(res.ok){c.rev=res.rev;saveFail[hid]=0}
           else if(res.conflict||res.notLeader){c.rev=res.rev;c.place=res.place;c.sim=res.sim;adopted=true;if(res.notLeader&&H[hid])H[hid].leaderPid=null}})}
       catch(e){if(e.status===401||e.status===404){dropHouse(hid,'내보내졌거나 삭제된 집이에요');adopted=true}
-        else{console.warn('[viv share] 상태 저장 실패, 다시 시도해요:',e.message);send.forEach(({c,p})=>{if(C[c.id]&&!C[c.id].pend)C[c.id].pend=p})}}}   // 네트워크 오류: 다음 기회에 다시 보냄
+        else{console.warn('[viv share] 상태 저장 실패, 다시 시도해요:',e.status,e.message);saveFail[hid]=(saveFail[hid]||0)+1;if(saveFail[hid]===3)emit({type:'saveerr',msg:'서버에 저장하지 못하고 있어요 (오류 '+(e.status||'연결')+'). 잠시 뒤 다시 시도해요'});send.forEach(({c,p})=>{if(C[c.id]&&!C[c.id].pend)C[c.id].pend=p})}}}   // 네트워크 오류: 다음 기회에 다시 보냄
     if(adopted)emit('adopt')
   }finally{}})();
   const pr=run.finally(()=>{if(flushing===pr)flushing=null;if(Object.values(C).some(c=>c.pend))queue()});   // 보내는 동안 새로 쌓인 변경도 이어서 보냄
@@ -158,6 +159,7 @@ async function mindPull(hid){try{const r=await api('GET',`/api/houses/${hid}/min
   if(r.unchanged)return null;MR[hid]=r.rev;if(!r.data)return null;return JSON.parse(r.data)}catch(e){return null}}
 async function mindPush(hid,data){try{const r=await api('PUT',`/api/houses/${hid}/mind`,{hid,body:{data:JSON.stringify(data),baseRev:MR[hid]||0}});MR[hid]=r.rev;if(r.fixed&&r.data){try{return {ok:true,fixed:true,data:JSON.parse(r.data)}}catch(x){}}return {ok:true}}
   catch(e){if(e.status===409&&e.data){if(e.data.conflict){MR[hid]=e.data.rev;try{return {ok:false,conflict:true,data:JSON.parse(e.data.data)}}catch(x){}}if(e.data.notLeader&&H[hid])H[hid].leaderPid=null}return {ok:false}}}
+async function neighborRel(hid){try{return await api('GET',`/api/houses/${hid}/neighbor-rel`,{hid})}catch(e){return null}}
 async function mindRel(hid,body){try{await api('POST',`/api/houses/${hid}/mind/rel`,{hid,body});return {ok:true}}catch(e){return {ok:false,error:e.message||'관계를 바꾸지 못했어요'}}}
 const engineOn=hid=>!!(H[hid]&&H[hid].engine&&H[hid].engine.on);
 const isLeader=hid=>!engineOn(hid)&&!!(H[hid]&&H[hid].me&&H[hid].leaderPid===H[hid].me.pid);
@@ -207,6 +209,6 @@ const linkedSlots=()=>new Set(Object.entries(reg.houses).filter(([hid,h])=>h.lin
 
 const notify=()=>emit('poll');
 window.VivShare={notify,enabled,store,api,syncAll,poll,refresh,flush,takeLost,onChange:f=>listeners.push(f),
-  engineOn,uploadGeo,geoNeeded,journal,createHouse,join,joinRecovery,recoveryKey,leave,deleteHouse,rename,setNick,rotate,rotateNb,visitorImageUrl,revoke,kick,saveDoc,getDoc,setLink,lease,isLeader,mindPull,mindPush,mindRel,auto,takeDocEvents,docHash,
+  engineOn,uploadGeo,geoNeeded,journal,createHouse,join,joinRecovery,recoveryKey,leave,deleteHouse,rename,setNick,rotate,rotateNb,visitorImageUrl,revoke,kick,saveDoc,getDoc,setLink,lease,isLeader,mindPull,mindPush,mindRel,neighborRel,auto,takeDocEvents,docHash,
   adopt,createChar,updateChar,removeChar,info,sharedHouses,linkedSlots,regHouses,reg:()=>reg,saveReg,ShareErr};
 })();

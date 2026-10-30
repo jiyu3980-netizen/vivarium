@@ -1045,10 +1045,10 @@ function decide(ctx,c,p,st,reason){
   /* 일하는 시간(직장인·알바): 평일 9~18시에는 일하러 나감 */
   if(!c.pet&&(!forcedGroup&&p.mode!=='out'||returned&&!forcedGroup)){
     const js=(st.noJobUntil&&now<st.noJobUntil)?null:jobSlot(A,now);
-    if(js&&canExit(ctx,pos)&&!(st.lastBack&&now-st.lastBack<45*MIN&&!returned)&&rng()<js.p){
+    if(js&&canExit(ctx,pos)&&!(st.homeUntil&&now<st.homeUntil)&&!(st.lastBack&&now-st.lastBack<45*MIN&&!returned)&&rng()<js.p){
       const wj=OUT_WHY.find(o=>o.id==='job');if(doOut(wj,Math.max(30,Math.round((js.end-hm)*60))))return moves}}
   /* 알바생·백수·취준생·무직: 정해진 근무시간 없이 가끔 알바하러 나감 (행동지문은 알바 문구) */
-  if(!c.pet&&!forcedGroup&&p.mode!=='out'&&freePt(A)&&!(st.noJobUntil&&now<st.noJobUntil)&&canExit(ctx,pos)&&!(st.lastBack&&now-st.lastBack<90*MIN)&&rng()<.06){
+  if(!c.pet&&!forcedGroup&&p.mode!=='out'&&freePt(A)&&!(st.noJobUntil&&now<st.noJobUntil)&&!(st.homeUntil&&now<st.homeUntil)&&canExit(ctx,pos)&&!(st.lastBack&&now-st.lastBack<90*MIN)&&rng()<.06){
     const why=ptOdd(A,rng,st,now)||pickPt(A,rng,H);if(why&&inHr(why.hr,H)&&doOut(why)){if(why.odd)ctx.setSim(c.id,{ptOddAt:now,ptOdd:why.id});return moves}}
   /* 일반 선택: 그룹 → 행동 */
   let cs=candidates(ctx,c,A,st,pos,hm,{wish:!!forcedGroup,ignoreHr:!!forcedGroup,sleepAnyTime:!!forcedGroup&&forcedGroup==='sleep'});
@@ -1069,6 +1069,7 @@ function decide(ctx,c,p,st,reason){
     if(ctx.mind&&!c.pet)w*=ctx.mind.groupMul(c.id,g);   // v16: 외로움·피곤함·지루함 같은 감정이 행동 종류 선택에 반영
     if(g==='chat'&&(groups.chat||[]).some(x=>x.v.rom))w*=2.6;   // v19: 연애 상태가 있는 쌍은 함께하는 행동이 더 자주 선택됨
     if(bias&&bias.g===g)w*=1.9;if(g==='work'&&freeJobNow(A,now))w*=2.4;if(forcedGroup===g)w=1;if(g==='out'&&isOffDay(now))w*=1.6;
+    if(g==='out'&&!forcedGroup&&st.homeUntil&&now<st.homeUntil)return 0;   // 「집으로 돌아오기」 뒤 일정 시간은 스스로 외출하지 않음(직접 고른 외출은 가능)
     if(g==='out'&&lastOut)w*=.2;if(g==='sleep'&&H>=9&&H<20&&tv(A,'lazy')<=0)w*=.5;return w};
   if(groups.unc&&!forcedGroup&&ctx.unc){   // v23: 위화감 행동의 몫은 일상 행동 가중치 합에 대한 비율로 정함(체류일·부담·성격은 Uncanny.share 가 반영)
     let tot=0;for(const g of gnames)if(g!=='unc')tot+=gw(g);const sh=ctx.unc.share(c.id,A,{hour:hm});uncW=tot>0?tot*sh/(1-sh):0}

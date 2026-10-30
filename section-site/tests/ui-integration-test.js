@@ -41,7 +41,7 @@ async function mk(b,name){const ctx=await b.newContext({viewport:{width:1400,hei
  ok('B 에 받은 이사 제안(수락 버튼) 표시',!!(await B.$('.mvOk')),txtB.replace(/\n/g,' / ').slice(-160));
  /* 이웃(B)이 A 집 정보를 어디까지 보는지 */
  const priv=await B.evaluate(async h=>{const S=VivShare,o={};const role=S.reg().houses[h]&&S.reg().houses[h].role;o.role=role;for(const [k,p] of [['moves','/move-offers'],['mind','/mind'],['journal','/journal?limit=5']]){try{const r=await S.api('GET','/api/houses/'+h+p,{hid:h});o[k]=JSON.stringify(r).slice(0,90)}catch(e){o[k]='ERR '+e.status}}return o},ia.hid);
- console.log('B→A 집 접근',JSON.stringify(priv));ok('이웃은 A 의 이사 제안을 못 봄',/"offers":\[\]/.test(priv.moves)||/ERR/.test(priv.moves),priv.moves);ok('이웃은 A 의 일지를 못 봄',/"days":\[\]/.test(priv.journal)&&/"chars":\[\]/.test(priv.journal),priv.journal);ok('이웃은 A 의 마음(감정·관계)을 못 봄',!/"emo"|"rel"/.test(priv.mind||''),priv.mind);
+ console.log('B→A 집 접근',JSON.stringify(priv));ok('이웃은 A 의 이사 제안을 못 봄',/"offers":\[\]/.test(priv.moves)||/ERR/.test(priv.moves),priv.moves);ok('이웃은 A 의 일지를 읽기 전용으로 봄(수정은 불가)',/"days"/.test(priv.journal),priv.journal);
  /* 수락 전: 아무 일도 없어야 함 */
  const before=await A.evaluate(()=>Viv.chars().filter(c=>c.name==='보리').map(c=>c.hid));ok('수락 전에는 보리가 원래 집에 그대로',before.length===1&&before[0]===ia.hid,JSON.stringify(before));
  const nOff=(await B.evaluate(()=>[...document.querySelectorAll('#nbMoves li')].length));ok('B 화면에 제안 1건만 표시(중복 없음)',nOff===1,String(nOff));

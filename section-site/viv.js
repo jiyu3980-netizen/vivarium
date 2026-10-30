@@ -674,14 +674,23 @@ function openJournal(){
   q('#vjAll',d).onclick=()=>{who=q('#vjWho',d).value;day=q('#vjDay',d).value;lim=60;load()};   // 고른 캐릭터·날짜로 「조회」를 눌렀을 때만 불러옴(날짜를 비우면 전체 날짜)
   q('#vjMore',d).onclick=()=>{lim+=60;draw()};q('#vjClose',d).onclick=()=>d.close();
   load();if(!d.open)d.showModal()}
+const NRL={},nrAt={};
+function nrKick(h){if(!h||!h.shared||!shareOn())return;const hid=h.shared.hid,now=Date.now();if(now-(nrAt[hid]||0)<15000)return;nrAt[hid]=now;
+  SH().neighborRel(hid).then(r=>{if(!r)return;const old=JSON.stringify(NRL[hid]||null);NRL[hid]=r;if(JSON.stringify(r)!==old){try{mindRefresh()}catch(e){}}})}
 function mindFill(el,c){
   const M=MD();if(!M||!el)return;
   const p=Viv.getPlace(c.id);
   if(!p.house){el.innerHTML='<p class="hint">집에 배치하면 감정과 관계가 생겨요.</p>';return}
-  const s=M.store.get(),now=Date.now(),others=inHouse(p.house).filter(o=>o.id!==c.id&&!petOfChar(o)),V=M.view(s,c.id,now,others.map(o=>o.id));
+  const s=M.store.get(),now=Date.now(),same=inHouse(p.house).filter(o=>o.id!==c.id&&!petOfChar(o));
+  /* 이웃집 캐릭터와 쌓인 관계: 서버가 두 집 기록을 합쳐 알려 주는 것(보기 전용)을 이 화면에서만 합쳐 보여 준다 */
+  const hh0=houses.find(x=>x.id===p.house),nr=hh0&&hh0.shared?NRL[hh0.shared.hid]:null;nrKick(hh0);
+  const crossIds=nr?[...new Set(Object.keys(nr.rel).map(k=>k.split('>')).filter(([a,b])=>a===c.id||b===c.id).map(([a,b])=>a===c.id?b:a))].filter(id=>nr.chars[id]&&!same.some(o=>o.id===id)):[];
+  const crossO=crossIds.map(id=>({id,name:nr.chars[id].name,cross:true,hname:nr.chars[id].hname}));
+  const others=same.concat(crossO),sv=nr?{...s,rel:{...nr.rel,...s.rel},th:{...nr.th,...s.th},rom:{...nr.rom,...s.rom},rev:{...nr.rev,...s.rev}}:s,V=M.view(sv,c.id,now,others.map(o=>o.id));
   if(mindSel&&!others.some(o=>o.id===mindSel))mindSel=null;
+  const isCross=!!(mindSel&&crossO.some(o=>o.id===mindSel));
   const e=V.emo;
-  const nm=id=>(others.find(o=>o.id===id)||{}).name||'상대';
+  const nm=id=>{const o=others.find(x=>x.id===id);return o?(o.cross?o.name+' ('+o.hname+')':o.name):'상대'};
   let h=`<h4>현재 감정 <small>지금의 기분</small></h4>
    <div class="vm-box"><div class="vm-emo"><span class="vm-ename vm-${e.id}">${esc(e.name)}</span><span class="vm-lvl">${esc(e.level)}</span></div>
    <div class="vm-bar"><i style="width:${Math.max(4,e.v)}%"></i></div>
@@ -691,7 +700,7 @@ function mindFill(el,c){
    ${socIntent(M,s,c,nm)}${awBox(M,s,c)}
    <h4>관계 <small>${esc(c.name)}이(가) 상대를 어떻게 느끼는지</small></h4>`;
   if(!others.length)h+='<p class="hint">같은 집에 다른 캐릭터가 있으면 관계가 만들어져요.</p>';
-  else h+=`<p class="hint vm-top">각 캐릭터를 누르면 세부 내용 확인 및 관계 설정이 가능해요 <small>(같은 집의 사람 캐릭터만 나와요. 반려동물은 돌봄 기능으로 따로 다뤄요.)</small></p><div class="vm-rels">${V.rels.map(r=>`<button type="button" class="vm-rel${mindSel===r.id?' on':''}" data-o="${r.id}">
+  else h+=`<p class="hint vm-top">각 캐릭터를 누르면 세부 내용 확인 및 관계 설정이 가능해요 <small>(같은 집 캐릭터와, 이웃집에 놀러 가서 쌓인 이웃집 캐릭터가 나와요. 반려동물은 돌봄 기능으로 따로 다뤄요.)</small></p><div class="vm-rels">${V.rels.map(r=>`<button type="button" class="vm-rel${mindSel===r.id?' on':''}" data-o="${r.id}">
      <span class="vm-rn"><b>${esc(nm(r.id))}</b> <span class="vv-tag${r.lock?' fact':''}">${esc(r.typeName)}${r.lock?' · 고정':''}</span>${r.rom&&r.rom.k!=='none'?` <span class="vv-tag vm-romtag">♥ ${esc(r.rom.label)}</span>`:''}${socTags(M,s,c.id,r.id)}</span>
      <span class="vm-aff" title="친밀도 ${r.aff} (−100 ~ +100)"><i class="${r.aff<0?'neg':'pos'}" style="width:${Math.min(50,Math.abs(r.aff)/2)}%;${r.aff<0?'right:50%':'left:50%'}"></i></span><span class="vm-num">${r.aff>0?'+':''}${r.aff}</span>
      <small>${r.why?esc(r.why)+(r.whyAt?' · '+esc(mindTime(r.whyAt)):''):'아직 이렇다 할 일이 없어요'}</small></button>`).join('')}</div>`;
@@ -708,6 +717,7 @@ function mindFill(el,c){
      ${ms.length?`<ul class="vm-mem">${ms.map(m=>`<li class="${m.val>0?'pos':'neg'}"><span class="vm-ms">${esc(m.sum)}${m.cnt>1?` <small>(${m.cnt}번)</small>`:''}</span><span class="vm-mt">${esc(mindTime(m.at))}</span><span class="vm-mp" title="지금 남은 영향력 ${m.pow}/100"><i style="width:${Math.max(4,m.pow)}%"></i></span><small>영향력 ${powLabel(m.pow)}${m.fading?' · 점점 희미해지는 중':''}${m.open?' · 아직 풀리지 않음':''}</small></li>`).join('')}</ul>`:'<p class="hint">아직 남아 있는 기억이 없어요. 함께한 일이 쌓이면 기억이 생기고, 시간이 지나면 희미해져요.</p>'}`}
   h+=`<p class="hint vm-foot">${c.remote?'공유 집 캐릭터의 감정·관계는 시뮬레이션을 돌리는 기기에서 갱신되고 서버를 통해 함께 보여요. ':'이 기기에만 저장돼요. '}<button type="button" id="vmReset" class="vm-link">감정·관계 기록 지우기</button></p>`;
   el.innerHTML=h;
+  if(isCross){qa('#vmAff,#vmBoth,#vmType,#vmRom,.vmRb,#vmSugOk,#vmSugNo',el).forEach(x=>{x.disabled=true});const bx=q('#vmAff',el)||q('#vmType',el);const bb=bx&&(bx.closest('.vm-box')||bx.parentNode);if(bb)bb.insertAdjacentHTML('beforeend','<div class="vm-sub vm-lock">다른 집 캐릭터와 지내며 쌓인 관계예요. 이 화면에서는 보기만 할 수 있어요</div>')}
   /* 친밀도·관계 유형·연애 상태 등은 이 캐릭터를 등록한 사람만 바꿀 수 있다(코드로 입장한 사람·이웃·공동 집주인은 보기만) */
   const ctl=canSetC(c),oc=mindSel&&Viv.char(mindSel),both2=ctl&&(!oc||canSetC(oc));
   if(!ctl){qa('#vmAff,#vmBoth,#vmType,#vmRom,.vmRb,#vmSugOk,#vmSugNo',el).forEach(x=>{x.disabled=true});
@@ -1020,7 +1030,7 @@ function renderDetail(){
     else{Viv.setPlace(c.id,{house:v,x:null,f:0,mode:'home',say:'',tgt:null,verb:'',pose:'stand',dy:0,e:null});Viv.setSim(c.id,{decideAt:0,then:null,outUntil:0})}
     refreshStage(v)};
   const rc=q('#vvRecall',el);if(rc)rc.onclick=async()=>{const js=Sim.jobSlot(A,Date.now()),nj=js?Date.now()+Math.max(30,Math.round((js.end-Sim.seoul(Date.now()).hm)*60))*60000:0;   // 직접 지정이 일하기 규칙보다 우선: 오늘 근무 시간이 끝날 때까지 자동 출근을 멈춤
-    Viv.setSim(c.id,{outUntil:0,decideAt:0,then:null,wish:null,noJobUntil:nj});
+    Viv.setSim(c.id,{outUntil:0,decideAt:0,then:null,wish:null,noJobUntil:nj,homeUntil:Date.now()+3*3600000});   // 돌아온 뒤 3시간은 스스로 다시 나가지 않음
     const hh=houses[activeIdx];if(hh&&hh.shared){await stepShared(activeIdx,true)}else runSim(activeIdx,true);renderList();renderDetail();const ws=q('.vv-wishes');if(ws){ws.scrollIntoView({block:'center',behavior:'smooth'});ws.classList.add('vv-flash');setTimeout(()=>ws.classList.remove('vv-flash'),2200);const m=q('#vvWmsg');if(m)m.textContent=nj?'돌아왔어요. 오늘 근무 시간에는 자동 출근을 쉬고, 아래에서 직접 행동을 정할 수 있어요.':'돌아왔어요. 아래에서 직접 행동을 정해 주세요.'}};
   qa('.vv-wishes button',el).forEach(b=>b.onclick=()=>{
     const r=Sim.setWish(simCtx(h,snap),toSimChar(c),b.dataset.w);
@@ -1087,7 +1097,7 @@ async function syncShared(){
   r.errors.forEach(e=>msgs.push(`'${e.name}' 집을 불러오지 못했어요: ${e.msg}`));
   note(msgs.join(' / '),msgs.length?'warn':'')}
 let shT=0;
-function onShareChange(){clearTimeout(shT);shT=setTimeout(async()=>{
+function onShareChange(ev){if(ev&&ev.type==='saveerr'){try{note(ev.msg,'bad')}catch(e){}return}clearTimeout(shT);shT=setTimeout(async()=>{
   if(mode!=='viv'||!booted)return;
   const nh=getHouses();const same=nh.length===houses.length&&nh.every((h,i)=>h.key===houses[i].key&&h.id===houses[i].id);
   if(!same){enter(true);return}
