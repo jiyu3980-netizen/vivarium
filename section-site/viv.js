@@ -1144,7 +1144,7 @@ let mvBusy=false;
 async function mvRender(d,msg){const box=q('#nbMoves',d);if(!box||mvBusy)return;mvBusy=true;
   try{const S=SH(),sh=houses.filter(h=>h.shared&&(nbSrv[h.shared.hid]||[]).length);
     const offers=[];for(const h of houses.filter(x=>x.shared)){try{const r=await S.api('GET',`/api/houses/${h.shared.hid}/move-offers`,{hid:h.shared.hid});r.offers.forEach(o=>offers.push({...o,hid:h.shared.hid}))}catch(e){}}
-    const seen=new Set(),uniq=offers.filter(o=>!seen.has(o.id+o.hid)&&seen.add(o.id+o.hid));
+    const seen=new Set(),uniq=offers.filter(o=>((o.incoming&&o.hid===o.to)||(!o.incoming&&o.hid===o.from))&&!seen.has(o.id)&&seen.add(o.id));
     const mineCs=Viv.chars().filter(c=>c.remote&&c.mine&&sh.some(h=>h.shared.hid===c.hid));
     const nm=id=>{const h=houses.find(x=>x.shared&&x.shared.hid===id);return h?h.name:'이웃집'};
     const lab={pending:'답을 기다리는 중',done:'수락됨',rejected:'거절됨',cancelled:'취소됨',expired:'기한 지남',void:'무효'};
