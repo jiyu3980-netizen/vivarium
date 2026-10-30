@@ -377,9 +377,9 @@ const hash=s=>{let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.cha
 const rnd=seed=>{let a=seed|0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}};
 const tv=(A,k)=>(A&&A.traits&&A.traits[k])||0;
 const interp=(pts,x)=>{if(x<=pts[0][0])return pts[0][1];for(let i=1;i<pts.length;i++){if(x<=pts[i][0]){const a=pts[i-1],b=pts[i];return a[1]+(b[1]-a[1])*(x-a[0])/(b[0]-a[0])}}return pts[pts.length-1][1]};
-const fmt=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'});
-const dayNum=ms=>{const p=fmt.format(new Date(ms)).split('-').map(Number);return Math.floor(Date.UTC(p[0],p[1]-1,p[2])/DAY)};   // 서울 달력 날짜 번호
-const hourOf=ms=>{const f=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(ms)),o={};f.forEach(p=>o[p.type]=p.value);return +o.hour+(+o.minute)/60};
+const KST=9*3600000;   // 서울은 일광절약시간이 없어 UTC+9 고정 → Intl 포맷터를 매번 만들지 않고 산술로 계산(7일치를 돌려도 가벼움)
+const dayNum=ms=>Math.floor((ms+KST)/DAY);   // 서울 달력 날짜 번호
+const hourOf=ms=>(((ms+KST)%DAY)+DAY)%DAY/3600000;
 
 /* =====================================================================
    저장 상태

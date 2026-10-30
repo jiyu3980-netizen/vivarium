@@ -19,9 +19,10 @@ const imgCache={};         // 캐릭터 id → {rev,url}
 let lost=[];               // 접근 권한이 사라진 집(안내용)
 
 class ShareErr extends Error{constructor(status,msg,extra){super(msg);this.status=status;Object.assign(this,extra||{})}}
+function identKey(){try{let k=localStorage.getItem('viv_ident');if(!k||k.length<32){const u=new Uint8Array(24);crypto.getRandomValues(u);k=btoa(String.fromCharCode(...u)).replace(/[+/=]/g,c=>({'+':'-','/':'_','=':''}[c]));localStorage.setItem('viv_ident',k)}return k}catch(e){return 'anon'+Math.random().toString(36).slice(2).padEnd(30,'x')}}
 async function api(method,path,o){o=o||{};
   if(!enabled())throw new ShareErr(0,'공유 서버가 설정되어 있지 않아요');
-  const h={};const tok=o.token||(o.hid&&reg.houses[o.hid]&&reg.houses[o.hid].token);if(tok)h.Authorization='Bearer '+tok;
+  const h={'X-Ident':identKey()};const tok=o.token||(o.hid&&reg.houses[o.hid]&&reg.houses[o.hid].token);if(tok)h.Authorization='Bearer '+tok;
   let body;if(o.raw){body=o.raw;if(o.mime)h['Content-Type']=o.mime}else if(o.body!==undefined){body=JSON.stringify(o.body);h['Content-Type']='application/json'}
   let r;try{r=await fetch(base()+path,{method,headers:h,body})}catch(e){throw new ShareErr(0,'서버에 연결할 수 없어요. 인터넷 연결이나 서버 주소를 확인해 주세요')}
   if(o.blob&&r.ok)return r.blob();
@@ -38,11 +39,11 @@ function noteDoc(hid,s,prevRev){   // 다른 참여자가 도면을 저장했다
 const pendingDocEvents=[];
 function applyState(hid,s){
   const prev=H[hid]||{};
-  H[hid]={...prev,hid,rev:s.rev,docRev:s.docRev,docSavedAt:s.docSavedAt,docSavedBy:s.docSavedBy,docSummary:s.docSummary,leaderPid:s.leader?s.leader.pid:null,name:s.house.name,me:s.me,members:s.members,invite:s.invite||null,nbInvite:s.nbInvite||null,visitors:s.visitors||[],limits:s.limits,ok:true};
+  H[hid]={...prev,hid,rev:s.rev,docRev:s.docRev,docSavedAt:s.docSavedAt,docSavedBy:s.docSavedBy,docSummary:s.docSummary,leaderPid:s.leader?s.leader.pid:null,engine:s.engine||{on:false},name:s.house.name,me:s.me,members:s.members,invite:s.invite||null,nbInvite:s.nbInvite||null,visitors:s.visitors||[],limits:s.limits,ok:true};
   if(prev.ok)noteDoc(hid,s,prev.docRev);
   const seen=new Set();
   for(const sc of s.chars){seen.add(sc.id);
-    const mine=sc.owner===s.me.pid,canEdit=mine||s.me.role==='owner'||s.me.role==='co',canSet=mine;   // canEdit=행동 지정·이동, canSet=이름·프로필·이미지·삭제(원 등록자만)
+    const mine=sc.owner===s.me.pid,canEdit=mine,canSet=mine;   // canEdit=행동 지정·이동, canSet=이름·프로필·이미지·삭제(원 등록자만)
     let c=C[sc.id];
     if(!c){c=C[sc.id]={id:sc.id,hid,remote:true,pend:null}}
     Object.assign(c,{hid,name:sc.name,profile:sc.profile,owner:sc.owner,mine,canEdit,canSet,img:sc.img,updatedAt:sc.updatedAt});
@@ -57,8 +58,8 @@ function docShapeOk(d){
 async function fetchDoc(hid){const d=await api('GET',`/api/houses/${hid}/doc`,{hid});
   if(!d||!docShapeOk(d.doc))throw new ShareErr(502,'서버에서 받은 도면 형식이 올바르지 않아요. 이전 도면을 그대로 보여 드려요');
   H[hid].doc=d.doc;H[hid].loadedDocRev=d.docRev}
-async function refresh(hid,force){
-  const h=H[hid];const s=await api('GET',`/api/houses/${hid}/state${!force&&h&&h.ok?`?rev=${h.rev}`:''}`,{hid});
+async function refresh(hid,force,wait){
+  const h=H[hid];const s=await api('GET',`/api/houses/${hid}/state${!force&&h&&h.ok?`?rev=${h.rev}${wait?`&wait=${wait}`:''}`:''}`,{hid});
   if(s.unchanged){h.leaderPid=s.leader?s.leader.pid:null;return false}
   applyState(hid,s);if(H[hid].loadedDocRev!==H[hid].docRev){try{await fetchDoc(hid)}catch(e){H[hid].rev=-1;throw e}}return true}
 const takeDocEvents=()=>pendingDocEvents.splice(0);
@@ -158,13 +159,30 @@ async function mindPull(hid){try{const r=await api('GET',`/api/houses/${hid}/min
 async function mindPush(hid,data){try{const r=await api('PUT',`/api/houses/${hid}/mind`,{hid,body:{data:JSON.stringify(data),baseRev:MR[hid]||0}});MR[hid]=r.rev;if(r.fixed&&r.data){try{return {ok:true,fixed:true,data:JSON.parse(r.data)}}catch(x){}}return {ok:true}}
   catch(e){if(e.status===409&&e.data){if(e.data.conflict){MR[hid]=e.data.rev;try{return {ok:false,conflict:true,data:JSON.parse(e.data.data)}}catch(x){}}if(e.data.notLeader&&H[hid])H[hid].leaderPid=null}return {ok:false}}}
 async function mindRel(hid,body){try{await api('POST',`/api/houses/${hid}/mind/rel`,{hid,body});return {ok:true}}catch(e){return {ok:false,error:e.message||'관계를 바꾸지 못했어요'}}}
-const isLeader=hid=>!!(H[hid]&&H[hid].me&&H[hid].leaderPid===H[hid].me.pid);
+const engineOn=hid=>!!(H[hid]&&H[hid].engine&&H[hid].engine.on);
+const isLeader=hid=>!engineOn(hid)&&!!(H[hid]&&H[hid].me&&H[hid].leaderPid===H[hid].me.pid);
+/* 서버 생활 엔진용 도면 지형: 이 브라우저가 계산한 지형을 서버에 올린다(도면 버전마다 한 번). 서버는 이것으로 브라우저 없이 생활을 이어간다 */
+const geoSent={};
+async function uploadGeo(hid,geo,docRev){const k=hid+':'+docRev;if(geoSent[k])return false;geoSent[k]=1;
+  try{await api('PUT',`/api/houses/${hid}/geo`,{hid,body:{geo,docRev}});return true}catch(e){delete geoSent[k];return false}}
+const geoNeeded=hid=>{const h=H[hid];return !!(h&&h.ok&&h.me&&h.me.role!=='guest'&&(!h.engine||!h.engine.on||h.engine.stale))};
+async function journal(hid,q){const p=new URLSearchParams(q||{});return api('GET',`/api/houses/${hid}/journal?${p}`,{hid})}
 let polling=null;
 async function poll(){if(!enabled()||!Object.keys(reg.houses).length)return false;if(polling)return polling;
   polling=(async()=>{try{const r=await syncAll();const ev=takeDocEvents();if(ev.length)emit({type:'doc',events:ev});if(r.changed||ev.length)emit('poll');return r.changed}finally{polling=null}})();return polling}
 /* 저장 알림을 놓치지 않도록: 화면이 보이는 동안 15초마다 '바뀐 게 있는지'만 가볍게 확인하고, 화면이 다시 보이거나 네트워크가 돌아오면 즉시 확인한다 */
 let autoT=0;
-function startAuto(){clearInterval(autoT);autoT=setInterval(()=>{if(!document.hidden)poll().catch(()=>{})},15000);
+/* 몇 초 안에 다른 기기의 변화가 보이도록: 화면이 보이는 동안 집마다 '바뀔 때까지 기다리는 요청(최대 15초)'을 이어서 보낸다. 서버는 바뀌면 곧바로 응답한다.
+   (끊기거나 오래 걸리면 아래 15초 주기 확인이 보완한다) */
+const lpOn={};
+async function lpLoop(hid){if(lpOn[hid])return;lpOn[hid]=1;
+  try{while(reg.houses[hid]&&!document.hidden&&enabled()){
+    try{const ch=await refresh(hid,false,15);if(ch)emit('poll');else await new Promise(r=>setTimeout(r,300))}
+    catch(e){await new Promise(r=>setTimeout(r,5000))}}}
+  finally{lpOn[hid]=0}}
+function lpAll(){for(const hid of Object.keys(reg.houses))if(H[hid]&&H[hid].ok)lpLoop(hid)}
+function startAuto(){clearInterval(autoT);autoT=setInterval(()=>{if(!document.hidden){poll().catch(()=>{});lpAll()}},15000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)lpAll()});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll().catch(()=>{})});addEventListener('online',()=>poll().catch(()=>{}));addEventListener('focus',()=>poll().catch(()=>{}))}
 if(enabled())startAuto();
 
@@ -189,6 +207,6 @@ const linkedSlots=()=>new Set(Object.entries(reg.houses).filter(([hid,h])=>h.lin
 
 const notify=()=>emit('poll');
 window.VivShare={notify,enabled,store,api,syncAll,poll,refresh,flush,takeLost,onChange:f=>listeners.push(f),
-  createHouse,join,joinRecovery,recoveryKey,leave,deleteHouse,rename,setNick,rotate,rotateNb,visitorImageUrl,revoke,kick,saveDoc,getDoc,setLink,lease,isLeader,mindPull,mindPush,mindRel,auto,takeDocEvents,docHash,
+  engineOn,uploadGeo,geoNeeded,journal,createHouse,join,joinRecovery,recoveryKey,leave,deleteHouse,rename,setNick,rotate,rotateNb,visitorImageUrl,revoke,kick,saveDoc,getDoc,setLink,lease,isLeader,mindPull,mindPush,mindRel,auto,takeDocEvents,docHash,
   adopt,createChar,updateChar,removeChar,info,sharedHouses,linkedSlots,regHouses,reg:()=>reg,saveReg,ShareErr};
 })();

@@ -119,6 +119,13 @@ const fix=t=>fill(String(t)).replace(/\s+,/g,',').replace(/,\s*,/g,',').replace(
 const endKind=t=>{t=String(t).replace(/[\s.!]+$/,'');return /는 중(이에요)?$/.test(t)?'중':/(모양|듯함|듯한 .*)$/.test(t)?'모양':/채 .*$/.test(t)?'채':/상태$/.test(t)?'상태':/참$/.test(t)?'참':'기타'};
 /* '~는 중' 이 이어질 때 같은 뜻의 '~고 있음' 으로 바꿔 어미 반복을 줄인다(어간을 확실히 알 수 있을 때만) */
 const vary=t=>String(t).replace(/([가-힣]+)는 중$/,(m,s)=>s==='있'||(s.length===1&&tail(s)===0)?m:restore(s)+'고 있음');   // 받침 없는 한 글자 어간(조는·떠는·사는)은 ㄹ 탈락 여부가 모호해 그대로 둔다
-G.Ko={extract,plan,realize,verify,gen,jong:tail,j,josa:j,fill,conj,parse,canon,like,dislike,catOf,ok,fix,endKind,vary,cls};
+/* '~는 중' → 뒤에 다른 행동을 이을 수 있는 연결형('~(으)며'). 어간을 활용 규칙(받침·ㄹ·불규칙)으로 만들고, 어간을 확실히 모를 때는 null 을 돌려줘
+   호출한 쪽이 이어 붙이지 않게 한다. (예전에는 끝의 '는 중'을 '며'로 잘라 붙여 '듣지 않며'·'먹며' 같은 틀린 문장이 나왔다) */
+const link=t=>{const m=/^(.*?)([가-힣]+)는 중$/.exec(String(t));if(!m)return null;const s=m[2];let o=null;
+  if(s==='있')o=m[1]+'있으며';else if(s==='하'||!(s.length===1&&tail(s)===0))o=m[1]+conj(restore(s)+'다','sim');
+  trace('link',t,o);return o};
+/* 개발자 진단: Ko.dev=true 로 켜면 어미 변경·정리 과정이 Ko.traceLog 에 남는다(입력 → 결과, 최종 검사 결과) */
+const traceLog=[];function trace(fn,i,o){if(G.Ko&&G.Ko.dev){traceLog.push({fn,in:i,out:o,ok:o==null?null:ok(o)});if(traceLog.length>300)traceLog.shift()}}
+G.Ko={extract,plan,realize,verify,gen,jong:tail,j,josa:j,fill,conj,parse,canon,like,dislike,catOf,ok,fix,endKind,vary,link,cls,traceLog,dev:false};
 if(typeof module!=='undefined')module.exports=G.Ko;
 })(typeof window!=='undefined'?window:globalThis);

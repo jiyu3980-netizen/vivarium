@@ -38,15 +38,14 @@ const FEEL_BY={talk:{att:.6,tr:.4},play:{att:1.2,tr:.6},meal:{att:.8,tr:.4},cozy
 const nm=(env,id)=>env.name(id);
 /* 사건 기록(관찰 일지용). 원인·결과가 남는 최소 정보만 */
 const LOG_MAX=600,KEEP=new Set(['breakup','divorce','reunion','confess_ok','confess_no','propose_ok','propose_no','talk_out','conflict','witness','gossip','sep','conf_branch','check','aware']);
-let OFF=false;
 /* 사건 연쇄(원인 추적): 모든 기록에 id 를 주고, 원인이 된 앞선 사건이 있으면 cause 로 잇는다. 시각·장소·참여자·원인·결과가 함께 남음(관찰 일지가 읽음) */
 KEEP.add('care');KEEP.add('contagion_big');KEEP.add('trap');KEEP.add('mannerism');KEEP.add('deja');KEEP.add('reflect');KEEP.add('dislike');
 const PARENT={witness:['conflict','affection','date','confess_ok','propose_ok','breakup','divorce','reunion'],gossip:['conflict','affection','date','confess_ok','propose_ok','breakup','divorce','reunion','witness'],
   check:['witness','gossip'],conf_branch:['conflict'],apology:['conflict','conf_branch'],talk_out:['conflict','conf_branch'],bicker_end:['conflict'],breakup:['conf_branch','conflict'],divorce:['conf_branch','conflict'],
   sep:['breakup','divorce'],reunion:['breakup','divorce','sep'],care:['witness','gossip','breakup','divorce','reunion','trap'],intent:['conflict','breakup','divorce','witness','conf_branch','gossip'],contagion:['conflict','breakup','divorce','witness']};
-let SEQ=0,PLACE={};
+let PLACE={};
 const idsOf=e=>new Set([e.a,e.b,...(e.about||[]),...(e.pair||[])].filter(Boolean));
-function jr(s,type,a,b,why,now,extra){const S=soc(s);const e={id:'e'+now.toString(36)+'.'+(SEQ++).toString(36),t:now,type,a,b,why,...(OFF?{off:1}:{}),...(extra||{})};
+function jr(s,type,a,b,why,now,extra){const S=soc(s);const e={id:'e'+now.toString(36)+'.'+(S.seq=(S.seq||0)+1).toString(36),t:now,type,a,b,why,...(extra||{})};
   if(PLACE[a]&&(b==null||PLACE[a]===PLACE[b]))e.place=PLACE[a];
   if(!e.cause&&PARENT[type]){const want=(e.about||[a,b]).filter(Boolean),pt=PARENT[type],person=type==='care'||type==='check'||type==='witness'||type==='gossip'&&false;
     for(let i=S.log.length-1,k=0;i>=0&&k<120;i--,k++){const P=S.log[i];if(now-P.t>72*HOUR)break;if(!pt.includes(P.type)||!P.id)continue;
@@ -313,32 +312,6 @@ function step(s,inp,env,log,newEv){
   for(const k of Object.keys(S.estr))if(now-S.estr[k]>3*DAY)delete S.estr[k]}
 
 
-/* ---------- 오프라인 경과: 접속하지 않은 동안(최대 14일)의 일을 시간 순서대로 요약해 기록만 남김(알림·팝업 없음, 관찰 일지가 나중에 읽음) ----------
-   같은 규칙을 30분 단위로 돌려 순서와 인과(다툼→화해, 목격→반응)가 유지된다. 위치는 그 집의 실제 구역과 하루 일과로 만든 가상 배치이며 실제 기록이 아니다. */
-const CU={gapMin:3*HOUR,maxDays:14,step:30*MIN};
-function catchUp(s,inp,env,runUpdate){
-  const now=env.now,ids=inp.chars.map(c=>c.id);if(ids.length<1)return;
-  let last=Infinity;for(const id of ids){const l=s.last[id];if(l==null)return;last=Math.min(last,l)}   // 처음 보는 캐릭터가 있으면 건너뜀
-  const gap=now-last;if(!(gap>=CU.gapMin))return;
-  const start=Math.max(last,now-CU.maxDays*DAY),segs=[...new Set(Object.values(inp.cur||{}).map(c=>c&&c.seg).filter(x=>x!=null))];if(!segs.length)segs.push('liv');
-  OFF=true;let n=0;
-  try{for(let t=start+CU.step;t<now-CU.step;t+=CU.step){
-    const sp=new Date(t+9*HOUR),hour=sp.getUTCHours()+sp.getUTCMinutes()/60,day=`${sp.getUTCFullYear()}-${sp.getUTCMonth()+1}-${sp.getUTCDate()}`,blk=Math.floor(t/(2*HOUR));
-    const cur={};
-    for(const id of ids){const sleep=hour>=23||hour<7;const r=Math.floor(mulberry(hash('cu|'+id+'|'+blk))()*1000);
-      cur[id]=sleep?{mode:'home',action:'sleep',verb:'sleep_bed',seg:'bed:'+id,partner:null,n:n}:{mode:'home',action:['rest','eat','hobby','work','tv','rest'][r%6],verb:'x',seg:segs[Math.floor(mulberry(hash('cs|'+id+'|'+blk))()*segs.length)],partner:null,n:n}}
-    /* 같은 구역에서 가까운 사이끼리는 가끔 둘이서 시간을 보냄(연인은 다정한 시간, 그 밖은 이야기) */
-    const slot=Math.floor(t/CU.step);
-    for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++){const a=ids[i],b=ids[j],ca=cur[a],cb=cur[b];
-      if(ca.action==='sleep'||cb.action==='sleep'||ca.seg!==cb.seg)continue;
-      const st=romState(s,a,b),aff=((s.rel[pk(a,b)]||{}).aff||8);if(S_SEP(s,a,b))continue;
-      const pr=(st.k==='lover'||st.k==='spouse')?.18:(aff>=15?.06:0.02);
-      if(mulberry(hash('cp|'+a+'|'+b+'|'+slot))()<pr&&!ca.partner&&!cb.partner){ca.partner=b;ca.verb=(st.k==='lover'||st.k==='spouse')?'love_aff':'chat_x';ca.n=n+1000000+slot}}
-    n++;
-    const pv={};for(const id of ids)pv[id]={n:-1,outAt:0};
-    runUpdate({...inp,now:t,hour,day,cur,prev:pv,__cu:1})}}
-  finally{OFF=false}
-  jr(s,'offline',ids[0],null,`접속하지 않은 ${Math.round(gap/HOUR)}시간 동안의 일을 요약해 기록함`,now,{span:[start,now],steps:n})}
 const S_SEP=(s,a,b)=>!!soc(s).sep[pairOf(a,b)];
 /* ---------- 행동 훅 ---------- */
 const LINES={
@@ -421,6 +394,6 @@ function mergeSlice(s,sl,ids){const S=soc(s);
   if(sl.awr&&typeof sl.awr==='object')S.awr=sl.awr;
   for(const f of CX){S[f]=S[f]||{};for(const k of Object.keys(S[f]))if(ids.has(k))delete S[f][k];Object.assign(S[f],(sl.cx||{})[f]||{})}
   S.todo.push(...(sl.todo||[]));S.log.push(...(sl.log||[]));S.log.sort((x,y)=>x.t-y.t)}
-M._soc={jr,setPlace,catchUp,CU,slice,mergeSlice,onEvent,step,extend,journal,view,forget,soc,feelOf,addKnow,knows,BRANCH_NAME};
+M._soc={jr,setPlace,slice,mergeSlice,onEvent,step,extend,journal,view,forget,soc,feelOf,addKnow,knows,BRANCH_NAME};
 if(typeof module!=='undefined'&&module.exports)module.exports=M._soc;
 })(typeof window!=='undefined'?window:globalThis);

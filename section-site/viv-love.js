@@ -16,7 +16,7 @@ const pick=(r,a)=>a[Math.floor(r()*a.length)];
 /* 이 캐릭터의 성격 중 뚜렷한 것들(강한 순). 여러 개면 함께 반영된다 */
 function active(A){return TR.map(k=>[k,tv(A,k)]).filter(x=>x[1]>=.4).sort((a,b)=>b[1]-a[1]).map(x=>x[0])}
 /* '…하는 중' → '…하며' (뒤에 다른 행동 조각을 이어 붙이기 위한 연결형) */
-const conn=t=>t.replace(/는 중$/,'며');
+const conn=t=>window.Ko&&Ko.link?Ko.link(t):null;   // 활용 규칙으로 만든 연결형(만들 수 없으면 null → 이어 붙이지 않음)
 
 /* ---------- 역할별 행동 조각 ---------- */
 const BANK={
@@ -94,7 +94,7 @@ function stateLine(role,A,B,rng,pname,ctx){
   const k1=have[i1],first=pick(rng,bank[k1]);
   const rest=have.filter(k=>k!==k1);
   if(rest.length&&rng()<.6){const pool=rest.filter(k=>bank[k].some(t=>!/^\{p\}(가|는) /.test(t)));if(pool.length){const k2=pick(rng,pool);const second=pick(rng,bank[k2].filter(t=>!/^\{p\}(가|는) /.test(t))).replace(/^\{p\}(와|를) /,'');
-    if(second!==first)return fill(conn(first)+' '+second,pname)}}
+    if(second!==first){const c=conn(first),j2=c&&fill(c+' '+second,pname);if(j2&&(!window.Ko||!Ko.ok||Ko.ok(j2)))return j2}}}
   return fill(first,pname)}
 
 /* ---------- 특별 이벤트(고백·프로포즈) 문장 ---------- */
@@ -119,13 +119,13 @@ function eventLines(kind,style,outcome,A,B,rng,aName,bName,mutual){
   let a,b;
   if(kind==='propose'){
     const how=pk1(PROP_HOW,A,rng);
-    a=fill(conn(how)+' '+PROP_A[outcome==='accept'?'accept':'decline'],bName);
+    {const c=conn(how),pa=PROP_A[outcome==='accept'?'accept':'decline'];a=fill(c?c+' '+pa:pa,bName)}
     b=fill(pk1(PROP_B[outcome==='accept'?'accept':'decline'],B,rng),aName);return {a,b}}
   if(style==='hesitate'){a=fill(pk1(HES_A,A,rng),bName);b=fill('{p}가 뭔가 말하려다 마는 모습을 의아하게 바라보는 중',aName);return {a,b}}
   if(style==='flee'){a=fill('{p}에게 고백하려다 너무 떨려서 도망치는 중',bName);b=fill('{p}가 얼굴이 빨개져 도망가는 모습을 어리둥절하게 바라보는 중',aName);return {a,b}}
   const how=style==='letter'?HOW.letter.base:pk1(HOW.direct,A,rng);
   const ra=outcome==='accept'?(mutual?RES_A.accept.mutual:RES_A.accept.base):pk1(RES_A.reject,A,rng);
-  a=fill(conn(how)+' '+ra,bName);
+  {const c=conn(how);a=fill(c?c+' '+ra:ra,bName)}
   const rb=outcome==='accept'?(mutual?RES_B.accept.mutual:pk1(RES_B.accept,B,rng)):pk1(RES_B.reject,B,rng);
   b=fill(rb,aName);return {a,b}}
 

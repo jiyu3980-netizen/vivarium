@@ -198,14 +198,14 @@ function kindsOf(m){
   if(sub==='side-table-bench'&&T(/벤치|bench/))k.add('bench');
   if(sub==='desk')k.add('desk');
   if(cat!=='lighting'&&/사무실|워크스테이션|workstation|office|책상|데스크|desk/.test((s+' '+cat+' '+sub).toLowerCase()))k.add('office');   // v19: 이름·카테고리에 사무실·워크스테이션·책상·데스크가 든 에셋 → '일하기' 장소
-  if(cat!=='lighting'&&T(/데스크|책상|테이블|(^|[^a-z])(desk|table)([^a-z]|$)/))k.add('studyfurn');   // 이름에 데스크·책상·테이블이 든 가구: 공부 장소로 쓸 수 있음
+  if(cat!=='lighting'&&!T(/화장|vanity|dressing|커피 ?테이블|coffee ?table/)&&T(/데스크|책상|테이블|(^|[^a-z])(desk|table)([^a-z]|$)/))k.add('studyfurn');   // 이름에 데스크·책상·테이블이 든 가구: 공부 장소로 쓸 수 있음
   if(sub==='dining-table'){k.add(T(/마작|mahjong/)?'gametable':'dining')}
   if(sub==='game-table')k.add('gametable');
   if(sub==='shelf'){if(T(/와인|wine/))k.add('wine');else if(T(/책장|bookcase|book|라이브러리|library/))k.add('bookshelf');else if(T(/신발|shoe/))k.add('shoes');else k.add('shelf')}
   if(T(/책 ?(더미|묶음)|book stack|book pile/))k.add('book');
   if(T(/꽃병|화병|vase/))k.add('vase');
   if(sub==='television'||(T(/(^|[^a-z])tv([^a-z]|$)|티비|텔레비/)&&!T(/안테나|aerial|antenna|cctv|씨씨티브이/)))k.add('tv');   // 이름에 TV 가 적힌 가구(TV 장식장 등)도 TV 보기 대상
-  if(T(/노트북|laptop|컴퓨터|computer/)&&cat!=='lighting')k.add('laptop');
+  if(T(/노트북|laptop|컴퓨터|computer/)&&cat!=='lighting'&&sub!=='chair')k.add('laptop');   // 컴퓨터 '의자'는 노트북으로 작업하는 자리가 아님(이름 속 낱말만 보고 붙이던 오류)
   if(sub==='refrigerator')k.add('fridge');
   if(sub==='oven')k.add('stove');
   if(sub==='countertop')k.add('counter');
@@ -227,11 +227,12 @@ function kindsOf(m){
   if(sub==='clothes-hanger')k.add('hanger');
   if(sub==='mirror')k.add('mirror');
   if(sub==='clothes')k.add('clothes');
-  if(T(/옷장|드레스|wardrobe|closet|dressing/))k.add('wardrobe');
-  if(cat!=='bathroom'&&T(/화장대|dresser|vanity table|makeup table|vanity/))k.add('vanity');
+  const isVan=cat!=='bathroom'&&T(/화장대|화장 ?테이블|dresser|dressing table|vanity|makeup table/);   // 구체적인 '화장대'를 먼저 판정 → 화장대는 옷장으로 분류하지 않음
+  if(!isVan&&T(/옷장|드레스룸|드레스 ?룸|wardrobe|closet|dressing room/))k.add('wardrobe');
+  if(isVan)k.add('vanity');
   if(T(/화장품|뷰티|메이크업|makeup|cosmetic|beauty/))k.add('cosmetic');
-  if(sub==='cabinet'&&!k.has('vanity')&&!T(/tv|티비/))k.add('cabinet');
-  if(T(/와인|wine|샴페인|champagne|위스키|whisk|맥주|beer|칵테일|cocktail|sake|술병|술잔|주류|막걸리|소주|liquor/)&&cat!=='plants')k.add('wine');
+  if(sub==='cabinet'&&!k.has('vanity')&&!T(/(^|[^a-z])tv([^a-z]|$)|티비/))k.add('cabinet');
+  if(T(/와인|(^|[^a-z])wine|샴페인|champagne|위스키|whisky|whiskey|맥주|(^|[^a-z])beer|칵테일|cocktail|(^|[^a-z])sake([^a-z]|$)|술병|술잔|주류|막걸리|소주|liquor/)&&cat!=='plants'&&!T(/whisk(?!e?y)|거품기/))k.add('wine');
   if(cat==='plants'){
     if(sub==='outdoor-garden'){if(T(/채소|무 |배추|텃밭|vegetable|상추|토마토/))k.add('veg');else k.add('garden')}
     else{k.add('plant');if(T(/꽃|장미|난초|flower|rose|orchid|헬리코니아|극락조/))k.add('flower')}}
@@ -248,7 +249,31 @@ function kindsOf(m){
   if(sub==='telephone-audio')k.add('phone');
   if(sub==='fireplace')k.add('fireplace');
   if(sub==='it-network'&&T(/cctv|모니터|인터폰/))k.add('monitor');
+  /* v1030 보강 분류 — 구체적인 것을 먼저, 이름 속 낱말이 아니라 (분류·종류)로 판정한다. 아무 행동도 못 붙는 에셋은 'static'(이유는 staticReason)으로 명시해 '조용히 빠지는' 일이 없게 한다. */
+  if(sub==='ceiling-light'||sub==='wall-light'||sub==='table-lamp'||sub==='floor-lamp'||(cat==='lighting'&&sub!=='chandelier'))k.add('lamp');
+  if(sub==='chandelier')k.add('lamp');
+  if(sub==='waste-bin'){if(T(/바구니|basket/))k.add('basket');else k.add('bin')}
+  if(sub==='clock')k.add('clock');
+  if(sub==='food')k.add(T(/오일|oil/)?'cookware':'food');   // 오일 병은 먹는 음식이 아니라 요리 재료·도구
+  if(sub==='side-table-bench'&&!k.has('bench')&&T(/탁자|table/))k.add('bedside');
+  if(sub==='ornament'){
+    if(T(/블라인드|커튼|curtain|blind|mosquito|모기장/))k.add('curtain');
+    else if(T(/양초|candle|오일 ?램프|oil lamp|diya|랜턴|lantern/))k.add('candle');
+    else if(T(/담요|blanket|베개|pillow|침대 커버|bed cover/))k.add('blanket');
+    else if(T(/수족관|aquarium|fish/))k.add('aquarium');
+    else if(T(/조각상|statue|상$|박제|deer head|액자|frame|katana|카타나/))k.add('admire');
+    else k.add('admire')}
+  if(sub==='miscellaneous-household-items'){if(T(/상자|box/))k.add('box');else if(T(/덤벨|dumbbell/))k.add('weights');else if(T(/사다리|ladder/))k.add('ladder');else if(T(/세제|detergent/))k.add('detergent');else k.add('static')}
+  if(sub==='vehicle')k.add('vehicle');
+  if(sub==='air-conditioner'&&T(/실외기|outdoor|hvac unit/))k.add('static');
+  if(sub==='it-network'&&!k.has('monitor'))k.add(T(/네트워크|network|nvr|recorder/)?'router':'static');
+  if(cat==='architectural-elements'&&['built-in-structure','staircase','partition','window'].includes(sub))k.add('static');
   return [...k]}
+/* 행동 대상이 아닌 이유(감사표용). 'static' 으로 분류된 에셋만 이유가 있다 */
+function staticReason(m){const sub=m.sub||'',cat=m.cat||'';
+  if(sub==='window')return '창문 — 창밖 바라보기는 구역의 창으로 처리(가구 대상 아님)';if(sub==='staircase')return '계단 — 이동 경로로만 쓰임';if(sub==='partition')return '칸막이 — 구역 나눔';
+  if(sub==='built-in-structure')return '건축 부재·배관·지붕 — 상호작용 대상 아님';if(sub==='air-conditioner')return '에어컨 실외기 — 외부 설비';if(sub==='it-network')return '콘센트·계량기·안테나 등 설비';
+  if(sub==='miscellaneous-household-items')return '공구·연료·발전기 등 작업 설비(전용 행동 없음)';return '전용 행동 없음'}
 const KNAME={bed:'침대',sofa:'소파',chair:'의자',bench:'벤치',desk:'책상',dining:'식탁',bookshelf:'책장',tv:'TV',fridge:'냉장고',stove:'레인지',counter:'조리대',ksink:'싱크대',wardrobe:'옷장',mirror:'거울',vanity:'화장대',piano:'피아노',guitar:'기타',violin:'바이올린',easel:'이젤',fireplace:'벽난로',plant:'화분'};
 
 /* =====================================================================
@@ -355,7 +380,7 @@ V('drink_table','eat','dining','sit',[20,50],['{r}에서 식탁에서 술을 한
 V('sleep_bed','sleep','bed','lie',null,['{r}에서 침대에서 곤히 자는 중','{r}에서 이불을 덮고 잠든 중','{r}에서 새근새근 자고 있는 중'],{lazy:.5});
 V('sleep_hammock','sleep','hammock','lie',null,['{r}에서 해먹에서 잠든 중'],{lazy:.5});
 V('sleep_sofa','sleep','sofa','lie',null,['{r}에서 소파에서 웅크리고 잠든 중','{r}에서 소파에 몸을 눕히고 잠든 중'],{lazy:.5},{nobed:true,hr:[21,31]});
-V('nap_sofa','sleep','sofa','lie',[15,40],['{r}에서 소파에서 꾸벅꾸벅 조는 중','{r}에서 소파에 기대 낮잠을 자는 중'],{lazy:1.2},{nap:true});
+V('nap_sofa','sleep','sofa','lie',[15,40],['{r}에서 소파에서 꾸벅꾸벅 조는 중','{r}에서 소파에 기대 낮잠을 자는 중','{r}에서 소파에 기대 설핏 잠이 든 중'],{lazy:1.2},{nap:true});
 V('nap_bed','sleep','bed','lie',[20,60],['{r}에서 침대에서 낮잠을 자는 중'],{lazy:1.2},{nap:true});
 /* 휴식 */
 V('sofa_rest','rest','sofa','sit',[10,45],['{r}에서 소파에 앉아 쉬는 중','{r}에서 소파에서 느긋하게 쉬는 중','{r}에서 소파에 기대 멍하니 앉아 있는 중'],{lazy:.6,homebody:.3});
@@ -364,7 +389,7 @@ V('chair_rest','rest',['chair','bench'],'sit',[8,30],['{r}에서 의자에 앉�
 V('chair_tea','rest','chair','sit',[12,30],['{r}에서 의자에 앉아 차를 마시는 중','{r}에서 의자에 앉아 따뜻한 차를 홀짝이는 중'],{tea:1.8},{hr:[9,23]});
 V('chair_window','rest','chair','sit',[8,25],['{r}에서 의자에 앉아 창밖을 바라보는 중','{r}에서 의자에 앉아 멍하니 바깥을 보는 중'],{solitary:.5},{near:'__window'});
 V('doze_chair','sleep','chair','sit',[10,30],['{r}에서 의자에 앉은 채 꾸벅꾸벅 조는 중','{r}에서 의자에 기대 깜빡 졸고 있는 중'],{lazy:1.2},{nap:true});
-V('lie_bed','rest','bed','lie',[10,35],['{r}에서 침대에 누워 뒹구는 중','{r}에서 침대에 누워 천장을 보는 중'],{lazy:1.2},{hr:[8,26]});
+V('lie_bed','rest','bed','lie',[10,35],['{r}에서 침대에 누워 뒹구는 중','{r}에서 침대에 누워 천장을 보는 중','{r}에서 침대에 대자로 누워 천장을 바라보는 중'],{lazy:1.2},{hr:[8,26]});
 V('fire','rest','fireplace','stand',[10,30],['{r}에서 벽난로 앞에서 불을 쬐는 중'],{homebody:.4});
 V('fan','rest','fan','stand',[5,15],['{r}에서 선풍기 바람을 쐬는 중'],{});
 V('window_gaze','rest','__window','stand',[4,12],['{r}에서 창밖을 바라보는 중','{r}에서 창가에서 바깥 풍경을 구경하는 중'],{solitary:.3});
@@ -401,10 +426,10 @@ V('job_daydream','work',JK,'stand',[5,18],['{r}에서 일하다 문득 딴생각
 V('job_game','work',JK,'stand',[10,35],['{r}에서 업무 화면 뒤에 몰래 게임을 켜 둔 중','{r}에서 업무 중에 몰래 게임을 하는 중'],{gamer:2.2,lazy:1.1,playful:.9,worker:-.5},{jobv:true,hr:[9,24],req:JREQ,rare:.7});
 V('job_procrast','work',JK,'stand',[10,30],['{r}에서 일을 미루며 딴짓하는 중','{r}에서 해야 할 일을 미뤄 두고 휴대폰만 만지작거리는 중'],{lazy:1.7,playful:.8,worker:-.5},{jobv:true,hr:[8,24],req:JREQ,rare:.8});
 /* TV */
-V('tv_sofa','tv','tv','sit',[25,100],['{r}에서 소파에 앉아 {S}'],{tv:1.8},{seatKind:'sofa'});
+V('tv_sofa','tv','tv','sit',[25,100],['{r}에서 소파에 앉아 {S}','{r}에서 소파에 몸을 파묻고 {S}','{r}에서 소파 한쪽에 다리를 올리고 {S}'],{tv:1.8},{seatKind:'sofa'});
 V('tv_chair','tv','tv','sit',[20,70],['{r}에서 의자에 앉아 {S}','{r}에서 의자를 돌려 앉아 {S}'],{tv:1.4},{seatKind:'chair'});
-V('tv_stand','tv','tv','stand',[10,40],['{r}에서 TV 앞에 서서 {S}','{r}에서 TV를 켜고 {S}'],{tv:1.2});
-V('tv_bed','tv','tv','lie',[20,70],['{r}에서 침대에 누워 {S}'],{tv:1.5,lazy:.6},{seatKind:'bed',hr:[20,27]});
+V('tv_stand','tv','tv','stand',[10,40],['{r}에서 TV 앞에 서서 {S}','{r}에서 TV를 켜고 {S}','{r}에서 TV 앞을 오가며 {S}'],{tv:1.2});
+V('tv_bed','tv','tv','lie',[20,70],['{r}에서 침대에 누워 {S}','{r}에서 이불을 덮고 누워 {S}','{r}에서 베개를 괴고 옆으로 누워 {S}'],{tv:1.5,lazy:.6},{seatKind:'bed',hr:[20,27]});
 /* 취미 */
 V('chair_hobby','hobby','chair','sit',[15,45],['{r}에서 의자에 앉아 뜨개질을 하는 중','{r}에서 의자에 앉아 작은 수첩에 낙서하는 중','{r}에서 의자에 앉아 취미 거리를 만지작거리는 중'],{hobby:1.6},{trait:'hobby'});
 V('paint','hobby','easel','stand',[25,90],['{r}에서 이젤 앞에서 그림을 그리는 중','{r}에서 캔버스에 색을 칠하는 중'],{hobby:1.8});
@@ -424,15 +449,33 @@ V('music','hobby','audio','stand',[10,40],['{r}에서 음악을 틀어 놓고 �
 V('photo','hobby','camera','stand',[8,25],['{r}에서 카메라를 만지작거리는 중','{r}에서 사진을 고르는 중'],{hobby:1.8,outgoing:.4});
 V('sew','hobby','sewing','stand',[15,45],['{r}에서 재봉틀로 바느질하는 중'],{hobby:1.8});
 /* 공부 */
-V('study_desk','study',['desk','studyfurn'],'stand',[30,90],['{r}에서 책상 앞에서 {Y}'],{studious:2,worker:.3},{trait:'studious',wishAny:true,hr:[8,27]});
-V('study_chair','study','chair','sit',[20,70],['{r}에서 의자에 앉아 {Y}'],{studious:2},{trait:'studious',wishAny:true,near:'desk',hr:[8,27]});
-V('study_bed','study','bed','lie',[15,45],['{r}에서 침대에 엎드려 {Y}'],{studious:1.2,lazy:.6},{trait:'studious',wishAny:true,hr:[20,27]});
-V('study_free','study',null,'stand',[15,50],['{r}에서 {Y}'],{studious:1.5},{trait:'studious',wishAny:true,hr:[8,27]});
+V('study_desk','study',['desk','studyfurn'],'stand',[30,90],['{r}에서 책상 앞에서 {Y}','{r}에서 책상 앞에 앉아 필기를 하며 {Y}','{r}에서 책상 위에 자료를 펼쳐 놓고 {Y}'],{studious:2,worker:.3},{trait:'studious',wishAny:true,hr:[8,27]});
+V('study_chair','study','chair','sit',[20,70],['{r}에서 의자에 앉아 {Y}','{r}에서 의자에 허리를 펴고 앉아 {Y}','{r}에서 의자를 끌어당겨 앉아 {Y}'],{studious:2},{trait:'studious',wishAny:true,near:'desk',hr:[8,27]});
+V('study_bed','study','bed','lie',[15,45],['{r}에서 침대에 엎드려 {Y}','{r}에서 침대 위에 노트를 펼쳐 놓고 {Y}'],{studious:1.2,lazy:.6},{trait:'studious',wishAny:true,hr:[20,27]});
+V('study_free','study',null,'stand',[15,50],['{r}에서 {Y}','{r}에서 틈틈이 {Y}','{r}에서 집중해서 {Y}'],{studious:1.5},{trait:'studious',wishAny:true,hr:[8,27]});
 /* 집 가꾸기 */
 V('vase_water','chore','vase','stand',[3,8],['{r}에서 꽃병의 물을 갈아 주는 중','{r}에서 꽃병에 새 꽃을 꽂는 중','{r}에서 꽃병의 꽃을 다듬는 중'],{plant:1.5,tidy:.6});
 V('vase_smell','chore','vase','stand',[2,5],['{r}에서 꽃 냄새를 맡는 중'],{plant:1.2});
 V('plant_water','chore',['plant','garden','veg'],'stand',[4,10],['{r}에서 화분에 물을 주는 중','{r}에서 식물의 시든 잎을 정리하는 중'],{plant:2,tidy:.5});
 V('plant_smell','chore','flower','stand',[2,6],['{r}에서 꽃 냄새를 맡는 중','{r}에서 풀 내음을 맡으며 숨을 고르는 중'],{plant:1.5});
+/* v1030 보강 분류에 맞는 행동: 조명·쓰레기통·시계·음식·커튼·양초·담요·수족관·장식품·상자·차량 등 */
+V('lamp_on','rest','lamp','stand',[1,3],['{r}에서 불을 켜서 방을 밝히는 중','{r}에서 조명을 만지작거리며 밝기를 맞추는 중'],{},{hr:[17,24]});
+V('lamp_off','rest','lamp','stand',[1,3],['{r}에서 불을 끄고 방을 어둡게 하는 중','{r}에서 조명을 하나씩 끄며 하루를 정리하는 중'],{},{hr:[22,27]});
+V('trash_out','chore','bin','stand',[2,5],['{r}에서 쓰레기를 모아 버리는 중','{r}에서 쓰레기통을 비우는 중'],{tidy:1.2});
+V('basket_tidy','chore','basket','stand',[3,8],['{r}에서 바구니 안의 물건을 정리하는 중','{r}에서 바구니를 들여다보며 필요한 걸 고르는 중'],{tidy:1});
+V('clock_look','rest','clock','stand',[1,3],['{r}에서 시계를 올려다보며 시간을 확인하는 중','{r}에서 시계 초침을 멍하니 바라보는 중'],{});
+V('food_taste','eat','food','stand',[3,8],['{r}에서 차려 둔 음식을 한 입 맛보는 중','{r}에서 맛있어 보이는 음식을 집어 드는 중'],{});
+V('curtain_move','chore','curtain','stand',[1,3],['{r}에서 커튼을 걷어 햇빛이 들게 하는 중','{r}에서 커튼을 쳐서 빛을 가리는 중'],{});
+V('candle_light','rest','candle','stand',[3,10],['{r}에서 양초에 불을 붙이고 한참 바라보는 중','{r}에서 은은한 불빛 옆에서 생각에 잠기는 중'],{calm:1},{hr:[18,26]});
+V('blanket_snug','rest',['blanket'],'stand',[3,8],['{r}에서 담요를 펴서 정돈하는 중','{r}에서 베개를 두드려 모양을 잡는 중'],{tidy:.6});
+V('fish_watch','rest','aquarium','stand',[5,15],['{r}에서 수족관의 물고기를 가만히 바라보는 중','{r}에서 물고기들이 헤엄치는 모습을 오래 구경하는 중'],{calm:1.2});
+V('admire_decor','rest','admire','stand',[2,6],['{r}에서 장식품을 가만히 들여다보는 중','{r}에서 소품을 만지작거리다 제자리에 놓는 중'],{art:1});
+V('box_open','chore','box','stand',[3,8],['{r}에서 상자 안을 뒤적이는 중','{r}에서 상자를 열어 물건을 꺼내 보는 중'],{tidy:.5});
+V('weights_lift','rest','weights','stand',[8,20],['{r}에서 덤벨을 들어 올리며 운동하는 중','{r}에서 덤벨로 팔 운동을 하는 중'],{sporty:1.5});
+V('bedside_set','rest','bedside','stand',[1,4],['{r}에서 침대 옆 탁자에 물건을 올려 두는 중','{r}에서 침대 옆 탁자를 정리하는 중'],{tidy:.6});
+V('detergent_use','chore','detergent','stand',[3,8],['{r}에서 세제를 꺼내 빨래 준비를 하는 중','{r}에서 세제 통을 정리해 두는 중'],{tidy:.8});
+V('router_check','work','router','stand',[2,6],['{r}에서 네트워크 장비의 불빛을 확인하는 중'],{});
+V('car_look','chore','vehicle','stand',[4,10],['{r}에서 차를 둘러보며 상태를 살피는 중','{r}에서 차 옆에 서서 한참 바라보는 중'],{});
 V('replant','chore',['plant','garden'],'stand',[10,25],['{r}에서 화분에 새로 흙을 채우는 중'],{plant:2},{rare:.4});
 V('window_open','chore','__window','stand',[2,5],['{r}에서 창문을 열어 환기하는 중','{r}에서 창문을 닫는 중'],{tidy:.5},{hr:[6,22]});
 V('window_clean','chore','__window','stand',[8,18],['{r}에서 창문을 닦는 중'],{tidy:2},{hr:[9,18],rare:.5});
@@ -447,9 +490,9 @@ V('pet_chicken','pet','chicken','stand',[4,10],['{r}에서 닭에게 모이를 �
 V('pet_other','pet','animal','stand',[5,15],['{r}에서 동물을 살펴보는 중'],{pet:1});
 /* 집 안 이동·기타 */
 V('wander','wander',null,'stand',[1,3],[],{outdoor:.2},{special:'wander'});
-V('idle','wander',null,'stand',[2,6],['{r}에서 서성이며 생각에 잠긴 중','{r}에서 가만히 서서 쉬는 중'],{});
-V('phone_call','chat','phone','stand',[5,15],['{r}에서 전화로 이야기하는 중'],{social:1.5});
-V('friend_msg','chat',null,'stand',[5,15],['{r}에서 친구에게 연락하는 중','{r}에서 친구와 메시지를 주고받는 중'],{social:1.2},{special:'friend',wishOnly:true});
+V('idle','wander',null,'stand',[2,6],['{r}에서 서성이며 생각에 잠긴 중','{r}에서 가만히 서서 쉬는 중','{r}에서 창밖을 한 번 내다보고 다시 방을 둘러보는 중','{r}에서 별 이유 없이 방 안을 천천히 걸어 다니는 중','{r}에서 무엇을 할지 고민하며 손가락을 만지작거리는 중'],{});
+V('phone_call','chat','phone','stand',[5,15],['{r}에서 전화로 이야기하는 중','{r}에서 전화기를 붙들고 한참 이야기하는 중','{r}에서 전화를 받으며 고개를 끄덕이는 중'],{social:1.5});
+V('friend_msg','chat',null,'stand',[5,15],['{r}에서 친구에게 연락하는 중','{r}에서 친구와 메시지를 주고받는 중','{r}에서 친구에게 안부를 묻는 메시지를 쓰는 중'],{social:1.2},{special:'friend',wishOnly:true});
 /* 가구와 무관하게 프로필에서 유추되는 행동 — trait 가 프로필에 있을 때만 후보가 됨 */
 V('f_stretch','rest',null,'stand',[5,15],['{r}에서 스트레칭으로 몸을 푸는 중','{r}에서 요가 자세로 호흡을 가다듬는 중'],{},{trait:'outdoor',hr:[6,22]});
 V('f_workout','hobby',null,'stand',[15,35],['{r}에서 홈트레이닝으로 땀을 흘리는 중','{r}에서 가볍게 몸을 움직이며 운동하는 중'],{outdoor:1},{trait:'outdoor',hr:[6,21]});
@@ -470,11 +513,11 @@ V('f_insomnia','rest',null,'stand',[10,25],['{r}에서 잠이 오지 않아 뒤�
 V('f_likes','rest',null,'stand',[6,20],['{r}에서 {K:feel}','{r}에서 {K:want}','{r}에서 {K:habit}'],{},{likes:true,rare:.8});
 V('prep_out','wake',null,'stand',[4,10],['{r}에서 외출 준비를 하는 중','{r}에서 가방을 챙기며 나갈 채비를 하는 중'],{},{special:'prep',internal:true});
 /* 둘 이상이 하는 대화 */
-V('chat_sofa','chat','sofa','sit',[10,35],['{r}에서 소파에 앉아 {p}와(과) 이야기하는 중','{r}에서 {p}와(과) 소파에서 수다를 떠는 중'],{social:1.8},{pair:true,cp:['{r}에서 {p}에게 어깨를 기대고 이야기하는 중','{r}에서 소파에서 {p}와(과) 손을 잡고 도란도란 이야기하는 중']});
-V('chat_table','chat','dining','sit',[12,40],['{r}에서 식탁에서 {p}와(과) 이야기를 나누는 중','{r}에서 {p}와(과) 마주 앉아 수다를 떠는 중'],{social:1.8},{pair:true,cp:['{r}에서 {p}와(과) 마주 앉아 웃으며 이야기하는 중']});
-V('chat_chair','chat','chair','sit',[10,30],['{r}에서 의자에 앉아 {p}와(과) 이야기하는 중','{r}에서 의자를 당겨 앉아 {p}와(과) 수다를 떠는 중'],{social:1.6},{pair:true,cp:['{r}에서 의자를 가까이 당겨 앉아 {p}와(과) 속삭이는 중']});
-V('chat_guest','chat',null,'stand',[8,25],['{r}에서 {p}와(과) 이야기를 나누는 중','{r}에서 놀러 온 {p}에게 말을 거는 중','{r}에서 {p}와(과) 서서 수다를 떠는 중'],{social:1.7},{special:'guest'});   // v25: 이웃집에서 놀러 온 손님과 대화(손님은 이 집 데이터가 아니라 ctx.guests)
-V('chat_stand','chat',null,'stand',[6,20],['{r}에서 {p}와(과) 서서 이야기하는 중','{r}에서 {p}에게 말을 거는 중'],{social:1.5},{pair:true,cp:['{r}에서 {p}와(과) 눈을 맞추며 이야기하는 중']});
+V('chat_sofa','chat','sofa','sit',[10,35],['{r}에서 소파에 앉아 {p}와(과) 이야기하는 중','{r}에서 {p}와(과) 소파에서 수다를 떠는 중','{r}에서 소파에 나란히 앉아 {p}와(과) 오늘 있었던 일을 이야기하는 중'],{social:1.8},{pair:true,cp:['{r}에서 {p}에게 어깨를 기대고 이야기하는 중','{r}에서 소파에서 {p}와(과) 손을 잡고 도란도란 이야기하는 중']});
+V('chat_table','chat','dining','sit',[12,40],['{r}에서 식탁에서 {p}와(과) 이야기를 나누는 중','{r}에서 {p}와(과) 마주 앉아 수다를 떠는 중','{r}에서 식탁 맞은편에 앉은 {p}와(과) 조곤조곤 이야기하는 중'],{social:1.8},{pair:true,cp:['{r}에서 {p}와(과) 마주 앉아 웃으며 이야기하는 중']});
+V('chat_chair','chat','chair','sit',[10,30],['{r}에서 의자에 앉아 {p}와(과) 이야기하는 중','{r}에서 의자를 당겨 앉아 {p}와(과) 수다를 떠는 중','{r}에서 의자를 마주 놓고 {p}와(과) 이야기하는 중'],{social:1.6},{pair:true,cp:['{r}에서 의자를 가까이 당겨 앉아 {p}와(과) 속삭이는 중']});
+V('chat_guest','chat',null,'stand',[8,25],['{r}에서 {p}와(과) 이야기를 나누는 중','{r}에서 놀러 온 {p}에게 말을 거는 중','{r}에서 {p}와(과) 서서 수다를 떠는 중','{r}에서 놀러 온 {p}에게 집 안을 안내하며 이야기하는 중'],{social:1.7},{special:'guest'});   // v25: 이웃집에서 놀러 온 손님과 대화(손님은 이 집 데이터가 아니라 ctx.guests)
+V('chat_stand','chat',null,'stand',[6,20],['{r}에서 {p}와(과) 서서 이야기하는 중','{r}에서 {p}에게 말을 거는 중','{r}에서 {p}와(과) 서서 근황을 주고받는 중'],{social:1.5},{pair:true,cp:['{r}에서 {p}와(과) 눈을 맞추며 이야기하는 중']});
 V('pillow','chat','bed','lie',[10,35],['{r}에서 침대에 누워 {p}와(과) 필로우톡을 하는 중'],{social:1},{pair:true,couple:true,hr:[21,27],cp:['{r}에서 침대에서 {p}와(과) 속닥속닥 필로우톡 중','{r}에서 침대에서 {p}에게 오늘 있었던 일을 이야기하는 중','{r}에서 {p}의 곁에 누워 도란도란 이야기하는 중']});
 /* v19 연애 행동: 연애 상태(짝사랑·맞짝사랑·외사랑·연인·부부)가 있는 쌍에서만 후보가 된다. 지문은 viv-love.js 가 두 사람의 성격을 조합해 만든다.
    ev:true = 고백·프로포즈 같은 특별 이벤트(끝날 때까지 다른 캐릭터가 끼어들지 못하고, 쿨다운은 viv-mind.js 가 관리) */
@@ -954,15 +997,18 @@ function decide(ctx,c,p,st,reason){
       say=wa(pm.pe.name)+' 함께 '+dsay}
     if(mate)say=wa(mate.cp.name)+' 함께 '+dsay;
     if(!pm&&!mate&&!c.pet&&ctx.mind&&ctx.mind.out){try{const ot=ctx.mind.out(mR(c.id),A,id=>{const o=ctx.chars.find(x=>x.id===id);return o?o.name:''});if(ot)say=say+', '+ot}catch(e){}}   // v37: 외출 지문에도 마음이 드러남
-    ctx.setPlace(c.id,{mode:'out',action:'out',verb:'out_'+why.id,tgt:null,pose:'stand',dy:0,f:ex.f,x:ex.x,say,e:null});
+    {const p0=ctx.getPlace(c.id);if(p0.ia)endIA(ctx,p0.ia,c.id,'out',now)}   // 나가면 함께 하던 행동(세션)은 끝난다
+    ctx.setPlace(c.id,{mode:'out',action:'out',verb:'out_'+why.id,tgt:null,pose:'stand',dy:0,f:ex.f,x:ex.x,say,e:null,ia:null,partner:null});
     setStop({outAt:now,decideAt:dur>40?qd(now,30):qd(now,dur),outUntil:qd(now,dur),outFrom:ex.side,outTo:why.id==='visit'?forcedNb.hid:null,outNb:why.id==='visit'?forcedNb.name:null,then:null,wish:wish?{...wish,done:true}:null,recent:[...recent,'out'].slice(-5)});
     moves.push({id:c.id,from,route:rt,leave:true});
     if(mate){const {cp,pp,pPos,rt2}=mate;
-      ctx.setPlace(cp.id,{mode:'out',action:'out',verb:'out_'+why.id,tgt:null,pose:'stand',dy:0,f:ex.f,x:ex.x,say:wa(c.name)+' 함께 '+dsay,e:null});
+      {const p1=ctx.getPlace(cp.id);if(p1.ia)endIA(ctx,p1.ia,cp.id,'out',now)}
+      ctx.setPlace(cp.id,{mode:'out',action:'out',verb:'out_'+why.id,tgt:null,pose:'stand',dy:0,f:ex.f,x:ex.x,say:wa(c.name)+' 함께 '+dsay,e:null,ia:null,partner:null});
       ctx.setSim(cp.id,{outAt:now,decideAt:dur>40?qd(now,30):qd(now,dur),outUntil:qd(now,dur),outFrom:ex.side,then:null,wish:null,updatedAt:now,dirty:false,recent:[...((ctx.getSim(cp.id).recent)||[]),'out'].slice(-5)});
       moves.push({id:cp.id,from:{f:pPos.f,x:pPos.x,e:pp.e!=null?pp.e:W.standE(pPos.seg,pPos.f)},route:rt2,leave:true})}
     if(pm){const {pe,pp,pPos,rt2}=pm,pdsay=why.pd[why.seq?0:hash('out_'+why.id+'|'+now)%why.pd.length],pst0=ctx.getSim(pe.id);
-      ctx.setPlace(pe.id,{mode:'out',action:'out',verb:'out_'+why.id,tgt:null,pose:'stand',dy:0,f:ex.f,x:ex.x,say:wa(c.name)+' 함께 '+pdsay,e:null});
+      {const p2=ctx.getPlace(pe.id);if(p2.ia)endIA(ctx,p2.ia,pe.id,'out',now)}
+      ctx.setPlace(pe.id,{mode:'out',action:'out',verb:'out_'+why.id,tgt:null,pose:'stand',dy:0,f:ex.f,x:ex.x,say:wa(c.name)+' 함께 '+pdsay,e:null,ia:null,partner:null});
       ctx.setSim(pe.id,{...pst0,outAt:now,decideAt:dur>40?qd(now,30):qd(now,dur),outUntil:qd(now,dur),outFrom:ex.side,then:null,wish:null,updatedAt:now,dirty:false,pet:applyCare(pst0.pet,'walk',now)});
       moves.push({id:pe.id,from:{f:pPos.f,x:pPos.x,e:pp.e!=null?pp.e:W.standE(pPos.seg,pPos.f)},route:rt2,leave:true})}
     return true};
@@ -1074,9 +1120,21 @@ function fillSay(tpl,room,partner){
   let t=tpl;if(t.startsWith('{r}에서 ')){const rest=t.slice(6);if(/^\S+( 앞)?에서\s/.test(rest))t=rest}
   return t.replace(/\{r\}/g,room).replace(/\{p\}와\(과\)/g,wa(partner||'')).replace(/\{p\}을\(를\)/g,eul(partner||'')).replace(/\{p\}이\(가\)/g,ig(partner||'')).replace(/\{p\}[을를](?=[\s,.!?]|$)/g,()=>eul(partner||'')).replace(/\{p\}[이가](?=[\s,.!?]|$)/g,()=>ig(partner||'')).replace(/\{p\}[은는](?=[\s,.!?]|$)/g,()=>(partner||'')+(hasJong(partner||'')?'은':'는')).replace(/\{p\}[와과](?=[\s,.!?]|$|의)/g,()=>wa(partner||''))   // 템플릿에 조사가 박혀 있어도 이름 받침에 맞게(가온를→가온을)
     .replace(/\{p\}/g,partner||'')}
+/* ---------- 공동 행동 세션(ia) ----------
+   둘이 함께 하는 행동은 '하나의 세션'으로 기록된다: place.ia = {id, k(행동), m[참여자 둘], t0(시작), u(끝날 시각), vi(고른 문장 변형 번호), ph(단계), rv(개정)}.
+   양쪽의 지문은 이 세션에서 나온다(같은 변형·같은 행동. 돌봄·고백처럼 역할이 다르면 각자의 역할 문장).
+   한쪽이 다른 행동을 고르거나, 외출·귀가·수면·직접 이동·사라짐(404)·이웃 연결 해제로 자리를 뜨면 세션은 양쪽에서 같이 끝나고, 남은 쪽은 곧바로 다음 행동을 정한다(반쪽만 남는 상태 없음). */
+function endIA(ctx,ia,leaver,why,now){if(!ia||!ia.m)return;
+  for(const id of ia.m){if(id===leaver)continue;const q=ctx.getPlace(id);if(q&&q.ia&&q.ia.id===ia.id){ctx.setPlace(id,{ia:null,partner:null});const t=ctx.getSim(id);ctx.setSim(id,{...t,dirty:true,iaEnd:{id:ia.id,why,at:now}})}}}
+function iaSweep(ctx){const now=ctx.now;
+  for(const c of ctx.chars){const p=ctx.getPlace(c.id);if(!p||!p.ia)continue;const ia=p.ia,other=(ia.m||[]).find(x=>x!==c.id),op=other?ctx.getPlace(other):null;
+    const ok=p.mode==='home'&&p.verb===ia.k&&p.partner===other&&op&&op.mode==='home'&&op.house===p.house&&op.ia&&op.ia.id===ia.id&&op.verb===ia.k&&op.partner===c.id&&ia.u>now-60000;
+    if(!ok){const why=!op?'gone':op.mode!=='home'?'away':(p.verb!==ia.k||p.mode!=='home')?'switch':'broken';
+      ctx.setPlace(c.id,{ia:null,...(p.partner&&p.verb===ia.k?{partner:null}:{})});const t=ctx.getSim(c.id);ctx.setSim(c.id,{...t,dirty:true,iaEnd:{id:ia.id,why,at:now}})}}}
 function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepWish){
   const W=ctx.world,v=ch.v,now=ctx.now,H=Math.floor(hm);
   let spot,partner=ch.partner||null,roomSeg;
+  if(p&&p.ia)endIA(ctx,p.ia,c.id,'switch',now);   // 내가 새 행동을 고르면 이전 공동 행동의 상대는 풀려난다
   const standSeg=ch.seg||(pos.seg);
   if(v.special==='wander'){const s=ch.seg;const its=W.bySeg.get(s.id).filter(i=>!i.kinds.includes('window'));const it=its.length?pick(rng,its):null;
     const x=it?it.x+(rng()-.5)*Math.min(it.w,80):(s.left+s.right)/2;spot={f:s.f,x:W.clampX(s,x,24),e:W.standE(s),dy:0,pose:'stand',uid:null,seg:s.id};roomSeg=s}
@@ -1100,11 +1158,17 @@ function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepW
     dur=Math.round(until*60);if(dur<25)dur=25+Math.round(rng()*15);dur=Math.min(dur,600)}
   if(extra&&extra.dur)dur=Math.round(extra.dur[0]+rng()*(extra.dur[1]-extra.dur[0]));
   else if(v.dur&&!v.internal&&v.special!=='prep')dur=spanOf(v,rng);   // 갱신 주기는 '시간 단위'로 길게(랜덤)
+  /* 상대에게 갈 수 없으면 시작하지 않는다(내 쪽만 '○○와 함께'로 바뀌고 상대는 그대로인 반쪽 상태를 만들지 않음) */
+  if(partner&&v.pair){const pp0=ctx.getPlace(partner.id),pos0=posOf(W,pp0);let ps0;
+    if(ch.item){ps0=spotFor(W,ch.seat||ch.item,v.pose,mulberry(hash(partner.id+now)),1.4)}else{ps0={f:spot.f,x:W.clampX(W.segOf(spot.seg),spot.x+80,20),e:W.standE(W.segOf(spot.seg),spot.f),dy:0,pose:'stand',uid:null,seg:spot.seg}}
+    const prt0=W.route({f:pos0.f,x:pos0.x},{f:ps0.f,x:ps0.x,e:ps0.e});
+    if(!(prt0||ps0.seg===(pos0.seg&&pos0.seg.id))){ctx.setSim(c.id,{...st,n:(st.n||0)+1,decideAt:now+MIN,iaEnd:{why:'unreachable',at:now}});return moves}}
   const room=(v.rname&&!roomSeg.named)?v.rname:roomSeg.name;let say;
-  const cpl=ch.couple;
-  const tpls=(cpl&&v.cp&&rng()<.6)?v.cp:(v.care&&partner&&partner.pet?careTexts(v,partner,'o'):(v.t&&v.t.length?v.t:null));
+  const cpl=ch.couple,useCp=!!(cpl&&v.cp&&rng()<.6);   // 커플 문장 여부는 세션에서 한 번만 정해 양쪽이 같게 쓴다
+  const tpls=useCp?v.cp:(v.care&&partner&&partner.pet?careTexts(v,partner,'o'):(v.t&&v.t.length?v.t:null));
+  const vi=tpls&&tpls.length?Math.floor(rng()*tpls.length):0;
   if(v.special==='wander'&&!v.petsay){const fromSeg=pos.seg;say=fromSeg&&fromSeg.id!==roomSeg.id?`${fromSeg.name}에서 ${ro(roomSeg.name)} 자리를 옮기는 중`:`${eul(room)} 이리저리 걸어 다니는 중`}
-  else say=fillSay(pick(rng,tpls||['{r}에서 지내는 중']),room,ch.guest?ch.guest.name:(partner&&partner.name));
+  else say=fillSay(tpls&&tpls.length?tpls[vi]:'{r}에서 지내는 중',room,ch.guest?ch.guest.name:(partner&&partner.name));
   const pfood=(c.pet?c.pet:partner&&partner.pet)&&SPECIES[(c.pet||partner.pet).sp].food;if(pfood)say=say.replace(/\{f\}을\(를\)/g,eul(pfood)).replace(/\{f\}/g,pfood);
   const brng=partner?mulberry(hash([c.id,partner.id].sort().join('|')+'bg'+Math.floor(now/(15*MIN)))):null;
   say=fillExtra(say,rng,A,H,c.profile,brng);
@@ -1127,6 +1191,8 @@ function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepW
   if(Ko){say=Ko.fix(say);if(!Ko.ok(say)){const cut=say.indexOf(', ');say=cut>0&&Ko.ok(say.slice(0,cut))?say.slice(0,cut):room+'에서 지내는 중'}   // 문법·호응 검사에 걸리면 안전한 문장으로
     const pv=(ctx.getPlace(c.id)||{}).say;if(pv&&Ko.endKind(say)==='중'&&Ko.endKind(pv)==='중')say=Ko.vary(say)}   // 같은 어미가 연달아 나오면 '~고 있음'으로 바꿈
   const patch={mode:'home',action:uv?'unc':v.g,verb:uv?uv.id:v.id,tgt:spot.uid||null,pose:spot.pose,dy:spot.dy||0,f:spot.f,x:Math.round(spot.x),say,e:spot.e,partner:partner?partner.id:null,seg:spot.seg};
+  const IA=(partner&&v.pair&&!uv)?{id:'ia'+hash([c.id,partner.id,now,v.id].join('|')).toString(36),k:v.id,m:[c.id,partner.id],t0:now,u:0,vi,ph:'progress',rv:1}:null;
+  patch.ia=IA;
   ctx.setPlace(c.id,patch);
   if(ctx.unc&&!c.pet){if(uv)ctx.unc.onStart(c.id,uv.id,A);else ctx.unc.onNormal(c.id)}
   /* v22: 행동 갱신은 서울 시계의 :00/:15/:30/:45 마다. 평소 행동은 다음 15분 눈금(5분 미만이 남으면 그다음 눈금)까지만 하고 다시 정함 — 밤잠·낮잠·준비 동작·직접 지정 시간은 예외로 길게 유지 */
@@ -1135,6 +1201,7 @@ function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepW
   const nxt={...stUp,decideAt:longKeep?qd(now,dur):nextMark,recent:[...recent,uv?uv.id:v.id].slice(-5),prevSeg:(roomSeg&&pos.seg&&roomSeg.id!==pos.seg.id)?pos.seg.id:(st.prevSeg!=null?st.prevSeg:null),lastBack:(p.mode==='out'?now:st.lastBack),then:extra&&extra.then?extra.then:null,outUntil:0,outTo:null,outNb:null,yardSince:(roomSeg&&roomSeg.yard)?(st.yardSince||now):null};
   if(!keepWish&&st.wish&&!st.wish.done)nxt.wish={...st.wish,done:true};
   ctx.setSim(c.id,nxt);
+  if(IA){IA.u=nxt.decideAt;ctx.setPlace(c.id,{ia:{...IA}})}
   moves.push({id:c.id,from,route:rt||[],final:patch});
   /* 상대가 있는 행동: 상대도 같은 시각까지 같은 자리 근처에서 같은 행동 */
   if(partner&&v.pair){
@@ -1143,7 +1210,7 @@ function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepW
     if(ch.item){ps=spotFor(W,ch.seat||ch.item,v.pose,mulberry(hash(partner.id+now)),1.4)}else{ps={f:spot.f,x:W.clampX(W.segOf(spot.seg),spot.x+80,20),e:W.standE(W.segOf(spot.seg),spot.f),dy:0,pose:'stand',uid:null,seg:spot.seg}}
     const prt=W.route({f:ppos.f,x:ppos.x},{f:ps.f,x:ps.x,e:ps.e});
     if(prt||ps.seg===(ppos.seg&&ppos.seg.id)){
-      const tp=partner.pet&&v.care?careTexts(v,partner,'p'):((ch.couple&&v.cp&&rng()<.6)?v.cp:v.t);let psay0=fillSay(pick(rng,tp),room,c.name);if(partner.pet){const fd=SPECIES[partner.pet.sp].food;psay0=psay0.replace(/\{f\}을\(를\)/g,eul(fd)).replace(/\{f\}/g,fd)}const psay=fillExtra(psay0,rng,B,H,partner.profile,partner?mulberry(hash([c.id,partner.id].sort().join('|')+'bg'+Math.floor(now/(15*MIN)))):null);
+      const tp=partner.pet&&v.care?careTexts(v,partner,'p'):(useCp?v.cp:v.t);let psay0=fillSay(tp[vi%tp.length],room,c.name);/* 같은 세션의 같은 변형 번호 */if(partner.pet){const fd=SPECIES[partner.pet.sp].food;psay0=psay0.replace(/\{f\}을\(를\)/g,eul(fd)).replace(/\{f\}/g,fd)}const psay=fillExtra(psay0,rng,B,H,partner.profile,partner?mulberry(hash([c.id,partner.id].sort().join('|')+'bg'+Math.floor(now/(15*MIN)))):null);
       let psayF=psay;   // v19: 상대 쪽 지문도 연애 상태·성격에 맞게
       if(!partner.pet&&!c.pet&&ctx.mind&&ctx.mind.romLine){try{
         if(evB)psayF=evB;
@@ -1151,7 +1218,8 @@ function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepW
           if(!rl2||(ctx.mind.sep&&ctx.mind.sep(partner.id,c.id))){const rl4=ctx.mind.relLine&&ctx.mind.relLine(partner.id,c.id,B,A,rng,partner.name,c.name,room);if(rl4)rl2=rl4}
           if(rl2)psayF=rl2}}catch(e){}}
       const pfrom={f:ppos.f,x:ppos.x,e:pp.e!=null?pp.e:W.standE(ppos.seg,ppos.f)};
-      ctx.setPlace(partner.id,{mode:'home',action:v.g,verb:v.id,tgt:ps.uid||null,pose:ps.pose,dy:ps.dy||0,f:ps.f,x:Math.round(ps.x),say:psayF,e:ps.e,partner:c.id,seg:ps.seg});
+      {const po=ctx.getPlace(partner.id);if(po.ia&&(!IA||po.ia.id!==IA.id))endIA(ctx,po.ia,partner.id,'taken',now)}   // 상대가 다른 사람과 하던 세션은 끝낸다
+      ctx.setPlace(partner.id,{mode:'home',action:v.g,verb:v.id,tgt:ps.uid||null,pose:ps.pose,dy:ps.dy||0,f:ps.f,x:Math.round(ps.x),say:psayF,e:ps.e,partner:c.id,seg:ps.seg,ia:IA?{...IA}:null});
       ctx.setSim(partner.id,{...pst,n:(pst.n||0)+1,updatedAt:now,decideAt:nxt.decideAt,recent:[...(pst.recent||[]),v.id].slice(-5),then:null,...(v.care&&partner.pet?{pet:applyCare(pst.pet,v.care,now)}:{})});
       moves.push({id:partner.id,from:pfrom,route:prt||[],final:ctx.getPlace(partner.id)})}}
   return moves}
@@ -1252,7 +1320,7 @@ function revalidate(ctx){
 function stepHouse(ctx){
   const W=ctx.world,moves=[];
   const mine=ctx.chars.filter(c=>{const p=ctx.getPlace(c.id);return p.house===ctx.houseId}).sort((a,b)=>a.id<b.id?-1:1);
-  ctx.chars=mine;revalidate(ctx);
+  ctx.chars=mine;iaSweep(ctx);revalidate(ctx);
   const humans=mine.filter(c=>!c.pet),pets=mine.filter(c=>c.pet);   // v17: 사람의 관계·대화 계산에는 반려동물을 넣지 않음
   ctx.all=mine;ctx.chars=humans;ctx.analysis=ctx.analysis||(c=>analyze(c.profile,c.name,humans));
   for(const pe of pets){if(!ctx.getSim(pe.id).pet)ctx.setSim(pe.id,{pet:petInit(ctx.now)})}
@@ -1279,6 +1347,6 @@ function reconcile(ctx){
     if(together&&!AFF.test(p.say||''))ctx.setPlace(c.id,{say:fillSay(pick(r,['{r}에서 {p}를 꼭 안고 잠든 중','{r}에서 {p}의 곁에서 서로 기대어 곤히 자는 중','{r}에서 {p}의 팔을 베고 잠든 중']),room,cp.name)});
     else if(!together&&AFF.test(p.say||''))ctx.setPlace(c.id,{say:fillSay(pick(r,['{r}에서 침대에서 곤히 자는 중','{r}에서 이불을 덮고 잠든 중','{r}에서 새근새근 자고 있는 중']),room,'')})}}
 
-const api={jobLines,freePt,jobSlot,resolveWish,parsePet,petTag,SPECIES,SPECIES_IDS,CARE,petNeeds,careNeed,petInit,wishList,fillSay,_candidates:candidates,_dislikes:dislikes,_posOf:posOf,GROUPS,seoul,analyze,kindsOf,buildWorld,stepHouse,revalidate,wishOptions,setWish,VERBS,OUT_WHY,WISHES,BASE,hash,mulberry,KNAME,TRAIT_RULES,effHour,wa,ro,jobSlot,isOffDay,HOLIDAYS,hobbyPool};
+const api={staticReason,jobLines,freePt,jobSlot,resolveWish,parsePet,petTag,SPECIES,SPECIES_IDS,CARE,petNeeds,careNeed,petInit,wishList,fillSay,_candidates:candidates,_dislikes:dislikes,_posOf:posOf,GROUPS,seoul,analyze,kindsOf,buildWorld,stepHouse,revalidate,wishOptions,setWish,VERBS,OUT_WHY,WISHES,BASE,hash,mulberry,KNAME,TRAIT_RULES,effHour,wa,ro,jobSlot,isOffDay,HOLIDAYS,hobbyPool};
 root.Sim=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

@@ -299,7 +299,6 @@ function makeEnv(s,inp){const byId={};inp.chars.forEach(c=>byId[c.id]=c);
   return {now:inp.now,hour:inp.hour,day:inp.day,char:id=>byId[id]||null,name:id=>(byId[id]||{}).name||'상대',A:id=>inp.A(byId[id]||{id,name:'',profile:''}),unc:id=>(inp.unc?inp.unc(id):null)}}
 function update(s,inp){
   s=migrate(s);const env=makeEnv(s,inp),now=inp.now,log=[],ids=inp.chars.map(c=>c.id);
-  if(!inp.__cu&&SOC()&&SOC().catchUp){try{SOC().catchUp(s,inp,env,i2=>update(s,i2))}catch(e){console.error('[viv catchup]',e)}}   // v24 오프라인 경과 요약(기록만)
   if(SOC()&&SOC().setPlace)SOC().setPlace(inp);
   /* 0) 같은 집 캐릭터끼리는 처음 만날 때 관계(유형·친밀도)와 첫 생각을 준비 — 프로필에 적힌 관계가 있으면 그대로 반영 */
   for(const x of ids)for(const y of ids)if(x!==y){const had=!!s.rel[pk(x,y)];rel(s,x,y,env);if(!had)updateThought(s,x,y,env)}

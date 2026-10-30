@@ -76,6 +76,7 @@ const PALS={
  dream:{n:'드림코어 그린',bg:'#d3e1d0',line:'#2f5d57',room:'#e4eee1',paper:'#f3f7f0',hatch:'#8fb89f',ground:'#6b7f74',tint:'#c8d9c6',glass:'#b7c9d6',sw:['#c8d9c6','#7fa98c','#2f5d57']},
  mint:{n:'핑크 & 민트',bg:'#fdeef2',line:'#16918f',room:'#fff7f9',paper:'#ffffff',hatch:'#ffb9cb',ground:'#ffc7d6',tint:'#ffe0e8',glass:'#c8f0ee',sw:['#fdeef2','#16918f','#ffb9cb']}};
 const PAL_KEY='sectionSite.vivPalette';
+const palAcc=()=>{try{const p=PALS[palId];return p&&p.line&&palId!=='none'?p.line:'#d0382c'}catch(e){return '#d0382c'}};   // 선택된 말풍선 테두리색 = 지금 팔레트의 강조색
 let palId=(()=>{try{const v=localStorage.getItem(PAL_KEY);return PALS[v]?v:'none'}catch(e){return 'none'}})();
 function palSvg(t,P){
   if(!P||!P.line)return t;
@@ -195,6 +196,7 @@ async function ensureStage(slide,h){
   const wrap=q('.vv-stagewrap',slide);
   try{
     const okArt=await preload(h.doc);const snap=drawDoc(h.doc);snap.inc=!okArt;snap.world=Sim.buildWorld(snap.geo);
+    if(h.shared&&SH().geoNeeded&&SH().geoNeeded(h.shared.hid)&&okArt){const hs=SH().info(h.shared.hid);if(hs)SH().uploadGeo(h.shared.hid,snap.geo,hs.docRev)}   // 서버 생활 엔진용 지형 올리기(도면 버전당 한 번)
     if(!h.shared&&snap.world.segs.some(sg=>sg.yard&&!sg.door)&&!YARD_WARNED.has(h.id)){YARD_WARNED.add(h.id);setTimeout(()=>note('외벽 밖에 놓인 에셋이 있지만 1층 외벽에 문이 없어서 캐릭터가 나갈 수 없어요. 단면도 편집에서 1층 외벽에 문을 달아 주세요.','warn'),700)}
     if(slide._url)URL.revokeObjectURL(slide._url);if(slide._rast){URL.revokeObjectURL(slide._rast);slide._rast=null}
     const url=palUrl(snap);slide._url=url;slide._snap=snap;slide._key=h.key;
@@ -299,6 +301,16 @@ function initZoom(slide,wrap){
 /* ---------- 캐릭터 그리기·이동·크기·말풍선·걷기 ---------- */
 const ANIM={},NODES={};let rafId=0;
 const mkv=(n,a,par)=>{const e=document.createElementNS(NSV,n);Object.entries(a||{}).forEach(([k,v])=>e.setAttribute(k,v));par&&par.appendChild(e);return e};
+/* 말풍선 줄 나누기: 실제 글꼴(Noto Sans KR 등)로 폭을 재서 나눈다. 두 줄을 넘으면 두 줄까지만 보이고 끝에 '...(더보기)'(작고 연한 글씨)가 붙는다. */
+const MCV=(()=>{try{return document.createElement('canvas').getContext('2d')}catch(e){return null}})();
+const mw=(s,fs)=>{if(!MCV)return tw(s,fs);MCV.font=`${fs}px "Noto Sans KR",Arial,sans-serif`;return MCV.measureText(s).width};
+function wrapPx(text,maxW,fs){const out=[];let cur='';
+  for(const w of String(text).split(' ')){const t=cur?cur+' '+w:w;if(mw(t,fs)<=maxW){cur=t;continue}
+    if(cur){out.push(cur);cur=''}
+    let pc='';for(const ch of w){if(pc&&mw(pc+ch,fs)>maxW){out.push(pc);pc=ch}else pc+=ch}cur=pc}
+  if(cur)out.push(cur);return out}
+const BUBX={};   // 펼친 말풍선: {캐릭터id:{open,text}} — 펼친 동안은 읽던 문장을 그대로 두고, 접으면 최신 문장으로 돌아간다
+try{document.fonts&&document.fonts.ready.then(()=>{try{if(typeof mode!=='undefined'&&mode==='viv'){const sl=qa('.vv-slide')[activeIdx];sl&&sl._snap&&drawChars(sl)}}catch(e){}})}catch(e){}
 const tw=(s,fs)=>[...s].reduce((a,ch)=>a+(ch.charCodeAt(0)>0x2e80?1:.58)*fs,0);
 function wrapText(t,max){const out=[];let cur='';for(const w of String(t).split(' ')){if((cur+' '+w).trim().length>max&&cur){out.push(cur);cur=w}else cur=(cur+' '+w).trim()}if(cur)out.push(cur);
   if(out.length>1&&[...out[out.length-1]].length<=3){const l=out.pop();out[out.length-1]+=' '+l}return out.slice(0,3)}
@@ -339,6 +351,14 @@ function updNote(slide){slide=slide||qa('.vv-slide')[activeIdx];if(!slide)return
   const m=ts.length?Math.max(1,Math.round((Math.min(...ts)-now)/60000)):0;
   el.textContent=m?`${m>=90?Math.round(m/60)+'시간':m+'분'} 뒤 행동이 갱신됩니다.`:'곧 행동이 갱신됩니다.'}
 setInterval(()=>{if(typeof mode!=='undefined'&&mode==='viv'&&!document.hidden)updNote()},15000);
+/* 집 밖·손님 말풍선(HTML): 두 줄을 넘으면 두 줄까지만 보이고 끝에 '...(더보기)'. 눌러서(또는 Enter/Space) 펼치고 접는다. 펼친 동안은 읽던 문장을 그대로 둔다. */
+function bubClamp(box){qa('.bub .bt',box).forEach(t=>{const k=t.dataset.k,key='h:'+k.replace(/^g:/,''),bub=t.parentNode,st=BUBX[key];
+    const full=[...t.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join('');bub.querySelectorAll('.bm').forEach(n=>n.remove());t.classList.remove('open');
+    const open=!!(st&&st.open);if(open){t.classList.add('open')}
+    else{t.classList.add('clamp');if(t.scrollHeight<=t.clientHeight+1){t.classList.remove('clamp');return}}
+    const b=document.createElement('button');b.type='button';b.className='bm';b.textContent=open?'(접기)':'...(더보기)';b.setAttribute('aria-expanded',String(open));b.setAttribute('aria-label',open?'말풍선 접기':'말풍선 더보기');
+    b.onclick=ev=>{ev.preventDefault();ev.stopPropagation();const s2=BUBX[key]||(BUBX[key]={});if(s2.open){s2.open=false;s2.text=null}else{s2.open=true;s2.text=full}bubClamp(box)};
+    b.onpointerdown=ev=>ev.stopPropagation();(open?bub:t).appendChild(b);t.classList.toggle('clamp',!open)})}
 function renderOuts(slide){const el=q('#vvOuts');if(el){el.hidden=true;el.innerHTML=''}
   const wrap=q('.vv-stagewrap',slide);if(!wrap)return;let box=q('.vv-outtop',wrap);
   const hid=slide.dataset.house;const outs=Viv.chars().filter(c=>{const p=Viv.getPlace(c.id);return p.house===hid&&p.mode==='out'&&!ANIM[c.id]});
@@ -346,7 +366,7 @@ function renderOuts(slide){const el=q('#vvOuts');if(el){el.hidden=true;el.innerH
   if(!outs.length&&!gh){if(box)box.remove();return}
   if(!box){box=document.createElement('div');box.className='vv-outtop';wrap.appendChild(box)}
   // 집 밖에 있는 캐릭터: 도면에는 없고, 화면 왼쪽 위에 그림과 말풍선으로 나란히 보임 (같이 나간 사이면 붙어서)
-  box.innerHTML=outs.map(c=>{const p=Viv.getPlace(c.id),img=IMG[c.id];return `<div class="vv-out1" data-id="${esc(c.id)}">${img?`<img src="${img}" alt="" onerror="VivUI.imgBad('${esc(c.id)}')">`:`<span class="ph">${esc([...c.name][0]||'?')}</span>`}<div class="bub"><b>${esc(c.name)}</b>${esc(outSay(c,p))}</div></div>`}).join('')+gh}
+  box.innerHTML=outs.map(c=>{const p=Viv.getPlace(c.id),img=IMG[c.id];return `<div class="vv-out1" data-id="${esc(c.id)}">${img?`<img src="${img}" alt="" onerror="VivUI.imgBad('${esc(c.id)}')">`:`<span class="ph">${esc([...c.name][0]||'?')}</span>`}<div class="bub"><b>${esc(c.name)}</b><span class="bt" data-k="${esc(c.id)}">${esc(BUBX['h:'+c.id]&&BUBX['h:'+c.id].open&&BUBX['h:'+c.id].text?BUBX['h:'+c.id].text:outSay(c,p))}</span></div></div>`}).join('')+gh;bubClamp(box)}
 /* 이웃집에 놀러 간 캐릭터: 그 집에서 실제로 하고 있는 행동 문구를 우리 집 화면에도 똑같이 보여 줌 */
 function outSay(c,p){if(p.verb==='out_visit'&&Viv.guestHas&&Viv.guestHas('vg:'+c.id)){const gp=Viv.getPlace('vg:'+c.id);if(gp&&gp.mode==='home'&&gp.say){const hn=houseOf(gp.house);return (hn?hn.name+' · ':'')+gp.say}}return p.say||'외출 중이에요'}
 function makeChar(c,p,geo,ov,slide,L1,L2,guest){
@@ -354,9 +374,12 @@ function makeChar(c,p,geo,ov,slide,L1,L2,guest){
   const img=IMG[c.id]?mkv('image',{href:IMG[c.id],preserveAspectRatio:'xMidYMid meet'},rot):null;if(img)img.addEventListener('error',()=>imgBad(c.id));
   const ph=img?null:mkv('rect',{rx:6,fill:'#ececea',stroke:'#1c1c1c','stroke-width':1.2},rot),ini=img?null:mkv('text',{'text-anchor':'middle','font-weight':'700',fill:'#444'},rot);if(ini)ini.textContent=[...c.name][0]||'?';
   const hit=mkv('rect',{fill:'transparent'},g),out=mkv('rect',{class:'vv-out',fill:'none','pointer-events':'none'},g),hd=mkv('circle',{class:'vv-handle'},g);
-  const fx0=sayFx[c.id]&&sayFx[c.id].until>Date.now()?sayFx[c.id].text:null,say=p.mode==='home'&&(fx0||p.say)?(fx0||p.say):'',lines=say?wrapText(say,16):[];
-  const bub=mkv('g',{class:'vv-bub'+(selChar===c.id?' sel':'')},L2),bR=mkv('path',{},bub),nm=mkv('text',{class:'nm'},bub),lt=lines.map(()=>mkv('text',{},bub));
-  nm.textContent=c.name+(guest?' · 손님':'');lines.forEach((l,i)=>lt[i].textContent=l);
+  const fx0=sayFx[c.id]&&sayFx[c.id].until>Date.now()?sayFx[c.id].text:null;let say=p.mode==='home'&&(fx0||p.say)?(fx0||p.say):'',bx0=BUBX[c.id],sayNow=()=>bx0&&bx0.open&&bx0.text?bx0.text:say;
+  const bub=mkv('g',{class:'vv-bub'+(selChar===c.id?' sel':'')},L2),bR=mkv('path',{},bub),nm=mkv('text',{class:'nm'},bub),lt=[],mt=mkv('text',{class:'more'},bub);
+  bub.style.setProperty('--vv-acc',palAcc());nm.textContent=c.name+(guest?' · 손님':'');
+  const tog=ev=>{ev.preventDefault();ev.stopPropagation();const s2=BUBX[c.id]||(BUBX[c.id]={});if(s2.open){s2.open=false;s2.text=null}else{s2.open=true;s2.text=say}bx0=s2;lay()};   // 드래그·이동·크기·행동에는 영향 없음
+  bub.addEventListener('pointerdown',ev=>{if(bub.classList.contains('more'))ev.stopPropagation()});bub.addEventListener('click',tog);
+  bub.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){tog(ev)}});
   const snap=slide._snap,ref={c,p:{...p},geo,lay};NODES[c.id]=ref;
   function lay(){const b=charBox(c,ref.p,geo),top=-b.e-b.h,fs=Math.max(9,geo.W/62),vx=b.x-b.vw/2,vt=-b.e-b.vh;
     if(b.pose==='lie')rot.setAttribute('transform',`translate(${b.h/2} ${-b.w/2}) rotate(-90 ${b.x} ${-b.e})`);else rot.removeAttribute('transform');
@@ -367,12 +390,20 @@ function makeChar(c,p,geo,ov,slide,L1,L2,guest){
     hd.setAttribute('cx',vx+b.vw);hd.setAttribute('cy',vt);hd.setAttribute('r',Math.max(6,geo.W/130));hd.setAttribute('visibility',!guest&&b.pose==='stand'&&!ANIM[c.id]&&canEdit(c)?'visible':'hidden');
     if(!say){bub.setAttribute('visibility','hidden');return b}
     bub.setAttribute('visibility','visible');
-    const lh=fs*1.3,pad=fs*.55,w=Math.max(tw(c.name,fs),...lines.map(l=>tw(l,fs)))+pad*2,h=lh*(1+lines.length)+pad*1.1,tail=fs*.75;
+    const full=wrapPx(sayNow(),fs*16,fs),opened=!!(bx0&&bx0.open&&bx0.text),long_=full.length>2;let lines=full,mtxt='',mfs=fs*.78;
+    if(long_&&!opened){const suf='...(더보기)';let l2=full[1];while(l2&&mw(l2,fs)+mw(suf,mfs)>fs*16)l2=l2.slice(0,-1);lines=[full[0],l2];mtxt=suf}
+    else if(long_&&opened){lines=full.concat(['']);mtxt='(접기)'}
+    while(lt.length<lines.length)lt.push(mkv('text',{},bub));while(lt.length>lines.length)lt.pop().remove();
+    lines.forEach((l,i)=>lt[i].textContent=l);
+    bub.classList.toggle('more',long_);if(long_){bub.setAttribute('tabindex','0');bub.setAttribute('role','button');bub.setAttribute('aria-expanded',String(opened));bub.setAttribute('aria-label',(opened?'말풍선 접기: ':'말풍선 더보기: ')+c.name)}else{bub.removeAttribute('tabindex');bub.removeAttribute('role');bub.removeAttribute('aria-expanded');bub.removeAttribute('aria-label')}
+    const lh=fs*1.3,pad=fs*.55,w=Math.max(mw(c.name,fs),...lines.map(l=>mw(l,fs)),long_&&!opened?mw(lines[1]||'',fs)+mw(mtxt,mfs):0)+pad*2,h=lh*(1+lines.length)+pad*1.1,tail=fs*.75;
     const yL=geo.yard&&geo.yard.L?geo.yard.L.l:geo.in0,yR=geo.yard&&geo.yard.R?geo.yard.R.r:geo.in1,bx=Math.min(Math.max(b.x-w/2,Math.min(geo.in0,yL)-30),Math.max(geo.in1,yR)+30-w),by=vt-tail-h-2,tx=Math.min(Math.max(b.x,bx+pad+fs*.4),bx+w-pad-fs*.4);
     {const r=4,x2=bx+w,y2=by+h,t1=tx-fs*.4,t2=tx+fs*.4;   // 말풍선과 꼬리를 하나의 윤곽선으로 그려 꼬리 밑에 가로선이 남지 않게 함
      bR.setAttribute('d',`M${bx+r} ${by}H${x2-r}Q${x2} ${by} ${x2} ${by+r}V${y2-r}Q${x2} ${y2} ${x2-r} ${y2}H${t2}L${b.x} ${y2+tail}L${t1} ${y2}H${bx+r}Q${bx} ${y2} ${bx} ${y2-r}V${by+r}Q${bx} ${by} ${bx+r} ${by}Z`)}
     nm.setAttribute('font-size',fs);nm.setAttribute('x',bx+pad);nm.setAttribute('y',by+pad*.55+lh*.85);
     lt.forEach((t,i)=>{t.setAttribute('font-size',fs);t.setAttribute('x',bx+pad);t.setAttribute('y',by+pad*.55+lh*(1.85+i))});
+    mt.textContent=mtxt;mt.setAttribute('font-size',mfs);mt.setAttribute('visibility',mtxt?'visible':'hidden');
+    if(mtxt){const li=lines.length-1;mt.setAttribute('x',opened?bx+pad:bx+pad+mw(lines[li],fs)+1);mt.setAttribute('y',by+pad*.55+lh*(1.85+li))}
     return b}
   lay();
   const pt=ov.createSVGPoint();const toS=ev=>{pt.x=ev.clientX;pt.y=ev.clientY;return pt.matrixTransform(ov.getScreenCTM().inverse())};
@@ -386,7 +417,7 @@ function makeChar(c,p,geo,ov,slide,L1,L2,guest){
         Viv.setSim(c.id,{decideAt:Date.now()+20*60000,then:null})}
       drawChars(slide);renderDetail();renderList()}};
   g.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();const s=toS(ev),b=charBox(c,ref.p,geo);
-    if(selChar!==c.id){selChar=c.id;qa('.vv-ch.sel',ov).forEach(n=>n.classList.remove('sel'));g.classList.add('sel');bub.classList.add('sel');renderList();renderDetail()}
+    if(selChar!==c.id){selChar=c.id;qa('.vv-ch.sel',ov).forEach(n=>n.classList.remove('sel'));qa('.vv-bub.sel',ov).forEach(n=>n.classList.remove('sel'));g.classList.add('sel');bub.classList.add('sel');renderList();renderDetail()}
     if(guest||!canEdit(c))return;   // 남의 캐릭터·방문 중인 손님은 선택해서 볼 수만 있음
     drag={t:ev.target===hd?'size':'move',dx:s.x-b.x,dy:s.y-(-b.e),moved:false};try{g.setPointerCapture(ev.pointerId)}catch(e){}});
   g.addEventListener('pointermove',ev=>{if(!drag)return;const s=toS(ev);drag.moved=true;
@@ -613,25 +644,35 @@ function socDetail(M,s,c,o,nm){const SO=M._soc;if(!SO)return '';const f=SO.feelO
   const li=evs.map(x=>{const par=x.cause&&by.get(x.cause);return `<li><span class="vm-ms">${esc(x.why)}${x.off?' <small>(접속하지 않은 동안)</small>':''}${x.place?` <small>· ${esc(x.place)}</small>`:''}${par?`<br><small>↳ 원인: ${esc(par.why)}</small>`:''}</span><span class="vm-mt">${esc(mindTime(x.t))}</span></li>`}).join('');
   return `<h4>마음의 결 <small>${esc(c.name)}이(가) ${esc(nm(o))}에게 느끼는 것</small></h4><div class="vm-box vm-feel">${bars}<div class="vm-sub">숫자가 아니라 쌓인 사건으로 움직여요. 서운함·질투·경계는 시간이 지나며 가라앉아요.</div></div>
    <h4>최근 있었던 일 <small>원인과 함께</small></h4>${li?`<ul class="vm-mem">${li}</ul>`:'<p class="hint">아직 기록할 만한 일이 없어요.</p>'}`}
-/* 관찰 일지: 사회 기록(감정·관계·사건·세계 자각)을 시간순으로 모아 보는 화면. 알림이 아니라 열어 볼 때만 보이고, 원인이 있으면 함께 보여 준다. */
-const JR_CAT={rel:['conflict','conf_branch','apology','talk_out','bicker_end','breakup','divorce','reunion','sep','confess_ok','confess_no','propose_ok','propose_no'],news:['witness','gossip','check','care','contagion','intent'],odd:['trap','strain','mannerism','deja','reflect','dislike','aware']};
-const JR_NAME={rel:'관계',news:'소식·돌봄',odd:'이상·세계',life:'일상'},jrCat=t=>Object.keys(JR_CAT).find(k=>JR_CAT[k].includes(t))||'life';
+/* 관찰 일지: 서울 시각 자정에 캐릭터·날짜마다 확정된 '하루 한 줄'. 캐릭터·날짜로만 거른다(예전의 분류 선택은 없앰).
+   공유 집(서버 생활 엔진이 켜진 집)은 서버가 접속자가 없어도 날마다 확정한 기록을 그대로 보여 준다. 이 기기에만 있는 집은 이 기기에 쌓인 사건 기록을 날짜별로 보여 준다. */
 function openJournal(){
-  const M=MD(),d=dlgOf(),cur=houses[activeIdx];if(!M||!M._soc||!d||!cur)return;
-  const mem=inHouse(cur.id).filter(c=>!petOfChar(c)),ids=new Set(mem.map(c=>c.id)),nm=id=>(mem.find(c=>c.id===id)||Viv.chars().find(c=>c.id===id)||{}).name||'';
-  const S=M._soc.soc(M.store.get()),by=new Map(S.log.map(e=>[e.id,e]));
-  const rows=S.log.filter(e=>ids.has(e.a)||ids.has(e.b)||(e.pair||[]).some(x=>ids.has(x))||(!e.a&&!e.b)).sort((x,y)=>y.t-x.t);
-  let cat='all',who='',lim=40;
-  d.innerHTML=`<form class="vv-form" onsubmit="return false"><h3>관찰 일지 <small>${esc(cur.name)}</small></h3><p class="hint">캐릭터들에게 일어난 일을 시간순으로 모아 보여 줘요. 열어 볼 때만 보이고 알림은 뜨지 않아요. 접속하지 않은 동안의 일은 표시가 붙어요.</p>
-   <div class="vj-f"><select id="vjCat"><option value="all">전체</option>${Object.keys(JR_NAME).map(k=>`<option value="${k}">${JR_NAME[k]}</option>`).join('')}</select><select id="vjWho"><option value="">모든 캐릭터</option>${mem.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select></div>
+  const d=dlgOf(),cur=houses[activeIdx];if(!d||!cur)return;
+  const mem=inHouse(cur.id).filter(c=>!c.remote||(cur.shared&&c.hid===cur.shared.hid)),nmOf={};Viv.chars().forEach(c=>{nmOf[c.id]=c.name});
+  const srv=cur.shared&&SH().engineOn&&SH().engineOn(cur.shared.hid);
+  d.innerHTML=`<form class="vv-form" onsubmit="return false"><h3>관찰일지 <small>${esc(cur.name)}</small></h3>
+   <p class="hint">${srv?'서버가 서울 시각 자정마다 캐릭터별로 그날의 일을 한 줄로 확정해요. 접속하지 않은 날도 날짜 순서대로 채워지고, 한 번 확정된 문장은 바뀌지 않아요.':'이 기기에만 있는 집이에요. 이 기기에서 실제로 있었던 사건 중 그날 가장 큰 일 한 문장만 날짜별로 보여 줘요(오늘 일은 서울 자정이 지나면 확정, 사건이 없던 날은 「기록 부족」). 서버 공유 집과 달리 이 브라우저를 열어 둔 시간만 기록돼요.'}</p>
+   <div class="vj-f"><label>캐릭터 <select id="vjWho"><option value="">모든 캐릭터</option>${mem.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select></label>
+   <label>날짜 <input type="date" id="vjDay"></label><button type="button" id="vjAll">전체 날짜</button></div>
    <ul class="vj-list" id="vjList"></ul><div class="vv-btns"><button type="button" id="vjMore">더 보기</button><button type="button" id="vjClose">닫기</button></div></form>`;
-  const draw=()=>{const f=rows.filter(e=>(cat==='all'||jrCat(e.type)===cat)&&(!who||e.a===who||e.b===who||(e.pair||[]).includes(who))),part=f.slice(0,lim);let day='',h='';
-    for(const e of part){const sp=Viv.seoul(new Date(e.t)),dk=sp.month+'/'+sp.day;if(dk!==day){day=dk;h+=`<li class="vj-day">${dk}</li>`}
-      const ac=[...new Set([e.a,e.b].filter(Boolean).map(nm).filter(Boolean))],pre=ac.length&&!ac.some(n=>String(e.why).includes(n))?`<b>${esc(ac.join(' · '))}</b> `:'',par=e.cause&&by.get(e.cause);
-      h+=`<li class="vj-${jrCat(e.type)}"><span class="vj-t">${esc(sp.text)}</span>${pre}${esc(e.why)}${e.off?' <small>(접속하지 않은 동안)</small>':''}${e.place?` <small>· ${esc(e.place)}</small>`:''}${par?`<br><small>↳ 원인: ${esc(par.why)}</small>`:''}</li>`}
-    q('#vjList',d).innerHTML=h||'<li class="hint">아직 기록된 일이 없어요. 시간이 지나 캐릭터들이 어울리고 부딪히면 여기에 쌓여요.</li>';q('#vjMore',d).hidden=f.length<=lim};
-  q('#vjCat',d).onchange=e=>{cat=e.target.value;lim=40;draw()};q('#vjWho',d).onchange=e=>{who=e.target.value;lim=40;draw()};q('#vjMore',d).onclick=()=>{lim+=40;draw()};q('#vjClose',d).onclick=()=>d.close();
-  draw();if(!d.open)d.showModal()}
+  let who='',day='',lim=60,rows=[],seq=0;
+  const draw=()=>{let h='',last='';for(const r of rows.slice(0,lim)){if(r.day!==last){last=r.day;h+=`<li class="vj-day">${esc(r.day)}</li>`}
+      h+=`<li class="vj-${esc(r.kind||'life')}"><b>${esc(nmOf[r.char]||'')}</b> ${esc(r.text)}</li>`}
+    q('#vjList',d).innerHTML=h||`<li class="hint">${srv?'아직 확정된 날이 없어요. 서울 시각 자정이 지나면 전날이 확정돼요. 오늘 일은 오늘 자정에 확정돼요.':'아직 기록된 일이 없어요.'}</li>`;q('#vjMore',d).hidden=rows.length<=lim};
+  const load=async()=>{const my=++seq;
+    if(srv){try{const r=await SH().journal(cur.shared.hid,{char:who,from:day,to:day,limit:400});if(my!==seq)return;r.chars.forEach(c=>{nmOf[c.id]=c.name});rows=r.days}catch(e){rows=[];q('#vjList',d).innerHTML='<li class="hint">일지를 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.</li>';return}}
+    else{const M=MD();rows=[];if(M&&M._soc){const ids=new Set(mem.map(c=>c.id)),S=M._soc.soc(M.store.get());
+      /* 로컬 집: 서버와 같은 규칙 — 캐릭터·날짜마다 한 문장(그날 관계에 가장 영향이 큰 사건), 오늘은 자정에 끝나야 확정, 사건이 없는 날은 '기록 부족' */
+      const SC={breakup:100,divorce:100,reunion:96,propose_ok:98,propose_no:84,confess_ok:94,confess_no:86,confess_fail:60,conflict:78,apology:74,talk_out:72,comfort:70,affection:62,date:64,ignore:58,care:56},sp0=Viv.seoul(new Date()),dkOf=t=>{const q2=Viv.seoul(new Date(t));return q2.year+'-'+String(q2.month).padStart(2,'0')+'-'+String(q2.day).padStart(2,'0')},today=dkOf(Date.now()),best={};let first='';
+      for(const e of S.log){const dk=dkOf(e.t);if(dk>=today)continue;if(!first||dk<first)first=dk;
+        for(const w of [e.a,e.b].filter(x=>x&&ids.has(x))){const k=w+'|'+dk,sc=(SC[e.type]||20),o=best[k];if(!o||sc>o.sc||(sc===o.sc&&e.t<o.t))best[k]={sc,t:e.t,text:e.why,char:w,day:dk}}}
+      if(first){const DAYMS=86400000,t0=Date.parse(first+'T00:00:00+09:00'),t1=Date.parse(today+'T00:00:00+09:00');
+        for(let t=t0;t<t1;t+=DAYMS){const dk=dkOf(t+3600000);for(const w of ids){if(who&&w!==who)continue;if(day&&dk!==day)continue;const o=best[w+'|'+dk];rows.push({char:w,day:dk,text:o?o.text:'기록 부족',kind:o?'life':'sparse',t:o?o.t:t})}}}
+      rows.sort((a,b)=>b.t-a.t)}}
+    draw()};
+  q('#vjWho',d).onchange=e=>{who=e.target.value;lim=60;load()};q('#vjDay',d).onchange=e=>{day=e.target.value;lim=60;load()};q('#vjAll',d).onclick=()=>{day='';q('#vjDay',d).value='';lim=60;load()};
+  q('#vjMore',d).onclick=()=>{lim+=60;draw()};q('#vjClose',d).onclick=()=>d.close();
+  load();if(!d.open)d.showModal()}
 function mindFill(el,c){
   const M=MD();if(!M||!el)return;
   const p=Viv.getPlace(c.id);
@@ -698,6 +739,7 @@ const mindEmoTag=id=>{const M=MD();if(!M)return '';const s=M.store.get();if(!s.e
    나머지 브라우저는 서버에 저장된 캐릭터 상태를 그대로 보여 준다(사용자가 고른 바람은 리더가 곧 반영). */
 function runSim(i,animate){
   const h=houses[i];if(h&&h.shared){
+    if(SH().engineOn&&SH().engineOn(h.shared.hid)){mindLead[h.shared.hid]=0;mindSync(h,false);return false}   // 서버가 계산하는 집: 이 브라우저는 계산하지 않고 서버 상태를 보여 주기만 한다
     if(SH().isLeader(h.shared.hid)){const hid=h.shared.hid;if(!mindLead[hid]){mindLead[hid]=1;mindSync(h,false).then(()=>{if(houses[i]===h)runSimNow(i,animate)});return false}return runSimNow(i,animate)}
     mindLead[h.shared.hid]=0;
     mindSync(h,false);stepShared(i,animate);return false}
@@ -706,6 +748,7 @@ const leaseAt={};
 async function stepShared(i,animate){
   const h=houses[i];if(!h||!h.shared||!shareOn())return false;
   const hid=h.shared.hid;let ok=false;
+  if(SH().engineOn&&SH().engineOn(hid)){if(mode==='viv')mindSync(h,false);return false}
   if(SH().isLeader(hid)&&Date.now()-(leaseAt[hid]||0)<45000)ok=true;   // 리더 임대(120초)는 45초마다만 갱신 — 변경 알림마다 서버를 부르지 않는다
   else{try{ok=await SH().lease(hid)}catch(e){}if(ok)leaseAt[hid]=Date.now()}
   if(!ok&&houses[i]===h&&mode==='viv'){mindLead[hid]=0;mindSync(h,false)}   // v28: 리더가 아닌 브라우저도 1분마다 서버의 감정·관계·기억을 받아 온다(전에는 집을 열 때만 받음)
@@ -723,8 +766,30 @@ async function mindSync(h,push){
       if(res&&(res.conflict||res.fixed)&&res.data){M.mergeSlice(M.store.get(),res.data,ids);M.store.save()}}
     else{const d=await SH().mindPull(hid);if(d){M.mergeSlice(M.store.get(),d,ids);M.store.save();try{renderList();softDetail()}catch(e){}}}}
   catch(e){console.warn('[viv mind sync]',e.message)}finally{mindBusy[hid]=0}}
+/* 이 기기에만 있는 집의 '자리 비운 동안' 따라잡기: 서버와 같은 엔진(VivEngine)으로 지난 시각을 15분 격자 순서대로 실제로 재생한다(예전의 간이 보정은 없앰).
+   마지막 실행 시각은 집별로 기록해 두고, 기록이 없던 집은 지금부터 기록을 시작한다(없던 과거를 지어내지 않음). 최대 90일까지, 한 번에 조금씩 나눠 처리한다. */
+const LASTRUN_K='viv.lastrun.v1';
+const lrGet=()=>{try{return JSON.parse(localStorage.getItem(LASTRUN_K)||'{}')}catch(e){return {}}};
+const lrSet=(id,t)=>{try{const o=lrGet();o[id]=t;localStorage.setItem(LASTRUN_K,JSON.stringify(o))}catch(e){}};
+let lrSaved={};
+function localHost(h,snap){const M=MD(),U=UC(),res=inHouse(h.id).map(toSimChar);
+  return {world:snap.world,houseId:h.id,residents:res,guests:[],awayIds:new Set(res.filter(c=>Viv.guestHas('vg:'+c.id)).map(c=>c.id)),isMiss,
+    getPlace:Viv.getPlace,setPlace:Viv.setPlace,getSim:Viv.getSim,setSim:Viv.setSim,mind:M?M.store.get():null,unc:U?U.store.get():null,
+    neighbors:nbFor(h.id).map(x=>({hid:x.id,name:x.name})),watch:null,mindAt:lrSaved['m:'+h.id]||0}}
+function catchUpLocal(h,snap){
+  if(h.shared||!window.VivEngine||!snap||!snap.world)return false;
+  const now=Date.now(),last=lrGet()[h.id];
+  if(!last){lrSet(h.id,now);return false}
+  if(now-last<20*60000){if(now-(lrSaved[h.id]||0)>30000){lrSaved[h.id]=now;lrSet(h.id,now)}return false}
+  const host=localHost(h,snap),from=Math.max(last,now-90*86400000);
+  const r=VivEngine.replay(host,from,now,{maxSteps:4000,deadline:Date.now()+300});
+  lrSaved['m:'+h.id]=host.mindAt;
+  try{const M=MD(),U=UC();M&&M.store.save();U&&U.store.save()}catch(e){}
+  lrSet(h.id,r.done?now:r.last);if(r.done){lrSaved[h.id]=now;note('자리를 비운 동안의 생활을 이어서 계산했어요');}
+  return !r.done}
 function runSimNow(i,animate){
   const h=houses[i],slide=qa('.vv-slide')[i];if(!h||!slide||!slide._snap||!slide._snap.world)return false;
+  if(catchUpLocal(h,slide._snap)){drawChars(slide);return true}
   const outSig=()=>Viv.chars().map(c=>{const p=Viv.getPlace(c.id);return p.mode==='out'?c.id+p.say:''}).join('|'),sig0=outSig();   // 외출 중 문구만 바뀐 경우에도 화면을 갱신
   try{guestGC()}catch(e){}
   const mprev=mindSnap(h.id);let moves;try{const go=()=>Sim.stepHouse(simCtx(h,slide._snap));moves=h.shared?SH().auto(go):go()}catch(e){console.error('[viv sim]',e);return false}
@@ -1073,6 +1138,29 @@ async function nbPoll(){
     if(news.length)note(news.join(' / '),'ok');
     if(changed)setTimeout(nbPoll,1500);
   }catch(e){console.warn('[viv nb]',e)}finally{nbBusy=false}}
+/* 이사 제안(이웃 집으로 옮겨 살기): 보내기=캐릭터를 등록한 사람 / 수락·거절=받는 집 집주인·공동 집주인 / 수락되면 보낸 사람 브라우저에서 '새 집 받기'.
+   자동 수락·자동 이동 없음 — 사람이 누르기 전에는 아무 일도 일어나지 않아요 */
+let mvBusy=false;
+async function mvRender(d,msg){const box=q('#nbMoves',d);if(!box||mvBusy)return;mvBusy=true;
+  try{const S=SH(),sh=houses.filter(h=>h.shared&&(nbSrv[h.shared.hid]||[]).length);
+    const offers=[];for(const h of houses.filter(x=>x.shared)){try{const r=await S.api('GET',`/api/houses/${h.shared.hid}/move-offers`,{hid:h.shared.hid});r.offers.forEach(o=>offers.push({...o,hid:h.shared.hid}))}catch(e){}}
+    const seen=new Set(),uniq=offers.filter(o=>!seen.has(o.id+o.hid)&&seen.add(o.id+o.hid));
+    const mineCs=Viv.chars().filter(c=>c.remote&&c.mine&&sh.some(h=>h.shared.hid===c.hid));
+    const nm=id=>{const h=houses.find(x=>x.shared&&x.shared.hid===id);return h?h.name:'이웃집'};
+    const lab={pending:'답을 기다리는 중',done:'수락됨',rejected:'거절됨',cancelled:'취소됨',expired:'기한 지남',void:'무효'};
+    const live=uniq.filter(o=>o.status==='pending'||(o.status==='done'&&!o.claimed&&!o.incoming));
+    box.innerHTML=(mineCs.length?`<h4>이사 제안 보내기</h4><div class="hint">내가 등록한 캐릭터를 이웃 집으로 옮겨 살게 해요. 상대 집의 집주인이 수락해야 이사가 일어나요.</div>
+      <div class="vv-btns" style="justify-content:flex-start;gap:6px;flex-wrap:wrap"><select id="mvC">${mineCs.map(c=>`<option value="${esc(c.id)}" data-h="${esc(c.hid)}">${esc(c.name)}</option>`).join('')}</select><select id="mvT"></select><button type="button" id="mvGo" class="vv-primary">제안 보내기</button></div>`:'')+
+      (live.length?`<h4>이사 제안</h4><ul class="nb-list">${live.map(o=>`<li data-o="${esc(o.id)}" data-h="${esc(o.hid)}"><span><b>${esc(o.name||'캐릭터')}</b> : ${esc(o.fromName)} → ${esc(o.toName)} <span class="hint">${lab[o.status]||o.status}</span></span><span>${o.incoming&&o.status==='pending'?'<button type="button" class="mvOk vv-primary">수락</button><button type="button" class="mvNo">거절</button>':o.status==='pending'?'<button type="button" class="mvCx">취소</button>':'<button type="button" class="mvCl vv-primary">새 집 받기</button>'}</span></li>`).join('')}</ul>`:'');
+    const cs=q('#mvC',box),ts=q('#mvT',box);
+    if(cs){const fill=()=>{const hid=cs.selectedOptions[0].dataset.h;ts.innerHTML=(nbSrv[hid]||[]).map(id=>`<option value="${esc(id)}">${esc(nm(id))}</option>`).join('')};cs.onchange=fill;fill();
+      q('#mvGo',box).onclick=async e=>{const hid=cs.selectedOptions[0].dataset.h;if(!ts.value)return msg('옮겨 갈 이웃 집이 없어요',1);e.target.disabled=true;
+        try{await S.api('POST',`/api/houses/${hid}/chars/${cs.value}/move-offer`,{hid,body:{toHouse:ts.value}});msg('이사 제안을 보냈어요. 상대 집주인이 수락하면 이사해요');mvBusy=false;mvRender(d,msg)}catch(er){e.target.disabled=false;msg(er.message||'보내지 못했어요',1)}}}
+    qa('.mvOk,.mvNo,.mvCx,.mvCl',box).forEach(b=>b.onclick=async()=>{const li=b.closest('li'),oid=li.dataset.o,hid=li.dataset.h,act=b.classList.contains('mvOk')?'accept':b.classList.contains('mvNo')?'reject':b.classList.contains('mvCx')?'cancel':'claim';b.disabled=true;
+      try{const r=await S.api('POST',`/api/houses/${hid}/move-offers/${oid}/${act}`,{hid});
+        if(act==='claim'){await S.adopt(r);await nbRebuild();msg('새 집을 받았어요. 캐릭터가 이사했어요')}else msg(act==='accept'?'수락했어요 — 캐릭터가 이사했어요':act==='reject'?'거절했어요':'취소했어요');
+        mvBusy=false;await mvRender(d,msg);nbPoll()}catch(er){b.disabled=false;msg(waitMsg(er)||er.message||'처리하지 못했어요',1)}});
+  }catch(e){console.warn('[viv mv]',e)}finally{mvBusy=false}}
 function openNb(){
   if(!shareOn())return notReady();
   const d=dlgOf(),cur=houses[activeIdx];
@@ -1084,7 +1172,7 @@ function openNb(){
     <div class="vv-mycode" id="nbMy"></div>
     <label><span>이웃집 코드</span><input id="nbCode" class="vv-codein" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="6자리 코드"></label>
     <div class="hint" id="nbMsg" role="alert"></div>
-    <div id="nbIncoming"></div><div id="nbOutgoing"></div><div id="nbNbrs"></div>
+    <div id="nbIncoming"></div><div id="nbOutgoing"></div><div id="nbNbrs"></div><div id="nbMoves"></div>
     <div class="vv-btns"><button type="button" id="nbClose">닫기</button><button type="button" id="nbAdd" class="vv-primary">이웃 신청 보내기</button></div></form>`;
   const msg=(t,bad)=>{const m=q('#nbMsg',d);if(!m)return;m.className=bad?'vv-err':'hint';m.textContent=t||''};
   const btn=q('#nbAdd',d),sel=q('#nbMine',d),inp=q('#nbCode',d);let busy=false;
@@ -1114,7 +1202,7 @@ function openNb(){
           if(own){const other=own===A?Bh:A;try{await SH().api('DELETE',`/api/houses/${own.shared.hid}/neighbors/${other.shared.hid}`,{hid:own.shared.hid})}catch(e){if(!local)throw e}}
           else if(!local)throw new Error('집 주인만 서버 연결을 해제할 수 있어요')}
         msg('연결을 해제했어요');await nbPoll();nbChanged();render()}catch(e){msg(waitMsg(e)||'해제하지 못했어요',1)}})};
-  nbDlg=d;d.render=render;
+  d.mv=()=>mvRender(d,msg);nbDlg=d;d.render=()=>{render();mvRender(d,msg)};
   inp.oninput=()=>msg('');
   q('#nbClose',d).onclick=()=>d.close();   // 신청하지 않고 닫으면 아무것도 보내지 않음
   btn.onclick=async()=>{
@@ -1156,7 +1244,7 @@ function guestGC(){const live=new Set();houses.forEach(h=>visitorsOf(h.id).forEa
 /* 놀러 온 손님은 외출 중인 캐릭터와 같은 왼쪽 위 줄에, 그림과 함께 '어디서 놀러 왔는지·지금 하는 행동'을 보여 줌 */
 function guestHtml(hid){const gs=visitorsOf(hid);
   return gs.map(c=>{const p=c.srvVisit?{house:null}:Viv.getPlace(c.id),gp=c.srvVisit?null:Viv.getPlace('vg:'+c.id),img=IMG[c.id]||IMG['vg:'+c.id],hn=c.srvVisit?{name:c.fromName}:houseOf(p.house),act=c.srvVisit?(c.say||''):((gp&&gp.mode==='home'&&gp.say)||'');
-    return `<div class="vv-out1 vv-g1" data-id="${esc(c.id)}">${img?`<img src="${img}" alt="" onerror="VivUI.imgBad('${esc(c.id)}')">`:`<span class="ph">${esc([...c.name][0]||'?')}</span>`}<div class="bub"><b>${esc(c.name)} · 손님</b>${esc((hn?hn.name+'에서 ':'')+'놀러 왔어요'+(act?' — '+act:''))}</div></div>`}).join('')}
+    return `<div class="vv-out1 vv-g1" data-id="${esc(c.id)}">${img?`<img src="${img}" alt="" onerror="VivUI.imgBad('${esc(c.id)}')">`:`<span class="ph">${esc([...c.name][0]||'?')}</span>`}<div class="bub"><b>${esc(c.name)} · 손님</b><span class="bt" data-k="g:${esc(c.id)}">${esc((hn?hn.name+'에서 ':'')+'놀러 왔어요'+(act?' — '+act:''))}</span></div></div>`}).join('')}
 /* 동네 보기: 이웃 집들을 같은 축척으로, 땅 높이를 맞춰 작은 간격으로 나란히 보여 줌 (눌러서 그 집으로 이동) */
 async function renderHood(slide){
   const wrap=q('.vv-stagewrap',slide);if(!wrap)return;let box=q('.vv-hood',wrap);
@@ -1295,13 +1383,13 @@ async function openManage(hid){
 
 /* ---------- 시작 ---------- */
 function init(){
-  const nav=document.createElement('nav');nav.className='vnav';nav.innerHTML='<button data-m="viv">비바리움 관찰</button><button data-m="edit" class="on">단면도 편집</button><button class="vjoin" id="vvJoin" title="초대 코드로 다른 사람의 집에 들어가기">입장하기</button><button class="vjoin vnb" id="vvNb" title="초대 코드를 등록한 집과 이웃이 되어 서로 놀러 가기">이웃하기</button><button class="vjoin" id="vvJr" title="캐릭터들에게 일어난 일을 시간순으로 보기">관찰 일지</button>';
+  const nav=document.createElement('nav');nav.className='vnav';nav.innerHTML='<button data-m="viv">비바리움 관찰</button><button data-m="edit" class="on">단면도 편집</button><button class="vjoin" id="vvJoin" title="초대 코드로 다른 사람의 집에 들어가기">입장하기</button><button class="vjoin vnb" id="vvNb" title="초대 코드를 등록한 집과 이웃이 되어 서로 놀러 가기">이웃하기</button><button class="vjoin vjico" id="vvJr" title="관찰일지 — 캐릭터별·날짜별로 하루의 기록 보기" aria-label="관찰일지"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.4l2 2.2h8.6A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></button>';
   q('#top .logo').after(nav);qa('button[data-m]',nav).forEach(b=>b.onclick=()=>go(b.dataset.m));q('#vvJoin',nav).onclick=()=>{if(!booted){booted=true;build()}openJoin()};q('#vvNb',nav).onclick=()=>{if(!booted){booted=true;build()}openNb()};q('#vvJr',nav).onclick=()=>{if(!booted){booted=true;build()}openJournal()};if(SH())SH().onChange(onShareChange);
   const sec=document.createElement('section');sec.id='viv';document.body.appendChild(sec);
   window.addEventListener('hashchange',()=>go(location.hash==='#edit'?'edit':'viv'));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)simTick()});
   go(location.hash==='#edit'?'edit':'viv');   // v23.15 처음 열면 「비바리움 관찰」 탭(집이 없으면 「아직 내 집이 없어요!」 안내)
-  window.VivUI={nbFor:id=>nbFor(id).map(h=>h.name),nbDump:()=>({srv:nbSrv,houses:houses.map(h=>h.id+"|"+h.name),idx:activeIdx}),go,isBlank,getHouses,drawDoc,describe,runSim,simTick,note,imgBad,uc:{fx:ucFx,view:ucView,isMiss,refresh:ucRefresh,garble:ucGarble}};
+  window.VivUI={redraw:()=>{const sl=qa(".vv-slide")[activeIdx];if(sl)drawChars(sl)},nbFor:id=>nbFor(id).map(h=>h.name),nbDump:()=>({srv:nbSrv,houses:houses.map(h=>h.id+"|"+h.name),idx:activeIdx}),go,isBlank,getHouses,drawDoc,describe,runSim,simTick,note,imgBad,uc:{fx:ucFx,view:ucView,isMiss,refresh:ucRefresh,garble:ucGarble}};
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
