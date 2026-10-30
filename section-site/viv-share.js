@@ -97,6 +97,9 @@ const auto=fn=>{autoDepth++;try{return fn()}finally{autoDepth--}};
 const saveFail={};
 function queue(c){clearTimeout(ft);const quick=c&&c.pend&&c.pend.kind==='user'&&engineOn(c.hid);ft=setTimeout(()=>{flush()},quick?0:400)}   // 서버 계산 집에서 내가 내린 명령은 기다리지 않고 바로 보낸다(자율 행동 저장만 모아서 보냄)
 /* 바뀐 상태만 모아서 집마다 한 번에 보낸다. 자율 행동은 baseRev 가 맞을 때만 반영되고, 충돌하면 서버 상태를 받아 쓴다. */
+/* 놀러가기를 보낸 직후: 상대 집의 변화(손님 입장)를 긴 대기 응답이 돌아오길 기다리지 않고 바로 확인해 칩·입장 연출이 빨리 뜨게 한다 */
+function kickVisit(p){try{const m=/visit:srv:(h_[A-Za-z0-9]+)/.exec(JSON.stringify(p||{}));if(!m)return;const th=m[1];if(!reg.houses[th])return;
+  [250,800,1600].forEach(ms=>setTimeout(()=>{refresh(th,true).then(()=>emit('poll')).catch(()=>{})},ms))}catch(e){}}
 function flush(){
   if(flushing)return flushing;
   const run=(async()=>{try{
@@ -105,7 +108,7 @@ function flush(){
     for(const hid of Object.keys(by)){const list=by[hid];const send=list.map(c=>{const p=c.pend;c.pend=null;c.inflight=1;return {c,body:{id:c.id,baseRev:c.rev,kind:p.kind,place:p.place,sim:p.sim},p}});
       try{const r=await api('PUT',`/api/houses/${hid}/states`,{hid,body:{states:send.map(s=>s.body)}});
         r.results.forEach((res,i)=>{const {c,p}=send[i];c.inflight=0;if(res.ok)c.pred=0;if(res.gone){delete C[c.id];adopted=true}
-          else if(res.ok){c.rev=res.rev;saveFail[hid]=0;if(res.place&&engineOn(hid)){c.place=res.place;c.sim=res.sim;adopted=true}}   // 서버가 계산하는 집: 서버가 정한 결과를 바로 받아 화면에 반영(다음 확인까지 기다리지 않음)
+          else if(res.ok){c.rev=res.rev;saveFail[hid]=0;kickVisit(p);if(res.place&&engineOn(hid)){c.place=res.place;c.sim=res.sim;adopted=true}}   // 서버가 계산하는 집: 서버가 정한 결과를 바로 받아 화면에 반영(다음 확인까지 기다리지 않음)
           else if(res.conflict||res.notLeader){c.rev=res.rev;c.place=res.place;c.sim=res.sim;adopted=true;if(res.notLeader&&H[hid])H[hid].leaderPid=null}})}
       catch(e){if(e.status===401||e.status===404){dropHouse(hid,'내보내졌거나 삭제된 집이에요');adopted=true}
         else{send.forEach(({c})=>{c.inflight=0;c.pred=0});console.warn('[viv share] 상태 저장 실패, 다시 시도해요:',e.status,e.message);saveFail[hid]=(saveFail[hid]||0)+1;if(saveFail[hid]===3)emit({type:'saveerr',msg:'서버에 저장하지 못하고 있어요 (오류 '+(e.status||'연결')+'). 잠시 뒤 다시 시도해요'});send.forEach(({c,p})=>{if(C[c.id]&&!C[c.id].pend)C[c.id].pend=p})}}}   // 네트워크 오류: 다음 기회에 다시 보냄

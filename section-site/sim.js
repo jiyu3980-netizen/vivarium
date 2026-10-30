@@ -347,10 +347,10 @@ function V(id,g,k,pose,dur,t,w,o){VERBS.push({id,g,k:k?[].concat(k):null,pose,du
 /* 기상·개인 정비 */
 V('wake_stretch','wake','bed','sit',[4,9],['{r}에서 침대에서 일어나 기지개를 켜는 중','{r}에서 침대 끝에 걸터앉아 잠을 깨는 중','{r}에서 하품을 하며 막 일어난 중'],{lazy:.3},{hr:[5,11]});
 V('brush','wake','bsink','stand',[3,7],['{r}에서 세면대 앞에서 양치하는 중','{r}에서 세수를 하는 중','{r}에서 스킨케어를 하는 중'],{tidy:.6,fashion:.5});
-V('shave','wake','bsink','stand',[3,7],['{r}에서 거울을 보며 면도하는 중'],{tidy:.4},{hr:[5,10],req:A=>A.facts.gender==='m'&&A.facts.age!=null&&A.facts.age>=20,rare:.35});
+V('shave','wake','bsink','stand',[3,7],['{r}에서 거울을 보며 면도하는 중','{r}에서 턱선을 따라 면도기를 천천히 움직이는 중','{r}에서 거울에 얼굴을 가까이 대고 잔털을 정리하는 중','{r}에서 면도를 마치고 매끈해진 턱을 만져 보는 중'],{tidy:.4},{hr:[5,10],req:A=>A.facts.gender==='m'&&A.facts.age!=null&&A.facts.age>=20,rare:.35});
 V('shower','wake','shower','stand',[8,18],['{r}에서 샤워하는 중','{r}에서 머리를 감는 중'],{tidy:.7});
 V('bath','wake','bathtub','sit',[20,40],['{r}에서 욕조에 몸을 담그고 목욕하는 중','{r}에서 따뜻한 물에 느긋하게 목욕하는 중','{r}에서 욕조에서 목욕을 하며 피로를 푸는 중'],{lazy:.6,tidy:.4},{hr:[18,24]});
-V('hairdry','wake','hairdryer','stand',[4,9],['{r}에서 머리를 말리는 중'],{fashion:.4},{});
+V('hairdry','wake','hairdryer','stand',[4,9],['{r}에서 머리를 말리는 중','{r}에서 드라이어 바람에 머리카락을 털어 말리는 중','{r}에서 머리를 쓸어 넘기며 뿌리부터 말리는 중','{r}에서 거울을 보며 마른 머리를 손으로 정돈하는 중'],{fashion:.4},{});
 /* v18: 욕실에서 하는 일상 행동 — 용변·세수·머리 감기·수건으로 머리 말리기·함께 목욕(연인·부부만) */
 V('toilet','wake','toilet','sit',[3,8],['{r}에서 용변을 보는 중','{r}에서 화장실을 쓰는 중','{r}에서 볼일을 보는 중'],{},{});
 V('facewash','wake','bsink','stand',[2,5],['{r}에서 세수를 하는 중','{r}에서 찬물로 얼굴을 씻는 중','{r}에서 세면대에서 얼굴을 닦는 중'],{tidy:.7});
@@ -361,7 +361,7 @@ V('dress','wake',['wardrobe','hanger','clothes','shoes'],'stand',[4,10],['{r}에
 V('mirror','wake',['mirror','vanity'],'stand',[3,8],['{r}에서 거울 앞에서 머리를 매만지는 중','{r}에서 거울을 보며 옷매무새를 확인하는 중'],{fashion:1});
 V('makeup','wake',['vanity','cosmetic','mirror'],'stand',[6,14],['{r}에서 화장대 앞에서 화장을 하는 중','{r}에서 거울을 보며 화장을 고치는 중'],{fashion:1.2},{hr:[6,20],req:A=>A.facts.gender==='f'&&!(A.facts.age!=null&&A.facts.age<14)});
 V('medkit','wake','medical','stand',[2,6],['{r}에서 구급상자를 열어 상비품을 확인하는 중','{r}에서 상비품을 정리하는 중'],{tidy:1.2});
-V('wash_hands','wake','ksink','stand',[2,4],['{r}에서 손을 씻는 중'],{tidy:.8});
+V('wash_hands','wake','ksink','stand',[2,4],['{r}에서 손을 씻는 중','{r}에서 비누 거품을 내어 손가락 사이까지 닦는 중','{r}에서 흐르는 물에 손을 헹구는 중','{r}에서 손을 씻고 물기를 털어 내는 중'],{tidy:.8});
 /* 식사·음주 */
 V('eat_table','eat','dining','sit',[15,40],['{r}에서 식탁에 앉아 식사하는 중','{r}에서 식탁에서 천천히 밥을 먹는 중'],{foodie:.8});
 V('set_table','eat','dining','stand',[4,10],['{r}에서 식탁을 차리는 중','{r}에서 식탁에 식기를 놓는 중'],{cook:.6,tidy:.4},{need:['tableware']});
@@ -378,10 +378,10 @@ V('drink_wine','eat','wine','stand',[10,30],['{r}에서 와인을 한 잔 따르
 V('drink_table','eat','dining','sit',[20,50],['{r}에서 식탁에서 술을 한잔하는 중','{r}에서 식탁에 앉아 와인을 홀짝이는 중'],{drinker:2.5},{hr:[19,26],need:['wine'],req:A=>A.facts.adult!==false});
 /* 수면 */
 V('sleep_bed','sleep','bed','lie',null,['{r}에서 침대에서 곤히 자는 중','{r}에서 이불을 덮고 잠든 중','{r}에서 새근새근 자고 있는 중'],{lazy:.5});
-V('sleep_hammock','sleep','hammock','lie',null,['{r}에서 해먹에서 잠든 중'],{lazy:.5});
+V('sleep_hammock','sleep','hammock','lie',null,['{r}에서 해먹에서 잠든 중','{r}에서 해먹이 흔들리는 대로 몸을 맡기고 잠든 중','{r}에서 해먹에 폭 감겨 곤히 자는 중','{r}에서 해먹에 누워 천천히 숨을 고르며 잠든 중'],{lazy:.5});
 V('sleep_sofa','sleep','sofa','lie',null,['{r}에서 소파에서 웅크리고 잠든 중','{r}에서 소파에 몸을 눕히고 잠든 중'],{lazy:.5},{nobed:true,hr:[21,31]});
 V('nap_sofa','sleep','sofa','lie',[15,40],['{r}에서 소파에서 꾸벅꾸벅 조는 중','{r}에서 소파에 기대 낮잠을 자는 중','{r}에서 소파에 기대 설핏 잠이 든 중'],{lazy:1.2},{nap:true});
-V('nap_bed','sleep','bed','lie',[20,60],['{r}에서 침대에서 낮잠을 자는 중'],{lazy:1.2},{nap:true});
+V('nap_bed','sleep','bed','lie',[20,60],['{r}에서 침대에서 낮잠을 자는 중','{r}에서 이불을 반쯤 덮고 짧은 낮잠에 빠진 중','{r}에서 침대 한쪽에 몸을 말고 선잠을 자는 중','{r}에서 햇살이 드는 침대에서 잠깐 눈을 붙인 중'],{lazy:1.2},{nap:true});
 /* 휴식 */
 V('sofa_rest','rest','sofa','sit',[10,45],['{r}에서 소파에 앉아 쉬는 중','{r}에서 소파에서 느긋하게 쉬는 중','{r}에서 소파에 기대 멍하니 앉아 있는 중'],{lazy:.6,homebody:.3});
 V('sofa_tea','rest','sofa','sit',[12,30],['{r}에서 소파에 앉아 차를 마시는 중','{r}에서 따뜻한 차를 홀짝이는 중'],{tea:1.8},{hr:[9,23]});
@@ -398,10 +398,10 @@ V('read_shelf','read','bookshelf','stand',[8,25],['{r}에서 책장 앞에서 �
 V('read_desk','read','desk','stand',[20,60],['{r}에서 책상에서 책을 읽는 중','{r}에서 책상 앞에서 책에 푹 빠진 중'],{reader:2},{need:['bookshelf','book']});
 V('read_sofa','read','sofa','sit',[20,70],['{r}에서 소파에 앉아 책을 읽는 중','{r}에서 소파에서 책장을 넘기는 중'],{reader:2},{need:['bookshelf','book'],near:'bookshelf'});
 V('read_chair','read','chair','sit',[20,60],['{r}에서 의자에 앉아 책을 읽는 중','{r}에서 의자에 앉아 조용히 책장을 넘기는 중'],{reader:2},{need:['bookshelf','book'],near:'bookshelf'});
-V('read_bed','read','bed','lie',[15,50],['{r}에서 침대에 누워 책을 읽는 중'],{reader:1.8,nightowl:.8},{need:['bookshelf','book'],hr:[20,27],near:'bookshelf'});
-V('read_book','read','book','stand',[10,30],['{r}에서 쌓아 둔 책을 뒤적이는 중'],{reader:1.5});
+V('read_bed','read','bed','lie',[15,50],['{r}에서 침대에 누워 책을 읽는 중','{r}에서 베개에 기대어 책장을 넘기는 중','{r}에서 이불 속에서 책을 펼쳐 든 채 눈으로 줄을 따라가는 중','{r}에서 누운 채 책을 가슴 위에 올려 두고 한 구절을 곱씹는 중'],{reader:1.8,nightowl:.8},{need:['bookshelf','book'],hr:[20,27],near:'bookshelf'});
+V('read_book','read','book','stand',[10,30],['{r}에서 쌓아 둔 책을 뒤적이는 중','{r}에서 쌓아 둔 책 중 한 권을 골라 첫 장을 넘기는 중','{r}에서 책 더미를 훑으며 읽을 책을 고르는 중','{r}에서 서서 책의 한 대목을 소리 없이 따라 읽는 중'],{reader:1.5});
 V('tidy_books','read',['bookshelf'],'stand',[6,14],['{r}에서 책장의 책을 정리하는 중','{r}에서 책을 가지런히 꽂는 중'],{tidy:1.2,reader:.5});
-V('copy_text','read','desk','stand',[20,50],['{r}에서 책상에서 좋아하는 구절을 필사하는 중'],{reader:1.5,worker:.5},{need:['bookshelf','book']});
+V('copy_text','read','desk','stand',[20,50],['{r}에서 책상에서 좋아하는 구절을 필사하는 중','{r}에서 마음에 든 문장을 공책에 또박또박 옮겨 적는 중','{r}에서 필사한 구절을 소리 내어 다시 읽어 보는 중','{r}에서 펜 끝으로 글씨 모양을 다듬어 가며 필사하는 중'],{reader:1.5,worker:.5},{need:['bookshelf','book']});
 /* 작업 */
 V('work_desk','work','desk','stand',[30,100],['{r}에서 책상 앞에서 작업하는 중','{r}에서 책상 앞에서 집중해서 일하는 중'],{worker:1.5});
 V('job_free','work',['desk','laptop'],'stand',[40,120],['{r}에서 일을 하는 중','{r}에서 일감을 처리하는 중이에요','{r}에서 업무에 몰두하는 중'],{worker:1.2,busy:.4},{jobv:true,req:A=>!!(A.job&&A.job.kind==='freelance')});
@@ -412,7 +412,7 @@ V('game_play','hobby',['laptop','tv'],'sit',[30,90],['{r}에서 {GM}','{r}에서
 V('write_desk','work','desk','stand',[25,80],['{r}에서 책상 앞에서 글을 쓰는 중','{r}에서 책상 앞에서 메모를 정리하는 중'],{worker:1.2,reader:.8});
 V('work_laptop','work','laptop','stand',[30,90],['{r}에서 노트북으로 작업하는 중','{r}에서 노트북 앞에서 자료를 정리하는 중'],{worker:1.5});
 V('write_chair','work','chair','sit',[20,60],['{r}에서 의자에 앉아 노트에 메모하는 중','{r}에서 의자에 앉아 생각을 정리하는 중'],{worker:1.2},{near:'desk',trait:'worker'});
-V('monitor','work','monitor','stand',[3,8],['{r}에서 모니터를 확인하는 중']);
+V('monitor','work','monitor','stand',[3,8],['{r}에서 모니터를 확인하는 중','{r}에서 화면의 숫자를 눈으로 따라가며 확인하는 중','{r}에서 모니터에 뜬 내용을 한 번 더 훑어보는 중']);
 /* v19 일하기 행동 10종 — 성격에 따라 빈도가 달라지지만(가중치) 어떤 행동도 절대 막히지는 않는다. jobv=직업·일하기 선택에서 고르는 행동 */
 const JK=['office','desk','laptop'],JREQ=A=>!!(A.job||tv(A,'worker')>0||tv(A,'busy')>0);
 V('job_focus','work',JK,'stand',[30,90],['{r}에서 열심히 업무에 집중하는 중','{r}에서 자리를 뜨지 않고 업무에 몰두하는 중'],{worker:1.8,busy:.6,lazy:-.6},{jobv:true,hr:[7,24],req:JREQ});
@@ -447,7 +447,7 @@ V('f_boardsolo','hobby',null,'sit',[15,40],['{r}에서 {B} 규칙집을 읽어 �
 V('game','hobby','console','stand',[25,90],['{r}에서 {GM}','{r}에서 게임기에 푹 빠져 {GM}'],{hobby:1.8,tv:.8},{hr:[11,27]});
 V('music','hobby','audio','stand',[10,40],['{r}에서 음악을 틀어 놓고 듣는 중','{r}에서 음악을 들으며 흥얼거리는 중'],{hobby:1.5,solitary:.3});
 V('photo','hobby','camera','stand',[8,25],['{r}에서 카메라를 만지작거리는 중','{r}에서 사진을 고르는 중'],{hobby:1.8,outgoing:.4});
-V('sew','hobby','sewing','stand',[15,45],['{r}에서 재봉틀로 바느질하는 중'],{hobby:1.8});
+V('sew','hobby','sewing','stand',[15,45],['{r}에서 재봉틀로 바느질하는 중','{r}에서 천을 밀어 가며 박음질 선을 맞추는 중','{r}에서 실밥을 정리하며 바느질을 마무리하는 중'],{hobby:1.8});
 /* 공부 */
 V('study_desk','study',['desk','studyfurn'],'stand',[30,90],['{r}에서 책상 앞에서 {Y}','{r}에서 책상 앞에 앉아 필기를 하며 {Y}','{r}에서 책상 위에 자료를 펼쳐 놓고 {Y}'],{studious:2,worker:.3},{trait:'studious',wishAny:true,hr:[8,27]});
 V('study_chair','study','chair','sit',[20,70],['{r}에서 의자에 앉아 {Y}','{r}에서 의자에 허리를 펴고 앉아 {Y}','{r}에서 의자를 끌어당겨 앉아 {Y}'],{studious:2},{trait:'studious',wishAny:true,near:'desk',hr:[8,27]});
@@ -474,7 +474,7 @@ V('box_open','chore','box','stand',[3,8],['{r}에서 상자 안을 뒤적이는 
 V('weights_lift','rest','weights','stand',[8,20],['{r}에서 덤벨을 들어 올리며 운동하는 중','{r}에서 덤벨로 팔 운동을 하는 중'],{sporty:1.5});
 V('bedside_set','rest','bedside','stand',[1,4],['{r}에서 침대 옆 탁자에 물건을 올려 두는 중','{r}에서 침대 옆 탁자를 정리하는 중'],{tidy:.6});
 V('detergent_use','chore','detergent','stand',[3,8],['{r}에서 세제를 꺼내 빨래 준비를 하는 중','{r}에서 세제 통을 정리해 두는 중'],{tidy:.8});
-V('router_check','work','router','stand',[2,6],['{r}에서 네트워크 장비의 불빛을 확인하는 중'],{});
+V('router_check','work','router','stand',[2,6],['{r}에서 네트워크 장비의 불빛을 확인하는 중','{r}에서 장비의 깜빡이는 불빛 색을 살펴보는 중','{r}에서 케이블이 제대로 꽂혀 있는지 확인하는 중','{r}에서 네트워크 상태를 한 번 점검하는 중'],{});
 V('car_look','chore','vehicle','stand',[4,10],['{r}에서 차를 둘러보며 상태를 살피는 중','{r}에서 차 옆에 서서 한참 바라보는 중'],{});
 V('replant','chore',['plant','garden'],'stand',[10,25],['{r}에서 화분에 새로 흙을 채우는 중'],{plant:2},{rare:.4});
 V('window_open','chore','__window','stand',[2,5],['{r}에서 창문을 열어 환기하는 중','{r}에서 창문을 닫는 중'],{tidy:.5},{hr:[6,22]});
@@ -497,7 +497,7 @@ V('friend_msg','chat',null,'stand',[5,15],['{r}에서 친구에게 연락하는 
 V('f_stretch','rest',null,'stand',[5,15],['{r}에서 스트레칭으로 몸을 푸는 중','{r}에서 요가 자세로 호흡을 가다듬는 중'],{},{trait:'outdoor',hr:[6,22]});
 V('f_workout','hobby',null,'stand',[15,35],['{r}에서 홈트레이닝으로 땀을 흘리는 중','{r}에서 가볍게 몸을 움직이며 운동하는 중'],{outdoor:1},{trait:'outdoor',hr:[6,21]});
 V('f_hum','hobby',null,'stand',[5,20],['{r}에서 흥얼흥얼 노래를 부르는 중','{r}에서 좋아하는 멜로디를 흥얼거리는 중'],{hobby:1},{trait:'hobby'});
-V('f_doodle','hobby',null,'stand',[8,25],['{r}에서 떠오른 아이디어를 수첩에 끄적이는 중'],{hobby:1},{trait:'hobby'});
+V('f_doodle','hobby',null,'stand',[8,25],['{r}에서 떠오른 아이디어를 수첩에 끄적이는 중','{r}에서 수첩 구석에 작은 그림을 그려 넣는 중','{r}에서 생각나는 단어를 수첩에 이어 적어 보는 중','{r}에서 낙서처럼 그은 선에서 아이디어를 찾아보는 중'],{hobby:1},{trait:'hobby'});
 V('f_quote','read',null,'stand',[5,15],['{r}에서 읽었던 책의 한 구절을 곱씹는 중','{r}에서 다음에 읽을 책을 떠올리는 중'],{reader:1},{trait:'reader'});
 V('f_plan','work',null,'stand',[8,20],['{r}에서 오늘 할 일을 수첩에 적는 중','{r}에서 해야 할 일의 순서를 정리하는 중'],{worker:1},{trait:'worker'});
 V('f_daydream','rest',null,'stand',[5,20],['{r}에서 조용히 멍하니 생각에 잠긴 중','{r}에서 혼자만의 시간을 즐기는 중'],{solitary:1},{trait:'solitary'});
@@ -573,63 +573,63 @@ function careNeed(c,ps,care,now){const n=petNeeds(c,ps,now);
 const CARE={
  feed:{n:'밥주기',d:[4,9],hr:[6,23],t:['{r}에서 {p}에게 {f}을(를) 챙겨 주는 중','{r}에서 {p}의 밥그릇을 채워 주는 중'],pt:['{r}에서 {p}이(가) 준 {f}을(를) 맛있게 먹는 중','{r}에서 밥그릇에 얼굴을 파묻고 먹는 중']},
  water:{n:'물 갈아주기',d:[3,6],hr:[6,23],t:['{r}에서 {p}의 물그릇을 새 물로 갈아 주는 중'],pt:['{r}에서 시원한 새 물을 마시는 중']},
- clean:{n:'똥 치우기',d:[4,9],hr:[6,23],t:null,pt:null},
- walk:{n:'산책하기',d:[30,60],hr:[6,22],t:null,pt:null},
+ clean:{n:'똥 치우기',d:[4,9],hr:[6,23],t:['{r}에서 {p}의 배변 자리를 깨끗이 치우는 중','{r}에서 {p}의 화장실을 정리하고 새로 깔아 주는 중'],pt:null},
+ walk:{n:'산책하기',d:[30,60],hr:[6,22],t:['{r}에서 {p}와(과) 함께 천천히 산책하는 중','{r}에서 {p}의 걸음에 맞춰 동네를 한 바퀴 도는 중'],pt:null},
  pat:{n:'쓰다듬기',d:[5,12],hr:[6,24],t:['{r}에서 {p}을(를) 쓰다듬어 주는 중','{r}에서 {p}의 머리를 살살 쓰다듬는 중'],pt:['{r}에서 {p}의 손길에 기분 좋게 눈을 감는 중','{r}에서 쓰다듬어 주는 손에 몸을 기대는 중']},
  hug:{n:'안아주기',d:[4,10],hr:[6,24],t:['{r}에서 {p}을(를) 품에 안아 주는 중','{r}에서 {p}을(를) 꼭 안고 토닥이는 중'],pt:['{r}에서 {p}의 품에 폭 안겨 있는 중','{r}에서 안겨서 얌전히 있는 중']},
- play:{n:'놀아주기',d:[8,20],hr:[7,23],t:null,pt:null},
+ play:{n:'놀아주기',d:[8,20],hr:[7,23],t:['{r}에서 {p}와(과) 장난감으로 신나게 놀아 주는 중','{r}에서 {p}에게 공을 굴려 주며 노는 중'],pt:null},
  groom:{n:'빗질·목욕',d:[8,20],hr:[8,21],t:['{r}에서 {p}의 털을 빗겨 주는 중','{r}에서 {p}을(를) 목욕시키고 털을 말려 주는 중'],pt:['{r}에서 {p}에게 몸을 맡기고 빗질을 받는 중','{r}에서 보송보송하게 털을 말리는 중']}};
 Object.keys(CARE).forEach(k=>{const C=CARE[k];V('care_'+k,'care',null,'stand',C.d,C.t||['{r}에서 {p}을(를) 돌보는 중'],{},{pair:true,care:k,hr:C.hr,pt:C.pt||['{r}에서 {p}와(과) 함께 있는 중']})});
 /* 종별 행동 [id, 그룹, 가구 kind(없으면 null=가구 없이 가능), 자세, 지속(분), 문구, 시간대, 옵션] */
 const PV={
  dog:[['d_sleep','p_sleep',['bed','sofa'],'lie',[30,60],['{r}에서 포근한 곳에 몸을 말고 잠든 중','{r}에서 배를 드러내고 곤히 자는 중'],[21,8]],
-  ['d_nap','p_sleep',null,'lie',[20,40],['{r}에서 바닥에 엎드려 꾸벅꾸벅 조는 중'],[9,20]],
+  ['d_nap','p_sleep',null,'lie',[20,40],['{r}에서 바닥에 엎드려 꾸벅꾸벅 조는 중','{r}에서 앞발에 턱을 괴고 졸음을 참는 중','{r}에서 귀를 쫑긋하다 다시 눈을 감는 중'],[9,20]],
   ['d_lie','p_rest',null,'lie',[20,50],['{r}에서 바닥에 엎드려 쉬는 중','{r}에서 꼬리를 살랑거리며 느긋하게 누워 있는 중']],
-  ['d_sofa','p_rest',['sofa','bed'],'lie',[20,50],['{r}에서 푹신한 곳에 올라가 몸을 웅크린 중']],
+  ['d_sofa','p_rest',['sofa','bed'],'lie',[20,50],['{r}에서 푹신한 곳에 올라가 몸을 웅크린 중','{r}에서 소파 위로 폴짝 올라가 자리를 잡는 중','{r}에서 푹신한 곳에서 꼬리로 몸을 감싸는 중']],
   ['d_play','p_play',null,'stand',[10,25],['{r}에서 장난감을 물고 신나게 뛰어다니는 중','{r}에서 꼬리를 흔들며 빙글빙글 도는 중'],[8,22]],
   ['d_sniff','p_roam',null,'stand',[8,20],['{r}에서 킁킁거리며 냄새를 맡는 중','{r}에서 코를 바닥에 대고 구석구석 살피는 중']],
   ['d_wander','p_roam',null,'stand',[10,30],['{r}에서 꼬리를 흔들며 돌아다니는 중','{r}에서 총총 걸으며 구경하는 중'],null,{special:'wander',petsay:1}],
-  ['d_follow','p_roam',null,'stand',[10,30],['{r}에서 {p}을(를) 졸졸 따라다니는 중'],[7,24],{special:'wander',follow:1,petsay:1}],
+  ['d_follow','p_roam',null,'stand',[10,30],['{r}에서 {p}을(를) 졸졸 따라다니는 중','{r}에서 {p}의 발걸음에 맞춰 총총 따라가는 중','{r}에서 {p} 뒤를 한 발짝 떨어져 따라다니는 중'],[7,24],{special:'wander',follow:1,petsay:1}],
   ['d_window','p_roam',['__window'],'stand',[8,15],['{r}에서 창밖을 내다보며 멍멍 짖는 중','{r}에서 창가에 앞발을 올리고 바깥을 구경하는 중'],[7,22]],
-  ['d_wait','p_wait',null,'sit',[10,30],['{r}에서 {p}이(가) 돌아오길 현관 쪽을 보며 기다리는 중'],null,{special:'wander',wait:1,petsay:1}]],
+  ['d_wait','p_wait',null,'sit',[10,30],['{r}에서 {p}이(가) 돌아오길 현관 쪽을 보며 기다리는 중','{r}에서 현관 앞에 앉아 {p}의 발소리를 기다리는 중','{r}에서 문 쪽으로 귀를 세운 채 {p}을(를) 기다리는 중'],null,{special:'wander',wait:1,petsay:1}]],
  cat:[['c_sleep','p_sleep',['bed','sofa'],'lie',[30,60],['{r}에서 몸을 동그랗게 말고 잠든 중','{r}에서 푹신한 곳에서 새근새근 자는 중']],
-  ['c_nap','p_sleep',null,'lie',[20,45],['{r}에서 앞발에 얼굴을 묻고 졸고 있는 중'],[8,20]],
+  ['c_nap','p_sleep',null,'lie',[20,45],['{r}에서 앞발에 얼굴을 묻고 졸고 있는 중','{r}에서 눈을 가늘게 뜬 채 꾸벅이는 중','{r}에서 햇볕이 닿는 자리에서 웅크려 조는 중'],[8,20]],
   ['c_window','p_rest',['__window'],'sit',[20,50],['{r}에서 창가에서 햇볕을 쬐며 꾸벅꾸벅 조는 중','{r}에서 창밖의 새를 뚫어지게 쳐다보는 중'],[7,19]],
   ['c_groom','p_rest',null,'sit',[8,20],['{r}에서 앞발로 얼굴을 열심히 씻는 중','{r}에서 몸을 핥으며 그루밍하는 중']],
   ['c_scratch','p_play',null,'stand',[6,15],['{r}에서 발톱을 갈며 긁는 중','{r}에서 가구 모서리에 몸을 비비는 중'],[8,24]],
   ['c_play','p_play',null,'stand',[10,25],['{r}에서 보이지 않는 사냥감을 노리며 엉덩이를 흔드는 중','{r}에서 장난감 쥐를 물고 달리는 중'],[17,24]],
-  ['c_hide','p_rest',['wardrobe','bed','sofa'],'sit',[15,40],['{r}에서 구석에 숨어 눈만 내놓고 있는 중']],
+  ['c_hide','p_rest',['wardrobe','bed','sofa'],'sit',[15,40],['{r}에서 구석에 숨어 눈만 내놓고 있는 중','{r}에서 가구 틈에 몸을 숨기고 주변을 살피는 중','{r}에서 어두운 구석에 숨어 눈을 반짝이는 중']],
   ['c_wander','p_roam',null,'stand',[10,30],['{r}에서 사뿐사뿐 돌아다니는 중','{r}에서 꼬리를 세우고 집 안을 순찰하는 중'],null,{special:'wander',petsay:1}],
-  ['c_follow','p_roam',null,'stand',[10,30],['{r}에서 {p} 곁에 슬쩍 다가가 앉는 중'],[7,24],{special:'wander',follow:1,petsay:1}],
-  ['c_wait','p_wait',null,'sit',[10,30],['{r}에서 {p}이(가) 돌아오길 기다리며 현관 쪽을 보는 중'],null,{special:'wander',wait:1,petsay:1}]],
+  ['c_follow','p_roam',null,'stand',[10,30],['{r}에서 {p} 곁에 슬쩍 다가가 앉는 중','{r}에서 꼬리를 세우고 {p} 곁을 맴도는 중','{r}에서 {p}의 발치에 슬며시 몸을 비비는 중'],[7,24],{special:'wander',follow:1,petsay:1}],
+  ['c_wait','p_wait',null,'sit',[10,30],['{r}에서 {p}이(가) 돌아오길 기다리며 현관 쪽을 보는 중','{r}에서 현관 쪽을 바라보며 {p}을(를) 기다리는 중','{r}에서 문 앞에 얌전히 앉아 {p}이(가) 오기를 기다리는 중'],null,{special:'wander',wait:1,petsay:1}]],
  rabbit:[['r_sleep','p_sleep',null,'lie',[30,60],['{r}에서 다리를 쭉 뻗고 잠든 중','{r}에서 눈을 반쯤 뜬 채 졸고 있는 중'],[10,18]],
   ['r_rest','p_rest',null,'sit',[15,40],['{r}에서 몸을 둥글게 말고 쉬는 중','{r}에서 귀를 접고 느긋하게 앉아 있는 중']],
   ['r_hop','p_play',null,'stand',[8,20],['{r}에서 폴짝폴짝 뛰어다니는 중','{r}에서 신나서 공중으로 점프하는 중'],[6,10]],
   ['r_hop2','p_play',null,'stand',[8,20],['{r}에서 폴짝폴짝 뛰어다니는 중','{r}에서 신나서 공중으로 점프하는 중'],[17,23]],
-  ['r_nibble','p_eat',null,'sit',[10,25],['{r}에서 건초를 오물오물 씹는 중'],null,{pcond:'fed'}],
-  ['r_groom','p_rest',null,'sit',[6,15],['{r}에서 앞발로 얼굴을 쓱쓱 닦는 중']],
-  ['r_wander','p_roam',null,'stand',[10,30],['{r}에서 코를 씰룩이며 돌아다니는 중'],null,{special:'wander',petsay:1}],
-  ['r_follow','p_roam',null,'stand',[10,30],['{r}에서 {p} 곁으로 폴짝 다가오는 중'],[7,24],{special:'wander',follow:1,petsay:1}]],
- hamster:[['h_sleep','p_sleep',null,'lie',[40,90],['{r}에서 톱밥 속에 파묻혀 잠든 중'],[6,18]],
-  ['h_wheel','p_play',null,'stand',[15,40],['{r}에서 쳇바퀴를 열심히 돌리는 중'],[18,6]],
-  ['h_hoard','p_roam',null,'stand',[10,25],['{r}에서 볼주머니에 먹이를 가득 채우는 중'],[17,7]],
-  ['h_climb','p_roam',null,'stand',[10,25],['{r}에서 케이지 철망을 타고 오르는 중'],[17,7]],
+  ['r_nibble','p_eat',null,'sit',[10,25],['{r}에서 건초를 오물오물 씹는 중','{r}에서 풀을 한 줄기씩 야무지게 씹는 중','{r}에서 두 손으로 건초를 쥐고 오물거리는 중'],null,{pcond:'fed'}],
+  ['r_groom','p_rest',null,'sit',[6,15],['{r}에서 앞발로 얼굴을 쓱쓱 닦는 중','{r}에서 귀를 앞으로 당겨 정성껏 닦는 중','{r}에서 뒷발로 앉아 얼굴을 비비는 중']],
+  ['r_wander','p_roam',null,'stand',[10,30],['{r}에서 코를 씰룩이며 돌아다니는 중','{r}에서 이리저리 코를 킁킁거리며 탐색하는 중','{r}에서 느긋하게 바닥을 살피며 걷는 중'],null,{special:'wander',petsay:1}],
+  ['r_follow','p_roam',null,'stand',[10,30],['{r}에서 {p} 곁으로 폴짝 다가오는 중','{r}에서 {p} 발치로 쪼르르 다가오는 중','{r}에서 {p} 곁에서 코를 씰룩이는 중'],[7,24],{special:'wander',follow:1,petsay:1}]],
+ hamster:[['h_sleep','p_sleep',null,'lie',[40,90],['{r}에서 톱밥 속에 파묻혀 잠든 중','{r}에서 톱밥 속에서 동그랗게 몸을 말고 자는 중','{r}에서 작은 숨소리를 내며 곤히 자는 중'],[6,18]],
+  ['h_wheel','p_play',null,'stand',[15,40],['{r}에서 쳇바퀴를 열심히 돌리는 중','{r}에서 쳇바퀴 위에서 쉬지 않고 달리는 중','{r}에서 쳇바퀴를 빙글빙글 돌리며 열심히 달리는 중'],[18,6]],
+  ['h_hoard','p_roam',null,'stand',[10,25],['{r}에서 볼주머니에 먹이를 가득 채우는 중','{r}에서 먹이를 볼에 가득 넣고 이리저리 나르는 중','{r}에서 모은 먹이를 은신처로 옮기는 중'],[17,7]],
+  ['h_climb','p_roam',null,'stand',[10,25],['{r}에서 케이지 철망을 타고 오르는 중','{r}에서 철망에 매달려 위쪽으로 기어오르는 중','{r}에서 케이지 구석을 오르내리며 구경하는 중'],[17,7]],
   ['h_rest','p_rest',null,'sit',[15,40],['{r}에서 구석에서 세수를 하는 중','{r}에서 은신처에 들어가 가만히 있는 중']]],
  bird:[['b_perch','p_rest',null,'sit',[15,40],['{r}에서 횃대에 앉아 두리번거리는 중','{r}에서 한쪽 다리로 서서 쉬는 중'],[6,20]],
   ['b_sing','p_play',null,'stand',[8,20],['{r}에서 맑은 소리로 지저귀는 중','{r}에서 신나게 노래하는 중'],[6,19]],
-  ['b_preen','p_rest',null,'sit',[8,20],['{r}에서 부리로 깃털을 다듬는 중']],
-  ['b_flutter','p_roam',null,'stand',[6,15],['{r}에서 날개를 푸드덕거리며 날아오르는 중'],[7,19]],
-  ['b_sleep','p_sleep',null,'sit',[40,90],['{r}에서 날개에 부리를 묻고 잠든 중'],[20,6]]],
+  ['b_preen','p_rest',null,'sit',[8,20],['{r}에서 부리로 깃털을 다듬는 중','{r}에서 날개 사이 깃털을 하나하나 다듬는 중','{r}에서 꼬리깃을 부리로 골라내며 정리하는 중']],
+  ['b_flutter','p_roam',null,'stand',[6,15],['{r}에서 날개를 푸드덕거리며 날아오르는 중','{r}에서 짧게 날개를 퍼덕이며 횃대를 옮기는 중','{r}에서 푸드덕 날아올랐다 내려앉는 중'],[7,19]],
+  ['b_sleep','p_sleep',null,'sit',[40,90],['{r}에서 날개에 부리를 묻고 잠든 중','{r}에서 깃털을 부풀리고 한쪽 발로 서서 자는 중','{r}에서 부리를 등 깃털에 묻고 조용히 자는 중'],[20,6]]],
  fish:[['f_swim','p_roam',null,'stand',[20,50],['{r}에서 어항 안을 유유히 헤엄치는 중','{r}에서 수초 사이를 지나다니는 중'],[6,21]],
-  ['f_rest','p_rest',null,'stand',[20,50],['{r}에서 바닥 근처에서 가만히 쉬는 중']],
-  ['f_bubble','p_play',null,'stand',[10,25],['{r}에서 수면에서 뽀글뽀글 물방울을 만드는 중'],[7,21]],
-  ['f_sleep','p_sleep',null,'stand',[60,120],['{r}에서 불이 꺼진 어항 속에서 둥둥 떠 잠든 중'],[21,7]]]};
+  ['f_rest','p_rest',null,'stand',[20,50],['{r}에서 바닥 근처에서 가만히 쉬는 중','{r}에서 수초 그늘에 머물며 지느러미만 살랑이는 중','{r}에서 바닥 가까이에서 느리게 숨 쉬듯 떠 있는 중']],
+  ['f_bubble','p_play',null,'stand',[10,25],['{r}에서 수면에서 뽀글뽀글 물방울을 만드는 중','{r}에서 수면 가까이서 입을 뻐끔거리며 거품을 내는 중','{r}에서 작은 물방울을 올리며 오르내리는 중'],[7,21]],
+  ['f_sleep','p_sleep',null,'stand',[60,120],['{r}에서 불이 꺼진 어항 속에서 둥둥 떠 잠든 중','{r}에서 어항 한쪽에서 움직임 없이 떠 있는 중','{r}에서 불빛이 꺼진 물속에서 느릿하게 떠다니는 중'],[21,7]]]};
 /* 공통(종마다 하나씩): 배고픔 · 방금 먹음 · 반려인이 없을 때 */
 SPECIES_IDS.forEach(sp=>{
   (PV[sp]=PV[sp]||[]).push(
    [sp+'_hungry','p_eat',null,'stand',[10,25],['{r}에서 빈 밥그릇 앞에서 서성이는 중','{r}에서 배고픈 듯 밥그릇을 힐끔거리는 중'],null,{pcond:'hungry'}],
-   [sp+'_eat','p_eat',null,'stand',[8,15],['{r}에서 밥그릇 앞에서 오물오물 먹는 중'],null,{pcond:'fed'}],
-   [sp+'_lone','p_rest',null,'sit',[20,40],['{r}에서 반려인이 오기를 기다리며 멍하니 있는 중'],null,{pcond:'lone'}])});
+   [sp+'_eat','p_eat',null,'stand',[8,15],['{r}에서 밥그릇 앞에서 오물오물 먹는 중','{r}에서 밥을 한입씩 맛있게 먹는 중','{r}에서 그릇을 싹 비우려고 열심히 먹는 중'],null,{pcond:'fed'}],
+   [sp+'_lone','p_rest',null,'sit',[20,40],['{r}에서 반려인이 오기를 기다리며 멍하니 있는 중','{r}에서 반려인이 없는 집 안을 가만히 둘러보는 중','{r}에서 문 쪽을 바라보며 조용히 기다리는 중'],null,{pcond:'lone'}])});
 for(const sp of SPECIES_IDS)for(const a of PV[sp]){const o=a[7]||{};
   V(a[0],a[1],a[2],a[3],a[4],a[5],{},{sp,hr:a[6]||undefined,...o,pcond:o.pcond||null,solo:/^p_(sleep|rest)$/.test(a[1])&&!o.follow&&!o.wait||o.pcond==='lone'||o.pcond==='hungry'})}
 /* 반려동물 행동 조건 */
