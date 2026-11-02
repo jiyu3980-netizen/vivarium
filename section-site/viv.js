@@ -53,7 +53,7 @@ function buildGeo(S,b){
     if(o.kind==='door'&&(o.on==='L'||o.on==='R')&&o.f===g0&&(+o.sill||0)<=40)geo.exits.push({f:g0,x:o.on==='L'?XL_(g0)+b.t+12:XR_(g0)-b.t-12,side:o.on});
     if(o.kind==='window'){let x=null;if(o.on==='L')x=XL_(o.f)+b.t+45;else if(o.on==='R')x=XR_(o.f)-b.t-45;else{const p=S.parts.find(q=>q.id===o.on);if(p)x=p.x-p.t/2-40}
       if(x!=null)geo.windows.push({id:o.id,f:o.f,x})}});
-  S.stairs.forEach(a=>{if(a.type==='outer')return;const g=B.stairGeo(['straight','L','U'].includes(a.type||'straight')&&(a.sv==='front'||a.sv==='back')?{...a,sv:'side'}:a);if(!g)return;let xb,xt;const dir=a.dir>=0?1:-1;
+  S.stairs.forEach(a=>{if(a.type==='outer')return;if(a.type==='glass')a={...a,type:'U',sv:'side',w:0};const g=B.stairGeo(['straight','L','U'].includes(a.type||'straight')&&(a.sv==='front'||a.sv==='back')?{...a,sv:'side'}:a);if(!g)return;let xb,xt;const dir=a.dir>=0?1:-1;
     if(g.asset){const A=g.asset;if(a.type==='spiral'){xb=xt=A.x+A.w*.5}else{xb=dir>0?A.x+A.w*.12:A.x+A.w*.88;xt=dir>0?A.x+A.w*.88:A.x+A.w*.12}}
     else{xb=a.x;if(a.type==='U')xt=a.x;else if(g.land&&a.type!=='straight')xt=dir>0?g.land[1]:g.land[0];else xt=g.xt}
     geo.stairs.push({f:a.f,xb,xt})});

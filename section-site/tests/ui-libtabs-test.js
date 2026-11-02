@@ -1,0 +1,21 @@
+/* 에셋 라이브러리: 대분류 탭 + 소분류 탭 + 삭제·이름 수정 반영 */
+const {chromium}=require('playwright');const SITE='http://localhost:8765/section-site/index.html';let fail=0;const ok=(n,c,x)=>{console.log((c?'ok ':'FAIL ')+n+(x?'  '+x:''));if(!c)fail++};
+(async()=>{const b=await chromium.launch();const p=await b.newPage({viewport:{width:1400,height:900}});const errs=[];p.on('pageerror',e=>errs.push(e.message));
+await p.goto(SITE,{waitUntil:'networkidle'});await p.click('.vnav button[data-m=edit]');await p.waitForTimeout(800);
+const cats=await p.$$eval('#catTabs button',e=>e.map(x=>x.textContent));ok('대분류 탭이 보임(전체 포함 10개 이상)',cats.length>=10&&cats[0].startsWith('전체'),cats.slice(0,4).join('|'));
+ok('전체 목록 개수가 카탈로그 599개 중 편집 탭에 나오는 598',/598/.test(cats[0]),cats[0]);
+await p.click('#catTabs button[data-ct=kitchen]');await p.waitForTimeout(300);
+const subs=await p.$$eval('#subTabs button',e=>e.map(x=>x.textContent));ok('주방 → 소분류 탭(싱크대·식기 등)',subs.some(s=>s.startsWith('싱크대'))&&subs.some(s=>s.startsWith('식기')),subs.join('|'));
+const n0=await p.$eval('#count',e=>+e.textContent.replace(/\D/g,''));
+await p.click('#subTabs button[data-st=tableware]');await p.waitForTimeout(300);const n1=await p.$eval('#count',e=>+e.textContent.replace(/\D/g,''));
+ok('식기 소분류로 좁혀짐',n1>0&&n1<n0,n0+'→'+n1);
+await p.click('#catTabs button[data-ct=furniture]');await p.waitForTimeout(300);
+const fs=await p.$$eval('#subTabs button',e=>e.map(x=>x.textContent));ok('가구 → 의자·소파/테이블·책상/침대/수납장·협탁/책장 탭',['의자·소파','테이블·책상','침대','수납장·협탁','책장'].every(t=>fs.some(s=>s.startsWith(t))),fs.join('|'));
+await p.click('#catTabs button[data-ct=""]');await p.waitForTimeout(300);ok('전체로 돌아오면 소분류 탭 숨김',await p.$eval('#subTabs',e=>e.hidden));
+await p.fill('#q','샤워기 헤드');await p.waitForTimeout(300);const t=await p.$$eval('#grid .tile b',e=>e.map(x=>x.textContent));ok('수정한 이름(샤워기 헤드) 검색됨',t.includes('샤워기 헤드'),t.join('|'));
+await p.fill('#q','pvc');await p.waitForTimeout(300);ok('PVC 배관 부속 전부 삭제',(await p.$$('#grid .tile')).length===0);
+const stOpts=await p.$$eval('#sType option',e=>e.map(x=>x.value));ok('계단 모양에서 유리 난간 제거',!stOpts.includes('glass')&&stOpts.includes('spiral'),stOpts.join(','));
+const mig=await p.evaluate(()=>{const S=JSON.parse(JSON.stringify(window.SectionBridge.S));S.stairs=[{id:'sx1',f:0,x:200,type:'glass',sv:'auto',dir:1,w:0}];window.SectionBridge.loadDoc(S);const q=window.SectionBridge.S.stairs[0];return q&&q.type});
+ok('기존 도면의 유리 난간 계단은 U자 계단으로 바뀜',mig==='U',String(mig));
+ok('페이지 오류 없음',errs.length===0,errs.join('|'));
+await b.close();console.log(fail?'FAIL':'ALL PASS');process.exit(fail?1:0)})();

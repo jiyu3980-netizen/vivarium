@@ -7,5 +7,5 @@ curl -s localhost:8765 >/dev/null || (cd /mnt/user-data/outputs && setsid nohup 
 run(){ n=$1; shift; fresh; out=$(timeout 400 "$@" 2>&1); rc=$?; f=$(echo "$out" | grep -c '^FAIL'); echo "[$n] rc=$rc FAIL=$f ok=$(echo "$out" | grep -c '^ok')"; echo "$out" | grep '^FAIL' | head -5; [ $rc -ne 0 -o $f -gt 0 ] && FAIL=1; }
 cd $S; for t in api relation-lock scenario4 journal-diary; do run server-$t node $t.test.js; done
 cd $T; for t in engine-determinism-test joint-test ko-test love-join-test romfx-test exit-door-test brace-test profile-behavior-test; do run site-$t node $t.js; done
-for t in ui-integration-test ui-neighbor-rel-test ui-romance-test ui-visit-full-test ui-visit-latency-test ui-visit-nogeo-test ui-charlist-test; do run $t node $t.js; done
+for t in ui-integration-test ui-neighbor-rel-test ui-romance-test ui-visit-full-test ui-visit-latency-test ui-visit-nogeo-test ui-charlist-test ui-libtabs-test; do run $t node $t.js; done
 [ $FAIL -eq 0 ] && echo "GATE PASS" || echo "GATE FAIL"; exit $FAIL

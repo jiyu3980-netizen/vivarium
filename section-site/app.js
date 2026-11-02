@@ -30,7 +30,7 @@ function norm(o){o.v=2;o.b={...DEF_B,...(o.b||{})};const b=o.b;
  o.roofs=(Array.isArray(o.roofs)?o.roofs:[]).filter(t=>t&&isFinite(+t.x0)&&isFinite(+t.x1)&&+t.x1-+t.x0>=20).map(t=>({id:t.id||('r'+Math.random().toString(36).slice(2,8)),f:Math.max(0,Math.min(Math.max(0,b.f-2),Math.round(+t.f)||0)),x0:+t.x0,x1:+t.x1,type:['flat','shed','gable'].includes(t.type)?t.type:'shed',rd:t.rd==='L'||t.rd==='R'?t.rd:'',h:clamp(isFinite(+t.h)?+t.h:80,20,400),ov:clamp(isFinite(+t.ov)?+t.ov:25,0,200)}));
  o.rfl=(o.rfl&&typeof o.rfl==='object'&&!Array.isArray(o.rfl))?Object.fromEntries(Object.entries(o.rfl).filter(([k,v])=>/^0:\w+$/.test(k)&&(v==='none'||v==='posts'))):{};   /* 방별 바닥 형태는 1층만 */
  o.chims=(Array.isArray(o.chims)?o.chims:[]).filter(t=>t&&isFinite(+t.x)).map(t=>({id:t.id||('c'+Math.random().toString(36).slice(2,8)),x:+t.x,w:clamp(isFinite(+t.w)?+t.w:50,20,200),above:clamp(isFinite(+t.above)?+t.above:70,10,400)}));
- o.parts=(o.parts||[]).map(p=>({t:12,mat:'line',...p}));o.ops=o.ops||[];o.stairs=(o.stairs||[]).filter(a=>a&&a.kind!=='ladder');o.rooms=o.rooms||{};o.wpr=(o.wpr&&typeof o.wpr==='object'&&!Array.isArray(o.wpr))?o.wpr:{};o.ua=(o.ua&&typeof o.ua==='object'&&!Array.isArray(o.ua))?o.ua:{};uaFromDoc(o);
+ o.parts=(o.parts||[]).map(p=>({t:12,mat:'line',...p}));o.ops=o.ops||[];o.stairs=(o.stairs||[]).filter(a=>a&&a.kind!=='ladder').map(a=>a.type==='glass'?{...a,type:'U',sv:'side',w:0}:a);   /* 유리 난간 계단 에셋 삭제(2026-11-02) → 기존 도면의 유리 난간 계단은 U자 계단으로 바꿔 보여줌 */o.rooms=o.rooms||{};o.wpr=(o.wpr&&typeof o.wpr==='object'&&!Array.isArray(o.wpr))?o.wpr:{};o.ua=(o.ua&&typeof o.ua==='object'&&!Array.isArray(o.ua))?o.ua:{};uaFromDoc(o);
  {const wu={};if(o.wpu&&typeof o.wpu==='object'&&!Array.isArray(o.wpu))for(const [id,u] of Object.entries(o.wpu).slice(0,4))if(u&&typeof u.d==='string'&&u.d.startsWith('data:image/')&&u.d.length<260000&&isFinite(+u.w)&&isFinite(+u.h)&&+u.w>0&&+u.h>0)wu[id.replace(/[^A-Za-z0-9]/g,'')||'x']={n:String(u.n||'벽지').slice(0,20),d:u.d,w:+u.w,h:+u.h,tw:Math.max(10,Math.min(400,+u.tw||80))};
   o.wpu=wu;const okW=w=>!(typeof w==='string'&&w.startsWith('u_'))||wu[w.slice(2)];b.wp=b.wp.map(w=>okW(w)?w:'plain');for(const k of Object.keys(o.wpr||{}))if(!okW(o.wpr[k]))delete o.wpr[k]}
  o.items=(o.items||[]).map(i=>({cs:'proj',...i}));if(o.title===undefined||o.title==='SECTION A — 우리 집 단면도')o.title='';return o}
@@ -180,7 +180,7 @@ function hatchDefs(defs,k,INK,ang,hw){const Wd=x=>+(x*hw).toFixed(2);
  p=P('hat_steel',5,5,45,'#e4e4e1');mk('path',{d:'M0 0V5M0 0H5',fill:'none',stroke:INK,'stroke-width':Wd(.9)},p)}
 const matFill=m=>(!m||m==='none')?'#fff':`url(#hat_${m})`;
 /* ---------- 계단 기하 ---------- */
-const STAIR_ASSET={spiral:{id:'grand-spiral-staircase',slab:.218,void:[.68,1]},glass:{id:'staircase-glass-railing',slab:.226,void:[0,1]}}; // slab: 에셋 그림에서 위층 바닥 위치(위에서부터 비율)
+const STAIR_ASSET={spiral:{id:'grand-spiral-staircase',slab:.218,void:[.68,1]}}; // slab: 에셋 그림에서 위층 바닥 위치(위에서부터 비율)
 function outerGeo(a){const b=S.b,f=a.f;if(!(f>=0&&f<b.f))return null;
  const eB=a.from>=0&&a.from<b.f&&a.from!==f?lvl(a.from):gE(),eT=lvl(f);if(Math.abs(eT-eB)<8)return null;
  const rise=Math.abs(eT-eB),up=eT>eB,side=a.side==='L'?'L':'R';const edge=side==='L'?XL(f):XR(f);
@@ -502,7 +502,7 @@ const opt=(lab,id,opts,val)=>`<label>${lab}<select id="${id}">${opts.map(([v,t])
 const floorOpts=()=>Array.from({length:S.b.f},(_,k)=>[k,fnameKo(k)]);
 const RAIL_TYPES=[['iron','철제 난간'],['vict','빅토리안 대리석 난간'],['brick','벽돌 난간']];
 const terrFloorOpts=()=>[...Array.from({length:S.b.f},(_,k)=>[k,fnameKo(k)+' 바닥']),[S.b.f,'옥상 (최상층 위)']];
-const STAIR_TYPES=[['straight','직선'],['L','ㄱ자'],['U','U자'],['spiral','그랜드 나선형'],['glass','유리 난간 (U자형)']];   // 외벽 안 계단
+const STAIR_TYPES=[['straight','직선'],['L','ㄱ자'],['U','U자'],['spiral','그랜드 나선형']];   // 외벽 안 계단
 const OUT_TYPES=[['porch','현관 계단 (외벽 밖 · 문 앞)'],['emerg','외부계단 (지그재그 · 외벽 밖)']];   // 외벽 밖 계단
 const stairName=a=>a.type==='outer'?(a.kind==='zig'?'외부계단 (지그재그)':'현관 계단'):(STAIR_TYPES.find(q=>q[0]===a.type)||[0,a.type])[1];
 const stairFloorOpts=()=>Array.from({length:Math.max(1,S.b.f-1)},(_,k)=>[k,fnameKo(k)+' → '+fnameKo(k+1)]);
@@ -807,12 +807,20 @@ for(const [T,names] of [[$('#tHouse'),['건물 크기','내벽','층별 폭','�
 /* ---------- 라이브러리 ---------- */
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));$('#tLib').hidden=b.dataset.t!=='lib';$('#tHouse').hidden=b.dataset.t!=='house';$('#tDraw').hidden=b.dataset.t!=='draw';if(b.dataset.t!=='house')setTool(null);drawBH()});
 let SUBT='';/* 가구 소분류 탭(의자·소파/테이블·책상/침대/수납장·협탁/책장) */
-function renderSubTabs(){const box=$('#subTabs');if(!box)return;const c=$('#fcat').value,cfg=(CATS.find(k=>k.id===c)||{}).tabs;
- if(!cfg||!cfg.length){SUBT='';box.hidden=true;box.innerHTML='';return}
- if(!cfg.some(t=>t.id===SUBT))SUBT='';const n=t=>A.filter(a=>a.categoryId===c&&(!t||a.tab===t)).length;
+const tabKey=(a,c)=>c==='furniture'?a.tab:a.subcategoryId;
+function subCfg(c){const k=CATS.find(x=>x.id===c);if(!k)return null;if(c==='furniture'&&k.tabs&&k.tabs.length)return k.tabs;
+ const ids=[...new Set(A.filter(a=>a.categoryId===c).map(a=>a.subcategoryId))];const nm=Object.fromEntries((k.subcategories||[]).map(x=>[x.id,x.nameKo]));
+ return ids.filter(Boolean).map(id=>({id,nameKo:nm[id]||id}))}
+function renderCatTabs(){const box=$('#catTabs');if(!box)return;const cur=$('#fcat').value;
+ const opts=[...$('#fcat').options].map(o=>({id:o.value,nameKo:o.value?o.textContent:'전체'}));
+ const n=id=>A.filter(a=>!id||a.categoryId===id).length;
+ box.innerHTML=opts.filter(o=>!o.id||n(o.id)).map(o=>`<button type="button" role="tab" data-ct="${esc(o.id)}" aria-selected="${o.id===cur}" class="${o.id===cur?'on':''}">${esc(o.nameKo)}<i>${n(o.id)}</i></button>`).join('');box.hidden=false}
+function renderSubTabs(){const box=$('#subTabs');if(!box)return;renderCatTabs();const c=$('#fcat').value,cfg=c?subCfg(c):null;
+ if(!cfg||cfg.length<2){SUBT='';box.hidden=true;box.innerHTML='';return}
+ if(!cfg.some(t=>t.id===SUBT))SUBT='';const n=t=>A.filter(a=>a.categoryId===c&&(!t||tabKey(a,c)===t)).length;
  box.innerHTML=[{id:'',nameKo:'전체'},...cfg].filter(t=>!t.id||n(t.id)).map(t=>`<button type="button" role="tab" data-st="${esc(t.id)}" aria-selected="${t.id===SUBT}" class="${t.id===SUBT?'on':''}">${esc(t.nameKo)}<i>${n(t.id)}</i></button>`).join('');box.hidden=false}
 function filtered(){const q=$('#q').value.trim().toLowerCase(),c=$('#fcat').value,os=$('#onlySide').checked;
- return A.filter(a=>(!c||a.categoryId===c)&&(!SUBT||c!=='furniture'||a.tab===SUBT)&&(!os||a.views.leftSide||a.views.rightSide)&&(!q||(a.nameKo+' '+a.nameEn+' '+a.assetId+' '+(a.tags||[]).join(' ')).toLowerCase().includes(q)))}
+ return A.filter(a=>(!c||a.categoryId===c)&&(!SUBT||!c||tabKey(a,c)===SUBT)&&(!os||a.views.leftSide||a.views.rightSide)&&(!q||(a.nameKo+' '+a.nameEn+' '+a.assetId+' '+(a.tags||[]).join(' ')).toLowerCase().includes(q)))}
 function prefetch(a){const k=avail(a)[0];const v=a.views[k];if(!v)return;art(v.svg,true);if(v.fill)art(v.fill,true)}
 
 function uaDelete(id){const a=AM[id];if(!a||!UA[id])return;if(!confirm(`'${a.nameKo}' 에셋을 삭제할까요?\n이미 도면에 놓은 가구는 그대로 남아요(도면 안에 사본이 있어요).`))return;
@@ -838,14 +846,14 @@ function openUaDialog(){
   UA[rec.id]=rec;if(!uaSave()){delete UA[rec.id];err('브라우저 저장 공간이 부족해서 등록할 수 없어요. 안 쓰는 내 에셋을 지워 주세요');return}
   uaRegister(rec,true);d.close();renderLib();msg('내 에셋으로 등록했어요: '+rec.nameKo)};
  d.showModal()}
-function renderLib(){const L=filtered();$('#count').textContent=`${L.length}개`;const g=$('#grid');const fr=document.createDocumentFragment();
+function renderLib(){renderSubTabs();const L=filtered();$('#count').textContent=`${L.length}개`;const g=$('#grid');const fr=document.createDocumentFragment();
  L.slice(0,shown).forEach(a=>{const v=a.views.front||a.views.rightSide||a.views.leftSide;const d=document.createElement('div');d.className='tile';d.draggable=true;d.title=a.nameKo+'\n'+a.assetId;
   d.innerHTML=`<div class="im"><img loading="lazy" decoding="async" width="130" height="72" src="${a.user?a.thumbUrl:LIB+(a.thumb||v.svg)}" alt=""></div><b>${esc(a.nameKo)}</b><i>${[a.views.front&&'front',(a.views.leftSide||a.views.rightSide)&&'side'].filter(Boolean).join('·')}${a.status==='review'?' ⚠':''}</i>`;
   if(a.user){const x=document.createElement('button');x.className='ua-x';x.textContent='×';x.title='이 내 에셋 삭제 (이미 도면에 놓은 것은 그대로 남아요)';x.onclick=ev=>{ev.stopPropagation();uaDelete(a.assetId)};d.appendChild(x)}
   d.onclick=()=>addAsset(a.assetId);d.addEventListener('pointerenter',()=>prefetch(a),{once:true});d.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain','asset:'+a.assetId);prefetch(a)});fr.appendChild(d)});
  g.replaceChildren(fr);$('#more').hidden=L.length<=shown}
 let qT=0;
-$('#more').onclick=()=>{shown+=60;renderLib()};$('#q').addEventListener('input',()=>{clearTimeout(qT);qT=setTimeout(()=>{shown=60;renderLib()},120)});['fcat','onlySide'].forEach(i=>$('#'+i).addEventListener('input',()=>{shown=60;if(i==='fcat')SUBT='';renderSubTabs();renderLib()}));$('#subTabs').addEventListener('click',e=>{const b=e.target.closest('button[data-st]');if(!b)return;SUBT=b.dataset.st;shown=60;renderSubTabs();renderLib()});
+$('#more').onclick=()=>{shown+=60;renderLib()};$('#q').addEventListener('input',()=>{clearTimeout(qT);qT=setTimeout(()=>{shown=60;renderLib()},120)});['fcat','onlySide'].forEach(i=>$('#'+i).addEventListener('input',()=>{shown=60;if(i==='fcat')SUBT='';renderSubTabs();renderLib()}));$('#catTabs').addEventListener('click',e=>{const b=e.target.closest('button[data-ct]');if(!b)return;const f=$('#fcat');f.value=b.dataset.ct;f.dispatchEvent(new Event('input'))});$('#subTabs').addEventListener('click',e=>{const b=e.target.closest('button[data-st]');if(!b)return;SUBT=b.dataset.st;shown=60;renderSubTabs();renderLib()});
 /* ---------- 내 단면도: 이 브라우저에 자동 저장(최대 5개) ---------- */
 const SLOT_MAX=10,SK='sectionSite.slots',OLD_AUTO='sectionSite.auto',OLD_SAVES='sectionSite.saves';
 let SL={v:1,cur:'1',slots:{}};
