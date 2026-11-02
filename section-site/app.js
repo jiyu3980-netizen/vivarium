@@ -89,9 +89,9 @@ function toWorld(ev){const p=svg.createSVGPoint();p.x=ev.clientX;p.y=ev.clientY;
 /* ---------- SVG 에셋 캐시 (선·실루엣 경로를 읽어 stroke 로 직접 그림) ---------- */
 const ART={};let rq=0;
 function schedule(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;render()})}
-function parseArt(t){const m=/viewBox="([^"]+)"/.exec(t);const vb=m?m[1].trim().split(/\s+/).map(Number):[0,0,1000,1000];let d='',fd='',od='';
- for(const pm of t.matchAll(/<path\b[^>]*>/g)){const tag=pm[0];const dm=/ d="([^"]*)"/.exec(tag);if(!dm)continue;if(/class="o"/.test(tag))od+=dm[1];else if(/fill="#fff"/.test(tag))fd+=dm[1];else d+=dm[1]}
- return {w:vb[2],h:vb[3],d,fd,od}}
+function parseArt(t){const m=/viewBox="([^"]+)"/.exec(t);const vb=m?m[1].trim().split(/\s+/).map(Number):[0,0,1000,1000];let d='',fd='',od='';const cf=[];
+ for(const pm of t.matchAll(/<path\b[^>]*>/g)){const tag=pm[0];const dm=/ d="([^"]*)"/.exec(tag);if(!dm)continue;if(/class="cf"/.test(tag))cf.push({d:dm[1],r:/fill-rule="evenodd"/.test(tag)?'evenodd':'nonzero'});else if(/class="o"/.test(tag))od+=dm[1];else if(/fill="#fff"/.test(tag))fd+=dm[1];else d+=dm[1]}
+ return {w:vb[2],h:vb[3],d,fd,od,cf}}
 function art(url,quiet){const a=ART[url];if(a){if(!a.ready&&!quiet)a.pend=true;return a.ready?a:null}const ent=ART[url]={ready:false,pend:!quiet};
  fetch(LIB+url).then(r=>{if(!r.ok)throw new Error(r.status);return r.text()}).then(t=>{const pend=ent.pend;ART[url]={ready:true,...parseArt(t)};if(pend)schedule()}).catch(()=>{const pend=ent.pend;ART[url]={ready:true,w:1000,h:1000,d:'',fd:'',od:'',err:true};if(pend)schedule()});return null}
 
@@ -270,6 +270,7 @@ function renderItem(it,gp,WT,pseudo){const gg=mk('g',{...(pseudo?{'data-id':it.u
  if(hp&&hp.sub)for(const d of hp.sub)mk('path',{d,fill:'#fff','fill-opacity':0,'pointer-events':'all'},sc);   // 클릭 영역: 구멍까지 채운 실루엣
  else mk('rect',{width:A0.w,height:A0.h,fill:'#fff','fill-opacity':0,'pointer-events':'all'},sc);
  if(A0.img)mk('image',{href:A0.img,x:0,y:0,width:A0.w,height:A0.h,preserveAspectRatio:'none','pointer-events':'none'},sc);   // 내 에셋(PNG)
+ if(A0.cf&&A0.cf.length)for(const c of A0.cf)mk('path',{d:c.d,fill:col==='#555'?'#666':'#2a2a2a','fill-rule':c.r,stroke:'none','pointer-events':'none'},sc);   // CAD 원본의 실제 채움(HATCH·SOLID)
  const L={fill:'none',stroke:col,'stroke-linecap':'round','stroke-linejoin':'round',...dsh};
  const lg=it.cs==='behind'?mk('g',{opacity:S.lw.bOp},sc):sc;
  if(A0.d)mk('path',{d:A0.d,...L,'stroke-width':(w.wi/k).toFixed(3),'pointer-events':'none'},lg);
@@ -346,7 +347,7 @@ function render(){try{fillRoomSel()}catch(e){}const b=S.b,N=b.f,E=EH(),t=b.t,s=b
  const lay=(id,a)=>{const g=mk('g',a||{},svg);g.setAttribute('data-layer',id);if(!LY[id])g.style.display='none';return g};
  if(OPT.grid){const gr=mk('g',{stroke:'rgba(0,0,0,.09)','stroke-width':1},svg);for(let x=-1000;x<=W+1000;x+=100)mk('line',{x1:x,y1:-E-700,x2:x,y2:-lvl(0)+700,'vector-effect':'non-scaling-stroke'},gr);for(let y=lvl(0)-700;y<=E+700;y+=100)mk('line',{x1:-1000,y1:-y,x2:W+1000,y2:-y,'vector-effect':'non-scaling-stroke'},gr)}
  // 지면·기초 (실내 벽면보다 먼저 그려서 지하층 실내가 흙에 가려지지 않게 함)
- const gG=lay('ground');mk('rect',{x:-6000,y:-gE(),width:14000,height:3000+(-lvl(0))+gE(),fill:'url(#groundg)'},gG);
+ const gG=lay('ground');mk('rect',{x:-60000,y:-gE(),width:130000,height:30000+(-lvl(0))+gE(),fill:'url(#groundg)'},gG);   // 확대·축소·이동해도 지면 무늬가 끊기지 않게 아주 넓게
  const fo=mk('g',{fill:'#fff',stroke:INK,'stroke-width':1.4,'vector-effect':'non-scaling-stroke'},gG);
  if(b.fnd!=='posts'){const l0=XL(0),w0=XR(0)-XL(0);[l0+w0*0.12,l0+w0*0.88-160].forEach(x=>mk('rect',{x:Math.round(x),y:-(lvl(0)-sl(0)),width:160,height:90,'vector-effect':'non-scaling-stroke'},fo))}
  mk('line',{x1:-6000,y1:-gE(),x2:8000,y2:-gE(),stroke:INK,'stroke-width':2,'vector-effect':'non-scaling-stroke'},gG);
@@ -458,8 +459,13 @@ function drawSel(){svg.querySelectorAll('.sel,.guide').forEach(n=>n.remove());co
   mk('rect',{class:'sel sel-box',x:x0,y:y0,width:it.w,height:it.h},svg);placeHandle(x0+it.w,y0+it.h);
   const k=nearLevel(it.e);if(k.d<1)mk('line',{class:'guide',x1:it.x-it.w,y1:-it.e,x2:it.x+it.w,y2:-it.e},svg);return}
  if(dsb&&dsb.id===sel){mk('rect',{class:'sel sel-box',x:dsb.x0+dsb.dx-4,y:dsb.y0+dsb.dy-4,width:dsb.x1-dsb.x0+8,height:dsb.y1-dsb.y0+8},svg);return}   // 끄는 중: 레이아웃을 강제하는 getBBox 대신 시작 때 잰 상자를 옮겨 그림
+ if(ob.k==='stair'){let g=null;try{g=stairGeo(ob.o)}catch(e){}   // 에셋 계단(나선형·유리난간)은 에셋 자리(x,e,w,h) 그대로 — 변환(translate)이 걸린 그룹의 getBBox 는 변환을 빼고 재서 박스가 좌하단에 생겼음
+  if(g&&g.asset){const q=g.asset;mk('rect',{class:'sel sel-box',x:q.x-4,y:-(q.e+q.h)-4,width:q.w+8,height:q.h+8},svg);return}}
  const els=[...svg.querySelectorAll(`[data-id="${sel}"]`)];if(!els.length)return;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
- els.forEach(e=>{try{const bb=e.getBBox();x0=Math.min(x0,bb.x);y0=Math.min(y0,bb.y);x1=Math.max(x1,bb.x+bb.width);y1=Math.max(y1,bb.y+bb.height)}catch(x){}});
+ const inv=(()=>{try{return svg.getScreenCTM().inverse()}catch(e){return null}})();
+ els.forEach(e=>{try{const bb=e.getBBox();let M=null;try{M=inv&&e.getScreenCTM()?inv.multiply(e.getScreenCTM()):null}catch(z){}
+  const cs=[[bb.x,bb.y],[bb.x+bb.width,bb.y],[bb.x,bb.y+bb.height],[bb.x+bb.width,bb.y+bb.height]].map(([px,py])=>{if(!M)return [px,py];const p=new DOMPoint(px,py).matrixTransform(M);return [p.x,p.y]});   // 요소 자신의 transform 까지 반영한 svg 좌표
+  cs.forEach(([px,py])=>{x0=Math.min(x0,px);y0=Math.min(y0,py);x1=Math.max(x1,px);y1=Math.max(y1,py)})}catch(x){}});
  if(x1>x0)mk('rect',{class:'sel sel-box',x:x0-4,y:y0-4,width:x1-x0+8,height:y1-y0+8},svg)}
 /* ---------- 상태/이력 ---------- */
 function commit(label){uaEmbed(S);hist.push(JSON.stringify(S));if(hist.length>120)hist.shift();fut=[];persist();btns()}
@@ -537,7 +543,7 @@ function inspItem(it,body,H){H.textContent='선택한 가구';
  const w=LASTW[it.uid];
  body.innerHTML=`<b>${esc(a.nameKo)}</b><div class="hint">${esc(a.assetId)}</div><div class="seg" style="margin:8px 0"><button data-v="front" class="${it.view==='front'?'on':''}" ${a.views.front?'':'disabled'}>front</button><button data-v="side" class="${it.view!=='front'?'on':''}" ${(a.views.rightSide||a.views.leftSide)?'':'disabled'}>side</button></div>
  <label>폭(cm)<input type="number" id="iw" value="${it.w}" step="1" min="5"></label><label>높이(cm)<input type="number" id="ih" value="${it.h}" step="1" min="5"></label>
- <label>x 위치(cm)<input type="number" id="ix" value="${Math.round(it.x)}" step="5"></label><label>바닥 높이(cm)<input type="number" id="ie" value="${Math.round(it.e)}" step="5"></label>
+ <label>x 위치(cm) <small>좌우</small><input type="number" id="ix" value="${Math.round(it.x)}" step="5"></label><label>y 위치(cm) <small>바닥에서 띄운 높이</small><input type="number" id="ie" value="${Math.round(it.e)}" step="5" title="0 = 1층 바닥. 위로 올릴수록 커져요. 키보드 ↑↓ 로도 조절"></label>
  ${opt('단면 상태','ics',[['proj','투영 (절단 안 됨)'],['cut','절단됨 (굵은 선)'],['behind','원경 (연하게)']],it.cs||'proj')}
  <div class="btns"><button id="iflip">좌우 반전</button><button id="idup">복제</button><button id="idel">삭제</button><button id="ifwd" title="겹친 것 중 맨 앞으로">맨 앞</button><button id="ifw1" title="한 칸 앞으로">앞으로</button><button id="ibk1" title="한 칸 뒤로">뒤로</button><button id="ibk" title="겹친 것 중 맨 뒤로">맨 뒤</button><button id="irs">기본 크기</button></div>
  ${w?`<div class="hint" style="margin-top:6px">이 가구 선: 외곽 ${w.wo.toFixed(2)}cm · 내부 ${w.wi.toFixed(2)}cm</div>`:''}
@@ -546,7 +552,7 @@ function inspItem(it,body,H){H.textContent='선택한 가구';
  const asp=()=>it.w/it.h;
  $('#iw').onchange=e=>{const v=Math.max(5,+e.target.value||it.w);const r=asp();it.w=v;it.h=+(v/r).toFixed(1);commit();render()};
  $('#ih').onchange=e=>{const v=Math.max(5,+e.target.value||it.h);const r=asp();it.h=v;it.w=+(v*r).toFixed(1);commit();render()};
- $('#ix').onchange=e=>{it.x=+e.target.value||0;commit();render()};$('#ie').onchange=e=>{it.e=Math.max(lvl(0),+e.target.value||0);commit();render()};
+ $('#ix').onchange=e=>{it.x=+e.target.value||0;commit();render()};$('#ie').onchange=e=>{const lo=outsideX(it.x)?Math.min(gE(),lvl(0)):lvl(0);it.e=Math.max(lo,+e.target.value||0);commit();render()};
  $('#ics').onchange=e=>{it.cs=e.target.value;commit();render()};
  $('#iflip').onclick=()=>{it.flip=!it.flip;commit();render()};$('#idup').onclick=dup;$('#idel').onclick=del;
  const zn=()=>{const o=[...S.items].sort((a,b)=>a.z-b.z);o.forEach((i,n)=>i.z=n);return o};   // z를 0..n-1로 정리(같은 값·소수 방지)
@@ -800,8 +806,13 @@ for(const [T,names] of [[$('#tHouse'),['건물 크기','내벽','층별 폭','�
   h.onclick=tg;h.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg()}}})}
 /* ---------- 라이브러리 ---------- */
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));$('#tLib').hidden=b.dataset.t!=='lib';$('#tHouse').hidden=b.dataset.t!=='house';$('#tDraw').hidden=b.dataset.t!=='draw';if(b.dataset.t!=='house')setTool(null);drawBH()});
+let SUBT='';/* 가구 소분류 탭(의자·소파/테이블·책상/침대/수납장·협탁/책장) */
+function renderSubTabs(){const box=$('#subTabs');if(!box)return;const c=$('#fcat').value,cfg=(CATS.find(k=>k.id===c)||{}).tabs;
+ if(!cfg||!cfg.length){SUBT='';box.hidden=true;box.innerHTML='';return}
+ if(!cfg.some(t=>t.id===SUBT))SUBT='';const n=t=>A.filter(a=>a.categoryId===c&&(!t||a.tab===t)).length;
+ box.innerHTML=[{id:'',nameKo:'전체'},...cfg].filter(t=>!t.id||n(t.id)).map(t=>`<button type="button" role="tab" data-st="${esc(t.id)}" aria-selected="${t.id===SUBT}" class="${t.id===SUBT?'on':''}">${esc(t.nameKo)}<i>${n(t.id)}</i></button>`).join('');box.hidden=false}
 function filtered(){const q=$('#q').value.trim().toLowerCase(),c=$('#fcat').value,os=$('#onlySide').checked;
- return A.filter(a=>(!c||a.categoryId===c)&&(!os||a.views.leftSide||a.views.rightSide)&&(!q||(a.nameKo+' '+a.nameEn+' '+a.assetId+' '+(a.tags||[]).join(' ')).toLowerCase().includes(q)))}
+ return A.filter(a=>(!c||a.categoryId===c)&&(!SUBT||c!=='furniture'||a.tab===SUBT)&&(!os||a.views.leftSide||a.views.rightSide)&&(!q||(a.nameKo+' '+a.nameEn+' '+a.assetId+' '+(a.tags||[]).join(' ')).toLowerCase().includes(q)))}
 function prefetch(a){const k=avail(a)[0];const v=a.views[k];if(!v)return;art(v.svg,true);if(v.fill)art(v.fill,true)}
 
 function uaDelete(id){const a=AM[id];if(!a||!UA[id])return;if(!confirm(`'${a.nameKo}' 에셋을 삭제할까요?\n이미 도면에 놓은 가구는 그대로 남아요(도면 안에 사본이 있어요).`))return;
@@ -834,7 +845,7 @@ function renderLib(){const L=filtered();$('#count').textContent=`${L.length}개`
   d.onclick=()=>addAsset(a.assetId);d.addEventListener('pointerenter',()=>prefetch(a),{once:true});d.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain','asset:'+a.assetId);prefetch(a)});fr.appendChild(d)});
  g.replaceChildren(fr);$('#more').hidden=L.length<=shown}
 let qT=0;
-$('#more').onclick=()=>{shown+=60;renderLib()};$('#q').addEventListener('input',()=>{clearTimeout(qT);qT=setTimeout(()=>{shown=60;renderLib()},120)});['fcat','onlySide'].forEach(i=>$('#'+i).addEventListener('input',()=>{shown=60;renderLib()}));
+$('#more').onclick=()=>{shown+=60;renderLib()};$('#q').addEventListener('input',()=>{clearTimeout(qT);qT=setTimeout(()=>{shown=60;renderLib()},120)});['fcat','onlySide'].forEach(i=>$('#'+i).addEventListener('input',()=>{shown=60;if(i==='fcat')SUBT='';renderSubTabs();renderLib()}));$('#subTabs').addEventListener('click',e=>{const b=e.target.closest('button[data-st]');if(!b)return;SUBT=b.dataset.st;shown=60;renderSubTabs();renderLib()});
 /* ---------- 내 단면도: 이 브라우저에 자동 저장(최대 5개) ---------- */
 const SLOT_MAX=10,SK='sectionSite.slots',OLD_AUTO='sectionSite.auto',OLD_SAVES='sectionSite.saves';
 let SL={v:1,cur:'1',slots:{}};

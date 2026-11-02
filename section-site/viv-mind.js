@@ -10,7 +10,7 @@ const MIN=60000,HOUR=3600000,DAY=86400000;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const hash=s=>{let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0};
 const mulberry=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
-const SOC=()=>api._soc||null,DEC=()=>api._dec||null,CHN=()=>api._chn||null;
+const RFX=()=>api._rfx||null,SOC=()=>api._soc||null,DEC=()=>api._dec||null,CHN=()=>api._chn||null;
 const tvOf=(A,k)=>(A&&A.traits&&A.traits[k])||0;
 const ga=n=>{n=String(n||'');const c=n.charCodeAt(n.length-1);return c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28?`${n}이`:`${n}가`};
 const eun=n=>{n=String(n||'');const c=n.charCodeAt(n.length-1);return c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28?`${n}은`:`${n}는`};
@@ -238,6 +238,7 @@ function targets(s,c,env,loc){
       T.calm=Math.max(0,T.calm-Math.min(30,k*.5));
       if(k>=8){const why={anxious:'이 집에서 자꾸 이상한 느낌이 들어서',curious:'이 집의 이상한 점이 계속 마음에 걸려서',rational:'설명되지 않는 위화감이 이어져서',avoidant:'이상한 느낌을 애써 외면하다 보니 마음이 가라앉아서',resigned:'바뀌지 않는 이상한 일상에 지쳐서'}[rc]||'이상한 느낌이 이어져서';
         if(mul.anxious)C.anxious=why;if(mul.sad)C.sad=why;if(mul.lonely&&(T.lonely||0)>=SHOW_MIN)C.lonely=why;if(mul.curious&&(T.curious||0)>=SHOW_MIN)C.curious=why}}}
+  if(RFX()){try{RFX().emo(s,c,env,loc,T,C)}catch(e){console.error('[viv romfx]',e)}}   // 연애 상태 × 성격 → 설렘·허전함·질투
   for(const k of EMO_IDS)T[k]=clamp(T[k],0,100);
   return {T,C}}
 function tickChar(s,c,env,loc){
@@ -296,7 +297,7 @@ function applyEvent(s,ev,env){
    ===================================================================== */
 const PAIR_VERB={bg_pair:'play',bg_floor:'play',pillow:'affection',love_aff:'affection',love_crush:'talk'};
 function makeEnv(s,inp){const byId={};inp.chars.forEach(c=>byId[c.id]=c);
-  return {now:inp.now,hour:inp.hour,day:inp.day,char:id=>byId[id]||null,name:id=>(byId[id]||{}).name||'상대',A:id=>inp.A(byId[id]||{id,name:'',profile:''}),unc:id=>(inp.unc?inp.unc(id):null)}}
+  return {now:inp.now,hour:inp.hour,day:inp.day,all:inp.chars.map(c=>c.id),char:id=>byId[id]||null,name:id=>(byId[id]||{}).name||'상대',A:id=>inp.A(byId[id]||{id,name:'',profile:''}),unc:id=>(inp.unc?inp.unc(id):null)}}
 function update(s,inp){
   s=migrate(s);const env=makeEnv(s,inp),now=inp.now,log=[],ids=inp.chars.map(c=>c.id);
   if(SOC()&&SOC().setPlace)SOC().setPlace(inp);
@@ -335,6 +336,7 @@ function update(s,inp){
   if(SOC()){try{SOC().step(s,inp,env,log,log.slice())}catch(e){console.error('[viv social]',e)}}
   if(CHN()){try{CHN().step(s,inp,env,log)}catch(e){console.error('[viv chain]',e)}}
   if(DEC()){try{DEC().step(s,inp,env)}catch(e){console.error('[viv decide]',e)}}
+  if(RFX()){try{RFX().step(s,inp,env,log,sameRoom)}catch(e){console.error('[viv romfx]',e)}}
   /* 4) 생각 갱신(시간이 지나며 기억 영향력이 줄어드는 것을 반영) — 같은 집 안의 쌍만 */
   for(let i=0;i<ids.length;i++)for(let j=0;j<ids.length;j++)if(i!==j){const k=pk(ids[i],ids[j]);if(s.rel[k]||s.th[k])updateThought(s,ids[i],ids[j],env)}
   /* 5) 오래되어 영향력이 거의 없는 기억 정리 */
@@ -450,7 +452,7 @@ function hooks(s,now){
       if(r){const g=agg(s,o,c,now);m=1+r.aff/120;m*=1-Math.min(.5,g.negPow/180);if(r.type==='hostile')m*=.25;else if(r.type==='uneasy')m*=.6}
       m*=1-.35*lvl(o,'irritated')/100-.25*lvl(o,'sad')/100-.2*lvl(o,'tired')/100;
       return clamp(m,.1,1.6)}};
-  const H2=SOC()?SOC().extend(H,s,now,{}):H;const H3=DEC()?DEC().extend(H2,s,now):H2;return CHN()&&CHN().extend?CHN().extend(H3,s,now):H3}
+  const H2=SOC()?SOC().extend(H,s,now,{}):H;const H3=DEC()?DEC().extend(H2,s,now):H2;const H4=CHN()&&CHN().extend?CHN().extend(H3,s,now):H3;return RFX()?RFX().extend(H4,s,now):H4}
 
 
 /* =====================================================================
@@ -581,7 +583,7 @@ function mergeSlice(s,sl,ids){s=migrate(s);ids=new Set(ids);if(!sl||typeof sl!==
   return s}
 const envOf=(chars,A,now,day)=>makeEnv(null,{chars,A,now,day,hour:0});
 const api={_i:null,slice,mergeSlice,forget,env:envOf,EMOTIONS,REL_TYPES,THOUGHTS,MEM_TYPES,EVENTS,LIMITS,LEVELS,create,migrate,update,applyEvent,hooks,view,memories,setRelType,setRelAff,romState,setRomance,setRomBits,romSugApply,romSugDismiss,ROM_LABEL,prune,rep,effPow,agg,updateThought,reclassify,ensureEmo,addEmo,rel,initRel,profileRel,tickChar,targets,pk,pairKey,hash,mulberry};
-api._i={pk,pairKey,clamp,hash,mulberry,tvOf,agg,addEmo,applyEvent,romState,romBits,romRev,mems,rel,ensureEmo,effPow};
+api._i={pk,pairKey,clamp,hash,mulberry,tvOf,agg,addEmo,addMem,applyEvent,romState,romBits,romRev,mems,rel,ensureEmo,effPow};
 
 /* ---------- 브라우저 저장(도면·캐릭터·시뮬레이션 키와 별도) ---------- */
 if(typeof localStorage!=='undefined'){

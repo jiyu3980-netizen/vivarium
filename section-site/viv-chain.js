@@ -448,19 +448,22 @@ function coupleLines(s,id,nm,now){
   return o}
 
 /* v37 싫어하는 것 마주침: 프로필의 '싫어하는 것' 말이 지금 하는 행동·장소·곁의 사람 이름에 들어 있으면 짜증이 조금 오르고, 한동안 그 반응이 지문에 드러난다 */
+const SPW={dog:'강아지 개 멍멍이',cat:'고양이 냥이',rabbit:'토끼',hamster:'햄스터',bird:'새',fish:'물고기'};
 const GEN=/^(음식|곳|것|거|사람|소리|일|장소|상황|때|날씨|냄새)$/;
 function observe(s,inp,env){
   const S=SO.soc(s),now=env.now,ch=chn(s),pos=ch.pos||(ch.pos={}),L2=S.lg2||(S.lg2={});
   for(const c of inp.chars){const cu=inp.cur[c.id];if(cu)pos[c.id]={seg:cu.mode==='home'?cu.seg:null,m:cu.mode,sl:cu.action==='sleep'?1:0}}
   for(const c of inp.chars){const id=c.id,cu=inp.cur[id];if(!cu||cu.mode!=='home'||cu.action==='sleep')continue;
     const A=env.A(id),dl=(A&&A.bits&&A.bits.dislikes)||[];if(!dl.length)continue;
-    const near=inp.chars.filter(o=>o.id!==id&&inp.cur[o.id]&&inp.cur[o.id].mode==='home'&&inp.cur[o.id].seg===cu.seg).map(o=>env.name(o.id));
+    const near=inp.chars.filter(o=>o.id!==id&&inp.cur[o.id]&&inp.cur[o.id].mode==='home'&&inp.cur[o.id].seg===cu.seg).map(o=>env.name(o.id)+(o.pet&&o.pet.sp?' '+(SPW[o.pet.sp]||''):''));
     const txt=[cu.verb,cu.say,cu.segName].concat(near).join(' ');
     for(const w of dl){const tk=w.split(/\s+/).filter(x=>x.length>=2&&!GEN.test(x));if(!tk.length||!tk.some(x=>txt.includes(x)))continue;
       const p=L2[id+'d'];if(p&&now-p.at<20*MIN)break;
       L2[id+'d']={at:now,w};
-      emit(id,'irritated',3.5,`싫어하는 ${w}와 마주쳐서`,now,A);emit(id,'anxious',1.2,`싫어하는 ${w}와 마주쳐서`,now,A);
-      if(!p||p.w!==w||now-p.at>3*HOUR)SO.jr(s,'dislike',id,null,`${env.name(id)}: 싫어하는 ${w}와 마주침`,now,{w});
+      const fear=((A.bits.fears)||[]).includes(w);
+      if(fear){emit(id,'anxious',4,`무서워하는 ${w}와 마주쳐서`,now,A);emit(id,'irritated',.8,`무서워하는 ${w}와 마주쳐서`,now,A)}
+      else{emit(id,'irritated',3.5,`싫어하는 ${w}와 마주쳐서`,now,A);emit(id,'anxious',1.2,`싫어하는 ${w}와 마주쳐서`,now,A)}
+      if(!p||p.w!==w||now-p.at>3*HOUR)SO.jr(s,'dislike',id,null,`${env.name(id)}: ${fear?'무서워하는':'싫어하는'} ${w}와 마주침`,now,{w});
       break}}}
 const CT={anxious:['말하는 중에도 시선이 자꾸 흔들림','말끝이 조금 떨림'],irritated:['말투에 날이 서 있음','대꾸가 짧고 퉁명스러움'],sad:['목소리에 힘이 없음','웃어도 어딘가 쓸쓸해 보임'],lonely:['오랜만에 이야기하는 게 반가운 듯 말이 길어짐'],bored:['건성으로 맞장구를 침'],tired:['말하다 하품을 삼킴'],happy:['웃음이 자주 터짐','표정이 밝음'],excited:['말이 빨라지고 목소리가 높아짐'],mn1:['늘 하던 이야기를 되풀이하는 느낌'],mn2:['대화에 흥미가 없는 듯 대답만 함'],trap:['이야기하다 문득 출입구 쪽을 봄'],deja:['이 대화를 전에 나눈 것 같아 멈칫함']};
 const TKR={conflict:['다툰 일이 마음에 걸려 말이 조심스러움'],sep:['헤어진 사이라 어색한 공기가 흐름','서로 눈을 오래 마주치지 못함'],crush:['말하는 동안 괜히 볼이 붉어짐','눈이 마주치면 시선을 피함'],jealous:['말하면서도 다른 사람 이야기에 신경이 쓰이는 듯함'],resent:['서운함을 삼키느라 말이 짧음'],wary:['경계를 풀지 않은 채 말을 고름'],lover:['서로를 바라보며 말투가 자꾸 부드러워짐'],spouse:['오래된 사이답게 편하게 말을 이어 감']};

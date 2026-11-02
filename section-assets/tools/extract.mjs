@@ -8,6 +8,8 @@ const UNIT_CM={1:2.54,2:30.48,4:0.1,5:1,6:100,7:100000,8:2.54e-6,10:91.44,14:10,
 const EXCL_TYPE=new Set(['TEXT','MTEXT','DIMENSION','MULTILEADER','LEADER','ATTDEF','ATTRIB','VIEWPORT','WIPEOUT','POINT','TOLERANCE']);
 const EXCL_LAYER=/dim|defpoints|anno|title|border|frame|logo|^text/i;
 const I=[1,0,0,1,0,0];
+let LAYER_OFF=new Set();   // 꺼짐·동결 레이어(원본에서 보이지 않는 요소는 변환하지 않는다)
+
 const mul=(m,n)=>[m[0]*n[0]+m[2]*n[1],m[1]*n[0]+m[3]*n[1],m[0]*n[2]+m[2]*n[3],m[1]*n[2]+m[3]*n[3],m[0]*n[4]+m[2]*n[5]+m[4],m[1]*n[4]+m[3]*n[5]+m[5]];
 const ap=(m,x,y)=>[m[0]*x+m[2]*y+m[4],m[1]*x+m[3]*y+m[5]];
 const simil=m=>{const sx=Math.hypot(m[0],m[1]),sy=Math.hypot(m[2],m[3]);return Math.abs(sx-sy)<1e-6*Math.max(sx,1e-9)&&Math.abs(m[0]*m[2]+m[1]*m[3])<1e-6*sx*sy?sx:0};
@@ -28,8 +30,20 @@ function bulgeSeg(p,q,b,m){ // → segment descriptor in world coords
 const bb=()=>({x0:1e30,y0:1e30,x1:-1e30,y1:-1e30});
 const grow=(b,x,y)=>{if(x<b.x0)b.x0=x;if(x>b.x1)b.x1=x;if(y<b.y0)b.y0=y;if(y>b.y1)b.y1=y};
 
+/* HATCH 경계 하나(폴리선형: 꼭짓점+bulge / 선분·호·타원·스플라인 모서리형)를 변환 행렬을 적용한 점 목록으로 */
+function hatchLoop(bp,m){const out=[];
+  if(bp.vertices){const v=bp.vertices,n=v.length;for(let i=0;i<n;i++){const a=v[i],b=v[(i+1)%n];out.push(ap(m,a.x,a.y));
+      if(a.bulge&&Math.abs(a.bulge)>1e-9){const th=4*Math.atan(a.bulge),dx=b.x-a.x,dy=b.y-a.y,c=Math.hypot(dx,dy),r=c/(2*Math.sin(Math.abs(th)/2)),mx=(a.x+b.x)/2,my=(a.y+b.y)/2,h=Math.sqrt(Math.max(0,r*r-c*c/4))*(a.bulge>0?1:-1)*(Math.abs(th)>Math.PI?-1:1),cx=mx-h*dy/c,cy=my+h*dx/c;
+        const a0=Math.atan2(a.y-cy,a.x-cx);const k=Math.max(6,Math.ceil(Math.abs(th)/(Math.PI/24)));for(let i2=1;i2<k;i2++){const t=a0+th*i2/k;out.push(ap(m,cx+r*Math.cos(t),cy+r*Math.sin(t)))}}}
+    return out}
+  for(const ed of (bp.edges||[])){const t=ed.type;
+    if(t===1&&ed.start){out.push(ap(m,ed.start.x,ed.start.y));out.push(ap(m,ed.end.x,ed.end.y))}
+    else if(t===2&&ed.center){let a0=ed.startAngle,a1=ed.endAngle;if(ed.isCCW===false||ed.counterClockwise===false){const t2=a0;a0=a1;a1=t2}let d=a1-a0;while(d<=0)d+=2*Math.PI;const k=Math.max(8,Math.ceil(d/(Math.PI/24)));for(let i=0;i<=k;i++){const t3=a0+d*i/k;out.push(ap(m,ed.center.x+ed.radius*Math.cos(t3),ed.center.y+ed.radius*Math.sin(t3)))}}
+    else return null}
+  return out}
 function collect(ents,blocks,m,acc,depth){
  for(const e of ents){
+  if(e.isVisible===false||(e.layer&&LAYER_OFF.has(e.layer))){acc.excl['hidden']=(acc.excl['hidden']||0)+1;continue}
   if(EXCL_TYPE.has(e.type)){acc.excl[e.type]=(acc.excl[e.type]||0)+1;continue}
   if(e.layer&&EXCL_LAYER.test(e.layer)&&e.type!=='INSERT'){acc.excl['layer:'+e.layer]=(acc.excl['layer:'+e.layer]||0)+1;continue}
   switch(e.type){
@@ -62,7 +76,9 @@ function collect(ents,blocks,m,acc,depth){
     for(let i=0;i<pts.length-1;i++){const a=ap(m,pts[i].x,pts[i].y),b=ap(m,pts[i+1].x,pts[i+1].y);acc.segs.push({t:'L',x1:a[0],y1:a[1],x2:b[0],y2:b[1]})}
     acc.note.add('spline-sampled');break}
   case 'SOLID':{const c=[e.corner1,e.corner2,e.corner4||e.corner3,e.corner3].map(p=>ap(m,p.x,p.y));acc.fills.push(c);break}
-  case 'HATCH':acc.excl.HATCH=(acc.excl.HATCH||0)+1;break;
+  case 'HATCH':{if(!e.solidFill||!(e.boundaryPaths||[]).length){acc.excl.HATCH=(acc.excl.HATCH||0)+1;break}
+    const loops=[];for(const bp of e.boundaryPaths){const pts=hatchLoop(bp,m);if(pts&&pts.length>=3)loops.push(pts)}
+    if(loops.length)acc.hatch.push(loops);else acc.excl.HATCH=(acc.excl.HATCH||0)+1;break}
   case 'INSERT':{if(depth>6)break;const b=blocks[e.name];if(!b)break;const bp=b.basePoint||{x:0,y:0};
     const c=Math.cos(e.rotation||0),s=Math.sin(e.rotation||0);const xs=e.xScale||1,ys=e.yScale||1;
     const mi=mul(m,[xs*c,xs*s,-ys*s,ys*c,e.insertionPoint.x,e.insertionPoint.y]);
@@ -85,6 +101,7 @@ function renderSVG(acc,opts){
   for(const s of acc.segs){if(s.t==='C'){g(s.cx-s.r,s.cy-s.r);g(s.cx+s.r,s.cy+s.r)}else{g(s.x1,s.y1);g(s.x2,s.y2);if(s.t==='A'){ // 호의 극점 포함
       const a0=s.a0,a1=s.a1;if(s.cx!==undefined){let d=a1-a0;while(d<=0)d+=2*Math.PI;for(let q=0;q<4;q++){let a=q*Math.PI/2;let t=a-a0;while(t<0)t+=2*Math.PI;if(t<=d)g(s.cx+s.r*Math.cos(a),s.cy+s.r*Math.sin(a))}}else{const mx=(s.x1+s.x2)/2,my=(s.y1+s.y2)/2;g(mx,my)}}}}
   for(const f of acc.fills)for(const [x,y] of f)g(x,y);
+  for(const hl of acc.hatch)for(const lp of hl)for(const [x,y] of lp)g(x,y);
   if(B.x1<B.x0)return null;
   const W=B.x1-B.x0,H=B.y1-B.y0;const sc=1000/Math.max(W,H,1e-9);const f=v=>+(v).toFixed(2);
   const X=x=>f((x-B.x0)*sc),Y=y=>f((B.y1-y)*sc);
@@ -92,9 +109,10 @@ function renderSVG(acc,opts){
   for(const p of polys){d+='M'+p.map(([x,y])=>X(x)+' '+Y(y)).join('L')}
   for(const s of other){if(s.t==='C'){const r=f(s.r*sc);d+=`M${X(s.cx-s.r)} ${Y(s.cy)}a${r} ${r} 0 1 0 ${f(2*s.r*sc)} 0a${r} ${r} 0 1 0 ${f(-2*s.r*sc)} 0`}
     else if(s.t==='A'){const r=f(s.r*sc);d+=`M${X(s.x1)} ${Y(s.y1)}A${r} ${r} 0 ${s.large} ${s.sweep?0:1} ${X(s.x2)} ${Y(s.y2)}`}}
+  let hf='';for(const hl of acc.hatch)for(const lp of hl)hf+='M'+lp.map(([x,y])=>X(x)+' '+Y(y)).join('L')+'Z';
   let fl='';for(const c of acc.fills)fl+='M'+c.map(([x,y])=>X(x)+' '+Y(y)).join('L')+'Z';
   const w=f(W*sc),h=f(H*sc);const vb=`0 0 ${w} ${h}`;
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" width="${w}" height="${h}"><g fill="none" stroke="#222" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"><path vector-effect="non-scaling-stroke" d="${d}"/></g>${fl?`<path fill="#222" stroke="none" d="${fl}"/>`:''}</svg>\n`;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" width="${w}" height="${h}"><g fill="none" stroke="#222" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"><path vector-effect="non-scaling-stroke" d="${d}"/></g>${fl?`<path class="cf" fill="#222" fill-rule="nonzero" stroke="none" d="${fl}"/>`:''}${hf?`<path class="cf" fill="#222" fill-rule="evenodd" stroke="none" d="${hf}"/>`:''}</svg>\n`;
   // 이상 징후: 전체 bbox 대비 강건 bbox
   const mids=acc.segs.filter(s=>s.t!=='C').map(s=>[(s.x1+s.x2)/2,(s.y1+s.y2)/2]);let robust=null;
   if(mids.length>20){const xs=mids.map(p=>p[0]).sort((a,b)=>a-b),ys=mids.map(p=>p[1]).sort((a,b)=>a-b);const q=(a,p)=>a[Math.min(a.length-1,Math.max(0,Math.floor(p*(a.length-1))))];
@@ -117,6 +135,7 @@ for(const fn of files){
   const db=lib.convert(d);
   rec.insunits=db.header?.INSUNITS??0;rec.dwgVersion=db.header?.ACADVER||null;
   const blocks={};for(const b of Object.values(db.tables.BLOCK_RECORD.entries))blocks[b.name]=b;
+  LAYER_OFF=new Set(Object.values((db.tables.LAYER&&db.tables.LAYER.entries)||{}).filter(l=>l.off||l.frozen).map(l=>l.name));
   rec.labels=db.entities.filter(e=>e.type==='TEXT'||e.type==='MTEXT').map(e=>String(e.text||e.contents||'').trim()).filter(Boolean).slice(0,12);
   // 뷰 후보: 모델스페이스 INSERT가 가리키는 블록, 없으면 이름 규칙으로 전체 블록
   let cand=db.entities.filter(e=>e.type==='INSERT').map(e=>({name:e.name,ins:e}));
@@ -125,11 +144,24 @@ for(const fn of files){
   const loose=db.entities.filter(e=>e.type!=='INSERT'&&!EXCL_TYPE.has(e.type));
   const viewsRaw=[];
   for(const c of cand){const b=blocks[c.name];if(!b||!(b.entities||[]).length)continue;
-    const cd=code(c.name);const acc={segs:[],fills:[],excl:{},note:new Set()};
+    const cd=code(c.name);const acc={segs:[],fills:[],hatch:[],excl:{},note:new Set()};
     collect([{type:'INSERT',name:c.name,insertionPoint:{x:0,y:0},xScale:1,yScale:1,rotation:0}],blocks,[1,0,0,1,0,0],acc,0);
     // 최상위 INSERT 변환은 시트 배치용이므로 무시(블록 원점 기준)
-    viewsRaw.push({block:c.name,cd,acc,orphan:!!c.orphan})}
-  // 이름 규칙에 안 맞는 블록은 "unknown"
+    viewsRaw.push({block:c.name,cd,acc,orphan:!!c.orphan,ins:c.ins})}
+  /* 모델 공간에 놓인 실제 채움(HATCH)은 그것이 겹쳐 놓인 뷰의 블록 좌표로 옮겨 그 뷰에 붙인다(체스판의 검은 칸처럼 선 블록 밖에 따로 있는 채움을 잃지 않기 위해) */
+  const inv=m=>{const det=m[0]*m[3]-m[1]*m[2];if(Math.abs(det)<1e-12)return null;const a=m[3]/det,b=-m[1]/det,c=-m[2]/det,d=m[0]/det;return [a,b,c,d,-(a*m[4]+c*m[5]),-(b*m[4]+d*m[5])]};
+  const hb=bb();
+  for(const h of loose.filter(e=>e.type==='HATCH'&&e.solidFill&&!(e.isVisible===false)&&!LAYER_OFF.has(e.layer))){
+    const a={segs:[],fills:[],hatch:[],excl:{},note:new Set()};collect([h],blocks,[1,0,0,1,0,0],a,0);if(!a.hatch.length)continue;
+    const H=bb();a.hatch.flat(2).forEach(([x,y])=>grow(H,x,y));let best=null,bestA=0;
+    for(const v of viewsRaw){if(!v.ins||v.ins.insertionPoint==null)continue;const e=v.ins,bp=(blocks[v.block]&&blocks[v.block].basePoint)||{x:0,y:0};
+      const c=Math.cos(e.rotation||0),s2=Math.sin(e.rotation||0),xs=e.xScale||1,ys=e.yScale||1;const M=[xs*c,xs*s2,-ys*s2,ys*c,e.insertionPoint.x,e.insertionPoint.y],iM=inv(M);if(!iM)continue;
+      const V=bb();for(const sg of v.acc.segs){if(sg.t==='C'){grow(V,sg.cx-sg.r,sg.cy-sg.r);grow(V,sg.cx+sg.r,sg.cy+sg.r)}else{grow(V,sg.x1,sg.y1);grow(V,sg.x2,sg.y2)}}if(V.x1<V.x0)continue;
+      const W=bb();for(const [px,py] of [[V.x0,V.y0],[V.x1,V.y0],[V.x0,V.y1],[V.x1,V.y1]]){const [wx,wy]=ap(mul(M,[1,0,0,1,0,0]),px+bp.x,py+bp.y);grow(W,wx,wy)}   // 뷰의 모델 공간 위치
+      const ix=Math.max(0,Math.min(W.x1,H.x1)-Math.max(W.x0,H.x0)),iy=Math.max(0,Math.min(W.y1,H.y1)-Math.max(W.y0,H.y0)),ar=ix*iy/Math.max(1e-12,(H.x1-H.x0)*(H.y1-H.y0));
+      if(ar>bestA){bestA=ar;best={v,iM,bp}}}
+    if(best&&bestA>=0.9){const {v,iM,bp}=best;v.acc.hatch.push(a.hatch.map(lp=>lp.map(([x,y])=>{const [lx,ly]=ap(iM,x,y);return [lx-bp.x,ly-bp.y]})));v.acc.note.add('hatch-from-model-space')}}
+  // 이름 규칙에 안 맞는 블록은 "unknown
   let uk=0;
   for(const v of viewsRaw){
     const kind=v.cd?v.cd.kind:'unknown';const variant=v.cd?(v.cd.conf==='catalog-code'?'':v.cd.v):'';
@@ -151,7 +183,7 @@ for(const fn of files){
     rec.views.push(rv)}
   // 모델 스페이스에 흩어진 선 (뷰 블록 밖) → 기록만
   if(loose.length){rec.looseEntities=loose.length;
-    const items=loose.map(e=>{const a={segs:[],fills:[],excl:{},note:new Set()};collect([e],blocks,I,a,0);const B=bb();for(const s of a.segs){if(s.t==='C'){grow(B,s.cx-s.r,s.cy-s.r);grow(B,s.cx+s.r,s.cy+s.r)}else{grow(B,s.x1,s.y1);grow(B,s.x2,s.y2)}}return {e,a,B}}).filter(x=>x.a.segs.length||x.a.fills.length);
+    const items=loose.map(e=>{const a={segs:[],fills:[],hatch:[],excl:{},note:new Set()};collect([e],blocks,I,a,0);const B=bb();for(const s of a.segs){if(s.t==='C'){grow(B,s.cx-s.r,s.cy-s.r);grow(B,s.cx+s.r,s.cy+s.r)}else{grow(B,s.x1,s.y1);grow(B,s.x2,s.y2)}}return {e,a,B}}).filter(x=>x.a.segs.length||x.a.fills.length);
     if(items.length&&items.length<=4000){const G=bb();items.forEach(i=>{grow(G,i.B.x0,i.B.y0);grow(G,i.B.x1,i.B.y1)});
       const ext=Math.max(G.x1-G.x0,G.y1-G.y0);
       const KEEP_GROUND=/^(mini-fridge)/i.test(fn);const ground=KEEP_GROUND?[]:items.filter(i=>i.e.type==='LINE'&&Math.abs(i.B.y1-i.B.y0)<1e-6*ext&&(i.B.x1-i.B.x0)>0.5*ext);
@@ -159,7 +191,7 @@ for(const fn of files){
       const rest=items.filter(i=>!gset.has(i));const gap=ext*0.02;const par=rest.map((_,i)=>i);const f=i=>par[i]===i?i:(par[i]=f(par[i]));
       for(let i=0;i<rest.length;i++)for(let j=i+1;j<rest.length;j++){const a=rest[i].B,b=rest[j].B;if(a.x0-gap<=b.x1&&b.x0-gap<=a.x1&&a.y0-gap<=b.y1&&b.y0-gap<=a.y1)par[f(i)]=f(j)}
       const cl={};rest.forEach((it,i)=>(cl[f(i)]=cl[f(i)]||[]).push(it));let k=0;
-      for(const grp of Object.values(cl)){const acc={segs:[],fills:[],excl:{},note:new Set()};grp.forEach(g=>{acc.segs.push(...g.a.segs);acc.fills.push(...g.a.fills)});
+      for(const grp of Object.values(cl)){const acc={segs:[],fills:[],hatch:[],excl:{},note:new Set()};grp.forEach(g=>{acc.segs.push(...g.a.segs);acc.fills.push(...g.a.fills);acc.hatch.push(...g.a.hatch)});
         const out=renderSVG(acc);if(!out)continue;k++;
         const rv={kind:'unknown',variant:'',block:'(model-space loose geometry)',detect:'none',excluded:{},notes:[],flags:['loose-model-geometry']};
         const dir=path.join(OUT,fn.replace(/\.dwg$/i,'').replace(/[^\w\-]+/g,'_'));fs.mkdirSync(dir,{recursive:true});

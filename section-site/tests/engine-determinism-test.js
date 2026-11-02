@@ -1,5 +1,5 @@
 /* 같은 입력이면 같은 결과인지(결정성) + 나눠서 돌려도 한 번에 돌린 것과 같은지(재개 가능) 확인한다 */
-globalThis.window=globalThis;const P=__dirname+'/../';['viv-ko','sim','viv-mind','viv-social','viv-chain','viv-aware','viv-decide','viv-love','viv-uncanny','viv-engine'].forEach(f=>require(P+f+'.js'));
+globalThis.window=globalThis;const P=__dirname+'/../';['viv-ko','sim','viv-mind','viv-social','viv-chain','viv-aware','viv-decide','viv-love','viv-romfx','viv-uncanny','viv-engine'].forEach(f=>require(P+f+'.js'));
 const F=require(__dirname+'/../../section-server/tests/fixture-geo.js');const {Sim,Mind,Uncanny:Unc,VivEngine:E}=globalThis;
 function mk(){const W=Sim.buildWorld(F.geo()),res=F.chars().map(c=>({id:c.id,name:c.name,profile:c.profile,pet:null})),place={},sim={};
   const h={world:W,houseId:'h1',residents:res,guests:[],awayIds:new Set(),isMiss:()=>false,getPlace:id=>place[id]||(place[id]={mode:'home',house:'h1',f:0,x:W.mid}),setPlace:(id,o)=>{place[id]={...(place[id]||{}),...o}},getSim:id=>sim[id]||(sim[id]={v:1,updatedAt:0,needs:{}}),setSim:(id,o)=>{sim[id]={...(sim[id]||{}),...o}},mind:Mind.migrate(null),unc:Unc.migrate(null),neighbors:[],watch:null,mindAt:0};

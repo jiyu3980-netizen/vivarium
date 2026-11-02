@@ -49,6 +49,7 @@ function deliberate(s,c,A,others,now,env){
       ap.push({p:'reconcile',g:clamp((.3+f.att/200+P(aff)/300-f.rs/170)*sev+pc.caring*.12,0,1),c:pc.pride*.55+fear*.3+(cf&&cf.branch==='crisis'?.15:0)})}
     const tdc=S.todo.find(t=>!t.done&&t.w===c&&t.to===o&&(t.k==='comfort'||t.k==='cheer')&&now>=t.due);
     if(tdc)ap.push({p:'care',g:clamp(.5+.3*pc.caring,0,1),c:pc.timid*.2});
+    {const rf=M._rfx&&M._rfx.dec?M._rfx.dec(s,c,o,pc,L('lonely')):null;if(rf)ap.push(rf)}   // 연애 상태×성격: 연인·부부·맞짝사랑의 다가감
     if(loves)ap.push({p:'romance',g:clamp(.14+L('excited')*.4+f.att/150+(rom.k==='mutual'?.15:0),0,1),c:pc.timid*.6+fear*.4-pc.bold*.25});
     for(const a of ap)cands.push({k:'approach',to:o,nm,p:a.p,g:a.g,c:clamp(a.c,0,1),u:a.g-.8*clamp(a.c,0,1)});
     /* 피하기 */

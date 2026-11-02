@@ -47,3 +47,9 @@ section-assets/
 3. `python3 tools/validate_assets.py` — 중복 ID, 누락 파일, 경로 규칙, 미등록 폴더, 썸네일 누락, 큰 SVG 경고(읽기 전용).
 기존 에셋·ID·경로는 수정하지 않습니다. 사이트 코드(section-site) 수정 불필요.
 - 8차: 정면·측면 없는 에셋 11개 삭제, 신규 DWG 135개 에셋 등록, 세면대 1·2 측면 추가 (logs/r7-changes.md 참고).
+
+## 9차 (2026-11-01)
+- 기둥머리 장식(ornament-capital-*) 29종 전면 삭제(카탈로그·SVG·썸네일). 원본 DWG는 그대로.
+- 카테고리 이동: 조리 가전 8종·주방 선반 4종 → 주방, 책장 10종·모기장 → 가구. 가구 소분류 탭(`tab`: 의자·소파/테이블·책상/침대/수납장·협탁/책장/벽난로) 추가. `subcategoryId` 는 행동 분류가 쓰므로 그대로.
+- 사용자 피드백 PNG(빨강=면 추가, 지움=구멍)로 *.fill.svg 갱신(`tools/r9_fills.py`). 이전 파일은 backup/r9-fills-before/.
+- 상세: logs/r9-changes.md

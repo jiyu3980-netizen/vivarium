@@ -4,7 +4,7 @@
 사용: python3 tools/make_web_catalog.py   (section-assets 폴더에서)"""
 import json,os,sys
 R=os.path.join(os.path.dirname(os.path.abspath(__file__)),'..')
-KEEP=['assetId','categoryId','subcategoryId','nameKo','nameEn','tags','thumb','status','stairAsset','defaultSizeCm','reviewReasons']
+KEEP=['assetId','categoryId','subcategoryId','tab','nameKo','nameEn','tags','thumb','status','stairAsset','defaultSizeCm','reviewReasons']
 VK=['svg','fill','aspect','sourceBlock']   # 사이트 코드가 실제로 읽는 항목만
 def slim(a):
     o={k:a[k] for k in KEEP if k in a}

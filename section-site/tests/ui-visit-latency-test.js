@@ -5,7 +5,8 @@ async function mk(b,name){const ctx=await b.newContext({viewport:{width:1400,hei
   const p=await ctx.newPage();p.errs=[];p.on('pageerror',e=>p.errs.push(e.message));
   await p.goto(SITE,{waitUntil:'networkidle'});
   await p.click('.vnav button[data-m=edit]');await p.waitForTimeout(800);
-  for(const q of ['소파','침대','문']){await p.fill('#q',q);await p.waitForTimeout(250);await (await p.$('#grid .tile')).click();await p.waitForTimeout(400)}
+  for(const q of ['소파','침대']){await p.fill('#q',q);await p.waitForTimeout(250);await (await p.$('#grid .tile')).click();await p.waitForTimeout(400)}
+  await p.evaluate(()=>{const k=document.querySelector('#oKind'),f=document.querySelector('#oFloor'),on=document.querySelector('#oOn');k.value='door';f.value='0';on.value='R';document.querySelector('#oAdd').click()});await p.waitForTimeout(300);   // 1층 오른쪽 외벽 문(출입구)
   await p.click('.vnav button[data-m=viv]');await p.waitForTimeout(2000);
   await p.click('#vvAdd');await p.fill('#vfName',name);await p.setInputFiles('#vfFile','/tmp/t9/char_alpha.png');await p.waitForTimeout(500);await p.fill('#vfProf',name+'은 책 읽기를 좋아해요');await p.click('#vfSave');await p.waitForTimeout(1200);
   await p.click('#vvShare');await p.waitForTimeout(300);await p.fill('#vsNick','주인'+name);await p.click('#vsGo');await p.waitForTimeout(2500);await p.keyboard.press('Escape');await p.waitForTimeout(300);

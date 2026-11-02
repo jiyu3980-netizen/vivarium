@@ -89,3 +89,5 @@ main.noanim{transition:none}
 .bgm-sw[aria-checked=true]{background:#1c1c1c;color:#fff;border-color:#1c1c1c}
 .bgm-pop input[type=range]{flex:1;min-width:0;accent-color:#1c1c1c}.bgm-pop.off input{opacity:.4}
 @media(max-width:900px){body.mode-viv .vnav button.bgm,body:not(.mode-viv) .vnav button.bgm{padding:0!important}}
+
+.subtabs{display:flex;flex-wrap:wrap;gap:4px;margin:-2px 0 8px}.subtabs button{width:auto;padding:3px 9px;font-size:12px;border-radius:999px;border:1px solid var(--bd,#ccc);background:var(--bg,#fff);color:inherit;cursor:pointer}.subtabs button.on{background:#2b2b2b;color:#fff;border-color:#2b2b2b}.subtabs button i{font-style:normal;opacity:.6;margin-left:3px}

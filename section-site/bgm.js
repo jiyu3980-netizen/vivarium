@@ -25,10 +25,10 @@ function unlock(){if(unlocked)return;unlocked=true;['pointerdown','keydown','tou
 ['pointerdown','keydown','touchend'].forEach(e=>addEventListener(e,unlock,{capture:true,passive:true}));
 /* 탭·창을 가려도(다른 탭·앱으로 이동, 화면 끔) 멈추지 않고 계속 반복 재생. 브라우저가 스스로 멈춘 경우에만 돌아왔을 때 다시 시작. 완전히 닫으면(탭 닫기·X) 당연히 끝난다 */
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&au&&au.paused&&st.on&&unlocked)play()});
-if('mediaSession' in navigator){try{navigator.mediaSession.metadata=new MediaMetadata({title:'Eerie Ambient',artist:'사이버 비바리움'});navigator.mediaSession.setActionHandler('play',()=>{setOn(true);unlock();if(unlocked)play()});navigator.mediaSession.setActionHandler('pause',()=>setOn(false))}catch(e){}}
+if('mediaSession' in navigator){try{navigator.mediaSession.metadata=new MediaMetadata({title:'배경음악',artist:'사이버 비바리움'});navigator.mediaSession.setActionHandler('play',()=>{setOn(true);unlock();if(unlocked)play()});navigator.mediaSession.setActionHandler('pause',()=>setOn(false))}catch(e){}}
 /* 작은 조절 패널 */
 function openPop(){if(pop)return;pop=document.createElement('div');pop.className='bgm-pop';pop.setAttribute('role','dialog');pop.setAttribute('aria-label','배경음악');
-  pop.innerHTML=`<div class="bgm-t">배경음악 <small>Eerie Ambient</small></div><div class="bgm-r"><button type="button" class="bgm-sw" role="switch"></button><input type="range" min="0" max="100" step="1" aria-label="볼륨"></div>`;
+  pop.innerHTML=`<div class="bgm-t">배경음악</div><div class="bgm-r"><button type="button" class="bgm-sw" role="switch"></button><input type="range" min="0" max="100" step="1" aria-label="볼륨"></div>`;
   document.body.appendChild(pop);place();paint();btn.setAttribute('aria-expanded','true');
   const sw=pop.querySelector('.bgm-sw'),rg=pop.querySelector('input');sw.onclick=()=>{setOn(!st.on);unlock();if(st.on&&unlocked)play();keep()};
   rg.oninput=()=>{setVol(rg.value/100);if(!st.on)setOn(true);keep()};pop.addEventListener('pointerdown',keep);keep()}

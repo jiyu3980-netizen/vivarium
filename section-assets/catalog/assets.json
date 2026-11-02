@@ -2,7 +2,7 @@
  "version": 1,
  "generated": "2026-10-23",
  "note": "SVG는 assets/svg/ 에 별도 파일. 이 파일에는 메타데이터만 있음. 뷰 SVG는 필요할 때 개별 로드.",
- "count": 574,
+ "count": 669,
  "assets": [
   {
    "assetId": "2-panel-barn-door",
@@ -1563,7 +1563,8 @@
    },
    "viewBox": "0 0 1000 413.16",
    "status": "ok-with-notes",
-   "thumb": "assets/thumbs/4-seater-round-dining-table.png"
+   "thumb": "assets/thumbs/4-seater-round-dining-table.png",
+   "tab": "table"
   },
   {
    "assetId": "4-tier-dumbbell-rack",
@@ -1816,7 +1817,8 @@
    },
    "viewBox": "0 0 900 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/42-inches-gas-fireplace.png"
+   "thumb": "assets/thumbs/42-inches-gas-fireplace.png",
+   "tab": "fireplace"
   },
   {
    "assetId": "aga-range-cooker",
@@ -2542,7 +2544,8 @@
    },
    "viewBox": "0 0 774.29 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/baby-bed.png"
+   "thumb": "assets/thumbs/baby-bed.png",
+   "tab": "bed"
   },
   {
    "assetId": "balcony-chairs",
@@ -2665,7 +2668,8 @@
    },
    "viewBox": "0 0 1000 503.29",
    "status": "ok",
-   "thumb": "assets/thumbs/balcony-chairs.png"
+   "thumb": "assets/thumbs/balcony-chairs.png",
+   "tab": "seating"
   },
   {
    "assetId": "bamboo-cane-chair",
@@ -2789,7 +2793,8 @@
    },
    "viewBox": "0 0 527.69 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/bamboo-cane-chair.png"
+   "thumb": "assets/thumbs/bamboo-cane-chair.png",
+   "tab": "seating"
   },
   {
    "assetId": "baroque-chandelier",
@@ -3004,7 +3009,8 @@
    },
    "viewBox": "0 0 597.09 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/baroque-console-table-with-mirror.png"
+   "thumb": "assets/thumbs/baroque-console-table-with-mirror.png",
+   "tab": "table"
   },
   {
    "assetId": "bath-towels",
@@ -4955,7 +4961,7 @@
    "assetId": "bookshelves-1",
    "nameKo": "책장 1",
    "nameEn": "Bookshelves 1",
-   "categoryId": "storage-lifestyle",
+   "categoryId": "furniture",
    "subcategoryId": "shelf",
    "tags": [
     "책장",
@@ -5020,13 +5026,14 @@
    },
    "viewBox": "0 0 1000 797.19",
    "status": "review",
-   "thumb": "assets/thumbs/bookshelves-1.png"
+   "thumb": "assets/thumbs/bookshelves-1.png",
+   "tab": "bookshelf"
   },
   {
    "assetId": "bookshelves-2",
    "nameKo": "책장 2",
    "nameEn": "Bookshelves 2",
-   "categoryId": "storage-lifestyle",
+   "categoryId": "furniture",
    "subcategoryId": "shelf",
    "tags": [
     "책장",
@@ -5091,13 +5098,14 @@
    },
    "viewBox": "0 0 458.32 1000",
    "status": "review",
-   "thumb": "assets/thumbs/bookshelves-2.png"
+   "thumb": "assets/thumbs/bookshelves-2.png",
+   "tab": "bookshelf"
   },
   {
    "assetId": "bookshelves-3",
    "nameKo": "책장 3",
    "nameEn": "Bookshelves 3",
-   "categoryId": "storage-lifestyle",
+   "categoryId": "furniture",
    "subcategoryId": "shelf",
    "tags": [
     "책장",
@@ -5162,13 +5170,14 @@
    },
    "viewBox": "0 0 458.32 1000",
    "status": "review",
-   "thumb": "assets/thumbs/bookshelves-3.png"
+   "thumb": "assets/thumbs/bookshelves-3.png",
+   "tab": "bookshelf"
   },
   {
    "assetId": "bookshelves-4",
    "nameKo": "책장 4",
    "nameEn": "Bookshelves 4",
-   "categoryId": "storage-lifestyle",
+   "categoryId": "furniture",
    "subcategoryId": "shelf",
    "tags": [
     "책장",
@@ -5233,7 +5242,8 @@
    },
    "viewBox": "0 0 1000 528.35",
    "status": "review",
-   "thumb": "assets/thumbs/bookshelves-4.png"
+   "thumb": "assets/thumbs/bookshelves-4.png",
+   "tab": "bookshelf"
   },
   {
    "assetId": "bosch-washing-machine",
@@ -5484,7 +5494,8 @@
    },
    "viewBox": "0 0 1000 304.67",
    "status": "review",
-   "thumb": "assets/thumbs/boss-table.png"
+   "thumb": "assets/thumbs/boss-table.png",
+   "tab": "table"
   },
   {
    "assetId": "bottle-palm",
@@ -6449,7 +6460,7 @@
    "assetId": "childrens-library-bookshelf",
    "nameKo": "어린이 책장",
    "nameEn": "Childrens Library Bookshelf",
-   "categoryId": "storage-lifestyle",
+   "categoryId": "furniture",
    "subcategoryId": "shelf",
    "tags": [
     "책장",
@@ -6570,7 +6581,8 @@
    },
    "viewBox": "0 0 985.14 1000",
    "status": "review",
-   "thumb": "assets/thumbs/childrens-library-bookshelf.png"
+   "thumb": "assets/thumbs/childrens-library-bookshelf.png",
+   "tab": "bookshelf"
   },
   {
    "assetId": "chinese-lanterns-v1",
@@ -7467,7 +7479,8 @@
    },
    "viewBox": "0 0 679.91 1000",
    "status": "review",
-   "thumb": "assets/thumbs/closet-clothes.png"
+   "thumb": "assets/thumbs/closet-clothes.png",
+   "tab": "storage"
   },
   {
    "assetId": "clothes-on-hanger",
@@ -8779,7 +8792,8 @@
    },
    "viewBox": "0 0 1000 728.2",
    "status": "review",
-   "thumb": "assets/thumbs/corner-l-shaped-computer-desk.png"
+   "thumb": "assets/thumbs/corner-l-shaped-computer-desk.png",
+   "tab": "table"
   },
   {
    "assetId": "corner-sink",
@@ -10948,7 +10962,8 @@
    },
    "viewBox": "0 0 1000 540.74",
    "status": "ok",
-   "thumb": "assets/thumbs/dresser.png"
+   "thumb": "assets/thumbs/dresser.png",
+   "tab": "storage"
   },
   {
    "assetId": "earth-globe",
@@ -11552,7 +11567,8 @@
    },
    "viewBox": "0 0 595.48 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/farmhouse-chair.png"
+   "thumb": "assets/thumbs/farmhouse-chair.png",
+   "tab": "seating"
   },
   {
    "assetId": "farmhouse-sink",
@@ -11764,7 +11780,8 @@
    },
    "viewBox": "0 0 722.38 1000",
    "status": "ok-with-notes",
-   "thumb": "assets/thumbs/fireplaces-1.png"
+   "thumb": "assets/thumbs/fireplaces-1.png",
+   "tab": "fireplace"
   },
   {
    "assetId": "fireplaces-2",
@@ -11851,7 +11868,8 @@
    },
    "viewBox": "0 0 697.92 1000",
    "status": "ok-with-notes",
-   "thumb": "assets/thumbs/fireplaces-2.png"
+   "thumb": "assets/thumbs/fireplaces-2.png",
+   "tab": "fireplace"
   },
   {
    "assetId": "fireplaces-3",
@@ -11938,7 +11956,8 @@
    },
    "viewBox": "0 0 985.51 1000",
    "status": "ok-with-notes",
-   "thumb": "assets/thumbs/fireplaces-3.png"
+   "thumb": "assets/thumbs/fireplaces-3.png",
+   "tab": "fireplace"
   },
   {
    "assetId": "first-aid-box",
@@ -12908,7 +12927,8 @@
    },
    "viewBox": "0 0 1000 805.56",
    "status": "ok-with-notes",
-   "thumb": "assets/thumbs/folding-card-table.png"
+   "thumb": "assets/thumbs/folding-card-table.png",
+   "tab": "table"
   },
   {
    "assetId": "french-press-coffee-maker",
@@ -13588,7 +13608,8 @@
    },
    "viewBox": "0 0 660.46 1000",
    "status": "review",
-   "thumb": "assets/thumbs/gans-rocking-chair.png"
+   "thumb": "assets/thumbs/gans-rocking-chair.png",
+   "tab": "seating"
   },
   {
    "assetId": "garden-radish-plant-v1",
@@ -14508,7 +14529,8 @@
    },
    "viewBox": "0 0 1000 923.23",
    "status": "ok",
-   "thumb": "assets/thumbs/gym-lockers.png"
+   "thumb": "assets/thumbs/gym-lockers.png",
+   "tab": "storage"
   },
   {
    "assetId": "hair-dryer-holder",
@@ -14885,7 +14907,8 @@
    },
    "viewBox": "0 0 445.56 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/hammock-chair.png"
+   "thumb": "assets/thumbs/hammock-chair.png",
+   "tab": "bed"
   },
   {
    "assetId": "hammock",
@@ -15010,7 +15033,8 @@
    },
    "viewBox": "0 0 677.06 1000",
    "status": "review",
-   "thumb": "assets/thumbs/hammock.png"
+   "thumb": "assets/thumbs/hammock.png",
+   "tab": "bed"
   },
   {
    "assetId": "hand-sanitizer",
@@ -15599,7 +15623,8 @@
    },
    "viewBox": "0 0 565.09 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/hepplewhite-chair.png"
+   "thumb": "assets/thumbs/hepplewhite-chair.png",
+   "tab": "seating"
   },
   {
    "assetId": "herman-miller-aeron-chair",
@@ -15741,7 +15766,8 @@
    },
    "viewBox": "0 0 722.42 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/herman-miller-aeron-chair.png"
+   "thumb": "assets/thumbs/herman-miller-aeron-chair.png",
+   "tab": "seating"
   },
   {
    "assetId": "hermetic-jars-1",
@@ -16130,7 +16156,8 @@
    },
    "viewBox": "0 0 1000 775.22",
    "status": "review",
-   "thumb": "assets/thumbs/home-office-desk.png"
+   "thumb": "assets/thumbs/home-office-desk.png",
+   "tab": "table"
   },
   {
    "assetId": "hydrorail",
@@ -16386,7 +16413,8 @@
    },
    "viewBox": "0 0 1000 156.32",
    "status": "review",
-   "thumb": "assets/thumbs/japanese-low-table.png"
+   "thumb": "assets/thumbs/japanese-low-table.png",
+   "tab": "table"
   },
   {
    "assetId": "japanese-sliding-door",
@@ -16933,7 +16961,8 @@
    },
    "viewBox": "0 0 1000 373.34",
    "status": "ok",
-   "thumb": "assets/thumbs/king-size-bed.png"
+   "thumb": "assets/thumbs/king-size-bed.png",
+   "tab": "bed"
   },
   {
    "assetId": "kitchen-base-cabinet-24-inch",
@@ -17438,7 +17467,7 @@
    "assetId": "kitchenaid-blender",
    "nameKo": "Kitchenaid 블렌더",
    "nameEn": "Kitchenaid Blender",
-   "categoryId": "appliances",
+   "categoryId": "kitchen",
    "subcategoryId": "small-appliance",
    "tags": [
     "블렌더",
@@ -18059,7 +18088,8 @@
    },
    "viewBox": "0 0 1000 640.58",
    "status": "review",
-   "thumb": "assets/thumbs/l-shaped-corner-desk.png"
+   "thumb": "assets/thumbs/l-shaped-corner-desk.png",
+   "tab": "table"
   },
   {
    "assetId": "l-shaped-kitchens-v1",
@@ -18365,7 +18395,8 @@
    },
    "viewBox": "0 0 928.43 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/lc7-swivel-chair.png"
+   "thumb": "assets/thumbs/lc7-swivel-chair.png",
+   "tab": "seating"
   },
   {
    "assetId": "lg-tv",
@@ -18739,7 +18770,8 @@
    },
    "viewBox": "0 0 446.57 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/ladderback-chair.png"
+   "thumb": "assets/thumbs/ladderback-chair.png",
+   "tab": "seating"
   },
   {
    "assetId": "laundry-area",
@@ -19076,7 +19108,8 @@
    },
    "viewBox": "0 0 416.55 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/linen-closet.png"
+   "thumb": "assets/thumbs/linen-closet.png",
+   "tab": "storage"
   },
   {
    "assetId": "log-store-shed",
@@ -19381,7 +19414,8 @@
    },
    "viewBox": "0 0 1000 412.45",
    "status": "ok-with-notes",
-   "thumb": "assets/thumbs/mahjong-table.png"
+   "thumb": "assets/thumbs/mahjong-table.png",
+   "tab": "table"
   },
   {
    "assetId": "mason-jar-light-fixture",
@@ -19597,7 +19631,8 @@
    },
    "viewBox": "0 0 1000 636.82",
    "status": "ok",
-   "thumb": "assets/thumbs/messy-bed.png"
+   "thumb": "assets/thumbs/messy-bed.png",
+   "tab": "bed"
   },
   {
    "assetId": "mini-bar",
@@ -19945,7 +19980,8 @@
    },
    "viewBox": "0 0 1000 464.69",
    "status": "ok",
-   "thumb": "assets/thumbs/minotti-spencer-bed.png"
+   "thumb": "assets/thumbs/minotti-spencer-bed.png",
+   "tab": "bed"
   },
   {
    "assetId": "modern-console-table",
@@ -20070,7 +20106,8 @@
    },
    "viewBox": "0 0 642.65 1000",
    "status": "review",
-   "thumb": "assets/thumbs/modern-console-table.png"
+   "thumb": "assets/thumbs/modern-console-table.png",
+   "tab": "table"
   },
   {
    "assetId": "modern-bed",
@@ -20194,7 +20231,8 @@
    },
    "viewBox": "0 0 1000 366.63",
    "status": "ok",
-   "thumb": "assets/thumbs/modern-bed.png"
+   "thumb": "assets/thumbs/modern-bed.png",
+   "tab": "bed"
   },
   {
    "assetId": "mooi-emperor-suspension-lamp",
@@ -20290,7 +20328,7 @@
    "assetId": "mosquito-net",
    "nameKo": "블라인드·커튼",
    "nameEn": "Mosquito Net",
-   "categoryId": "decor",
+   "categoryId": "furniture",
    "subcategoryId": "ornament",
    "tags": [
     "창가",
@@ -20408,7 +20446,8 @@
    },
    "viewBox": "0 0 1000 711.27",
    "status": "ok",
-   "thumb": "assets/thumbs/mosquito-net.png"
+   "thumb": "assets/thumbs/mosquito-net.png",
+   "tab": "bed"
   },
   {
    "assetId": "notebook",
@@ -20784,7 +20823,8 @@
    },
    "viewBox": "0 0 1000 706.6",
    "status": "review",
-   "thumb": "assets/thumbs/office-cubicle-6-x-6.png"
+   "thumb": "assets/thumbs/office-cubicle-6-x-6.png",
+   "tab": "table"
   },
   {
    "assetId": "office-pantry",
@@ -21333,7 +21373,8 @@
    },
    "viewBox": "0 0 1000 567.33",
    "status": "ok",
-   "thumb": "assets/thumbs/old-steamer-trunk.png"
+   "thumb": "assets/thumbs/old-steamer-trunk.png",
+   "tab": "storage"
   },
   {
    "assetId": "old-tv",
@@ -21463,7 +21504,7 @@
    "assetId": "old-book-shelf",
    "nameKo": "책장",
    "nameEn": "Old Book Shelf",
-   "categoryId": "storage-lifestyle",
+   "categoryId": "furniture",
    "subcategoryId": "shelf",
    "tags": [
     "책장",
@@ -21582,7 +21623,8 @@
    },
    "viewBox": "0 0 469.08 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/old-book-shelf.png"
+   "thumb": "assets/thumbs/old-book-shelf.png",
+   "tab": "bookshelf"
   },
   {
    "assetId": "orchid-v1",
@@ -21884,7 +21926,8 @@
    },
    "viewBox": "0 0 1000 474.03",
    "status": "ok",
-   "thumb": "assets/thumbs/outdoor-plastic-chair.png"
+   "thumb": "assets/thumbs/outdoor-plastic-chair.png",
+   "tab": "seating"
   },
   {
    "assetId": "oval-mirror-v1",
@@ -22399,7 +22442,8 @@
    },
    "viewBox": "0 0 1000 685.43",
    "status": "review",
-   "thumb": "assets/thumbs/pallet-coffee-table.png"
+   "thumb": "assets/thumbs/pallet-coffee-table.png",
+   "tab": "table"
   },
   {
    "assetId": "papa-bear-chair",
@@ -22523,7 +22567,8 @@
    },
    "viewBox": "0 0 886.74 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/papa-bear-chair.png"
+   "thumb": "assets/thumbs/papa-bear-chair.png",
+   "tab": "seating"
   },
   {
    "assetId": "paper-shopping-bag",
@@ -22779,7 +22824,8 @@
    },
    "viewBox": "0 0 1000 848.98",
    "status": "ok",
-   "thumb": "assets/thumbs/peeps-soft-seating-1.png"
+   "thumb": "assets/thumbs/peeps-soft-seating-1.png",
+   "tab": "seating"
   },
   {
    "assetId": "peeps-soft-seating-2",
@@ -22908,7 +22954,8 @@
    },
    "viewBox": "0 0 1000 442.55",
    "status": "ok",
-   "thumb": "assets/thumbs/peeps-soft-seating-2.png"
+   "thumb": "assets/thumbs/peeps-soft-seating-2.png",
+   "tab": "seating"
   },
   {
    "assetId": "pendant-heating-lamp",
@@ -24169,7 +24216,8 @@
    },
    "viewBox": "0 0 1000 709.98",
    "status": "ok",
-   "thumb": "assets/thumbs/queen-upholstered-bed.png"
+   "thumb": "assets/thumbs/queen-upholstered-bed.png",
+   "tab": "bed"
   },
   {
    "assetId": "rog-gaming-desk",
@@ -24295,7 +24343,8 @@
    },
    "viewBox": "0 0 1000 838.17",
    "status": "ok",
-   "thumb": "assets/thumbs/rog-gaming-desk.png"
+   "thumb": "assets/thumbs/rog-gaming-desk.png",
+   "tab": "table"
   },
   {
    "assetId": "radio-1",
@@ -25227,7 +25276,8 @@
    },
    "viewBox": "0 0 1000 665.49",
    "status": "review",
-   "thumb": "assets/thumbs/reading-area.png"
+   "thumb": "assets/thumbs/reading-area.png",
+   "tab": "seating"
   },
   {
    "assetId": "reading-chairs",
@@ -25350,7 +25400,8 @@
    },
    "viewBox": "0 0 1000 298.59",
    "status": "ok",
-   "thumb": "assets/thumbs/reading-chairs.png"
+   "thumb": "assets/thumbs/reading-chairs.png",
+   "tab": "seating"
   },
   {
    "assetId": "residential-mailbox",
@@ -25691,7 +25742,7 @@
    "assetId": "rice-cooker",
    "nameKo": "밥솥",
    "nameEn": "Rice Cooker",
-   "categoryId": "appliances",
+   "categoryId": "kitchen",
    "subcategoryId": "small-appliance",
    "tags": [
     "밥솥",
@@ -26412,7 +26463,7 @@
    "assetId": "smeg-toaster",
    "nameKo": "Smeg 토스터",
    "nameEn": "Smeg Toaster",
-   "categoryId": "appliances",
+   "categoryId": "kitchen",
    "subcategoryId": "small-appliance",
    "tags": [
     "토스터",
@@ -27305,7 +27356,8 @@
    },
    "viewBox": "0 0 1000 223.01",
    "status": "review",
-   "thumb": "assets/thumbs/sofa-set-06.png"
+   "thumb": "assets/thumbs/sofa-set-06.png",
+   "tab": "seating"
   },
   {
    "assetId": "spanish-doors-1",
@@ -27603,7 +27655,7 @@
    "assetId": "spinner-book-display",
    "nameKo": "Spinner 책장",
    "nameEn": "Spinner Book Display",
-   "categoryId": "storage-lifestyle",
+   "categoryId": "furniture",
    "subcategoryId": "shelf",
    "tags": [
     "책장",
@@ -27721,7 +27773,8 @@
    },
    "viewBox": "0 0 419.85 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/spinner-book-display.png"
+   "thumb": "assets/thumbs/spinner-book-display.png",
+   "tab": "bookshelf"
   },
   {
    "assetId": "splash-pad-water-curtain",
@@ -28095,7 +28148,7 @@
    "assetId": "studimo-bookshelf",
    "nameKo": "Studimo 책장",
    "nameEn": "Studimo Bookshelf",
-   "categoryId": "storage-lifestyle",
+   "categoryId": "furniture",
    "subcategoryId": "shelf",
    "tags": [
     "책장",
@@ -28212,7 +28265,8 @@
    },
    "viewBox": "0 0 1000 313.76",
    "status": "ok",
-   "thumb": "assets/thumbs/studimo-bookshelf.png"
+   "thumb": "assets/thumbs/studimo-bookshelf.png",
+   "tab": "bookshelf"
   },
   {
    "assetId": "tv-aerial",
@@ -28405,7 +28459,8 @@
    },
    "viewBox": "0 0 1000 361.98",
    "status": "ok-with-notes",
-   "thumb": "assets/thumbs/tv-stands-1.png"
+   "thumb": "assets/thumbs/tv-stands-1.png",
+   "tab": "storage"
   },
   {
    "assetId": "tv-stands-2",
@@ -28477,7 +28532,8 @@
    },
    "viewBox": "0 0 1000 580.13",
    "status": "ok-with-notes",
-   "thumb": "assets/thumbs/tv-stands-2.png"
+   "thumb": "assets/thumbs/tv-stands-2.png",
+   "tab": "storage"
   },
   {
    "assetId": "tv-stands-3",
@@ -28549,7 +28605,8 @@
    },
    "viewBox": "0 0 1000 709.76",
    "status": "ok-with-notes",
-   "thumb": "assets/thumbs/tv-stands-3.png"
+   "thumb": "assets/thumbs/tv-stands-3.png",
+   "tab": "storage"
   },
   {
    "assetId": "tv-stands-4",
@@ -28621,7 +28678,8 @@
    },
    "viewBox": "0 0 1000 471.75",
    "status": "ok-with-notes",
-   "thumb": "assets/thumbs/tv-stands-4.png"
+   "thumb": "assets/thumbs/tv-stands-4.png",
+   "tab": "storage"
   },
   {
    "assetId": "toilet-bidet-1",
@@ -29178,7 +29236,8 @@
    },
    "viewBox": "0 0 1000 826.53",
    "status": "ok",
-   "thumb": "assets/thumbs/trophy-cabinet.png"
+   "thumb": "assets/thumbs/trophy-cabinet.png",
+   "tab": "storage"
   },
   {
    "assetId": "trundle-bed",
@@ -29302,7 +29361,8 @@
    },
    "viewBox": "0 0 1000 751.6",
    "status": "ok",
-   "thumb": "assets/thumbs/trundle-bed.png"
+   "thumb": "assets/thumbs/trundle-bed.png",
+   "tab": "bed"
   },
   {
    "assetId": "vanity-vessel",
@@ -29930,7 +29990,8 @@
    },
    "viewBox": "0 0 748.78 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/vintage-dressing-table.png"
+   "thumb": "assets/thumbs/vintage-dressing-table.png",
+   "tab": "storage"
   },
   {
    "assetId": "vintage-picture-frame-1",
@@ -30422,7 +30483,8 @@
    },
    "viewBox": "0 0 1000 475.7",
    "status": "ok",
-   "thumb": "assets/thumbs/vintage-sofa.png"
+   "thumb": "assets/thumbs/vintage-sofa.png",
+   "tab": "seating"
   },
   {
    "assetId": "vintage-table",
@@ -30546,7 +30608,8 @@
    },
    "viewBox": "0 0 1000 454.98",
    "status": "ok",
-   "thumb": "assets/thumbs/vintage-table.png"
+   "thumb": "assets/thumbs/vintage-table.png",
+   "tab": "table"
   },
   {
    "assetId": "violin",
@@ -33188,7 +33251,8 @@
    },
    "viewBox": "0 0 1000 216.67",
    "status": "review",
-   "thumb": "assets/thumbs/ball-transfer-table.png"
+   "thumb": "assets/thumbs/ball-transfer-table.png",
+   "tab": "table"
   },
   {
    "assetId": "bamboo-lamp",
@@ -33702,7 +33766,8 @@
    },
    "viewBox": "0 0 1000 636.01",
    "status": "ok",
-   "thumb": "assets/thumbs/bean-bag.png"
+   "thumb": "assets/thumbs/bean-bag.png",
+   "tab": "seating"
   },
   {
    "assetId": "bed-cover",
@@ -34140,7 +34205,7 @@
    "assetId": "bookcase-with-library-ladder",
    "nameKo": "책장 + 라이브러리 사다리",
    "nameEn": "Bookcase With Library Ladder",
-   "categoryId": "storage-lifestyle",
+   "categoryId": "furniture",
    "subcategoryId": "shelf",
    "tags": [
     "책장",
@@ -34224,13 +34289,14 @@
    },
    "viewBox": "0 0 1000 797.78",
    "status": "ok-with-notes",
-   "thumb": "assets/thumbs/bookcase-with-library-ladder.png"
+   "thumb": "assets/thumbs/bookcase-with-library-ladder.png",
+   "tab": "bookshelf"
   },
   {
    "assetId": "bookshelf",
    "nameKo": "책장",
    "nameEn": "Bookshelf",
-   "categoryId": "storage-lifestyle",
+   "categoryId": "furniture",
    "subcategoryId": "shelf",
    "tags": [
     "책장",
@@ -34346,7 +34412,8 @@
    },
    "viewBox": "0 0 1000 680.66",
    "status": "ok",
-   "thumb": "assets/thumbs/bookshelf.png"
+   "thumb": "assets/thumbs/bookshelf.png",
+   "tab": "bookshelf"
   },
   {
    "assetId": "breakfast-table",
@@ -34452,7 +34519,8 @@
    },
    "viewBox": "0 0 1000 683.09",
    "status": "review",
-   "thumb": "assets/thumbs/breakfast-table.png"
+   "thumb": "assets/thumbs/breakfast-table.png",
+   "tab": "table"
   },
   {
    "assetId": "breakfast-tray",
@@ -35768,7 +35836,8 @@
    },
    "viewBox": "0 0 1000 615.77",
    "status": "review",
-   "thumb": "assets/thumbs/chess-table.png"
+   "thumb": "assets/thumbs/chess-table.png",
+   "tab": "table"
   },
   {
    "assetId": "chicken",
@@ -36015,7 +36084,8 @@
    },
    "viewBox": "0 0 998.95 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/christian-prayer-unit.png"
+   "thumb": "assets/thumbs/christian-prayer-unit.png",
+   "tab": "storage"
   },
   {
    "assetId": "church-windows-1",
@@ -37156,7 +37226,8 @@
    },
    "viewBox": "0 0 510.78 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/collapsable-chair.png"
+   "thumb": "assets/thumbs/collapsable-chair.png",
+   "tab": "seating"
   },
   {
    "assetId": "concrete-laundry-sink",
@@ -37406,7 +37477,8 @@
    },
    "viewBox": "0 0 1000 338.21",
    "status": "review",
-   "thumb": "assets/thumbs/corner-sofa.png"
+   "thumb": "assets/thumbs/corner-sofa.png",
+   "tab": "seating"
   },
   {
    "assetId": "crockery-unit",
@@ -37529,7 +37601,8 @@
    },
    "viewBox": "0 0 1000 701.94",
    "status": "ok",
-   "thumb": "assets/thumbs/crockery-unit.png"
+   "thumb": "assets/thumbs/crockery-unit.png",
+   "tab": "storage"
   },
   {
    "assetId": "curtain-top-view",
@@ -38187,7 +38260,8 @@
    },
    "viewBox": "0 0 518.72 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/display-cabinet.png"
+   "thumb": "assets/thumbs/display-cabinet.png",
+   "tab": "storage"
   },
   {
    "assetId": "double-twin-beds",
@@ -38313,7 +38387,8 @@
    },
    "viewBox": "0 0 1000 555.95",
    "status": "ok",
-   "thumb": "assets/thumbs/double-twin-beds.png"
+   "thumb": "assets/thumbs/double-twin-beds.png",
+   "tab": "bed"
   },
   {
    "assetId": "double-wall-oven-cabinet",
@@ -38579,7 +38654,8 @@
    },
    "viewBox": "0 0 1000 633.96",
    "status": "review",
-   "thumb": "assets/thumbs/drafting-table.png"
+   "thumb": "assets/thumbs/drafting-table.png",
+   "tab": "table"
   },
   {
    "assetId": "easel-stand",
@@ -38821,7 +38897,8 @@
    },
    "viewBox": "0 0 978.91 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/easy-chair.png"
+   "thumb": "assets/thumbs/easy-chair.png",
+   "tab": "seating"
   },
   {
    "assetId": "entertainment-centers-1",
@@ -38949,7 +39026,8 @@
    },
    "viewBox": "0 0 1000 399.64",
    "status": "ok",
-   "thumb": "assets/thumbs/entertainment-centers-1.png"
+   "thumb": "assets/thumbs/entertainment-centers-1.png",
+   "tab": "storage"
   },
   {
    "assetId": "entertainment-centers-2",
@@ -39077,7 +39155,8 @@
    },
    "viewBox": "0 0 1000 826.05",
    "status": "ok",
-   "thumb": "assets/thumbs/entertainment-centers-2.png"
+   "thumb": "assets/thumbs/entertainment-centers-2.png",
+   "tab": "storage"
   },
   {
    "assetId": "entertainment-centers-3",
@@ -39205,7 +39284,8 @@
    },
    "viewBox": "0 0 1000 849.18",
    "status": "ok",
-   "thumb": "assets/thumbs/entertainment-centers-3.png"
+   "thumb": "assets/thumbs/entertainment-centers-3.png",
+   "tab": "storage"
   },
   {
    "assetId": "entertainment-centers-4",
@@ -39333,7 +39413,8 @@
    },
    "viewBox": "0 0 1000 921.44",
    "status": "ok",
-   "thumb": "assets/thumbs/entertainment-centers-4.png"
+   "thumb": "assets/thumbs/entertainment-centers-4.png",
+   "tab": "storage"
   },
   {
    "assetId": "fiddle-leaf-fig-tree",
@@ -39564,7 +39645,8 @@
    },
    "viewBox": "0 0 350.96 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/filing-cabinet.png"
+   "thumb": "assets/thumbs/filing-cabinet.png",
+   "tab": "storage"
   },
   {
    "assetId": "fireplace-log-holder",
@@ -39690,7 +39772,8 @@
    },
    "viewBox": "0 0 1000 444.6",
    "status": "review",
-   "thumb": "assets/thumbs/fireplace-log-holder.png"
+   "thumb": "assets/thumbs/fireplace-log-holder.png",
+   "tab": "fireplace"
   },
   {
    "assetId": "fireplace-wood-logs",
@@ -39816,7 +39899,8 @@
    },
    "viewBox": "0 0 922.53 1000",
    "status": "review",
-   "thumb": "assets/thumbs/fireplace-wood-logs.png"
+   "thumb": "assets/thumbs/fireplace-wood-logs.png",
+   "tab": "fireplace"
   },
   {
    "assetId": "foldable-partition",
@@ -40391,7 +40475,8 @@
    },
    "viewBox": "0 0 1000 966.67",
    "status": "review",
-   "thumb": "assets/thumbs/folding-table.png"
+   "thumb": "assets/thumbs/folding-table.png",
+   "tab": "table"
   },
   {
    "assetId": "free-standing-shower",
@@ -41103,7 +41188,8 @@
    },
    "viewBox": "0 0 815.5 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/giorgetti-chair.png"
+   "thumb": "assets/thumbs/giorgetti-chair.png",
+   "tab": "seating"
   },
   {
    "assetId": "gothic-columns-1",
@@ -42048,7 +42134,8 @@
    },
    "viewBox": "0 0 616.53 1000",
    "status": "review",
-   "thumb": "assets/thumbs/industrial-bar-stool.png"
+   "thumb": "assets/thumbs/industrial-bar-stool.png",
+   "tab": "seating"
   },
   {
    "assetId": "industrial-chandeliers-1",
@@ -43716,7 +43803,7 @@
    "assetId": "juicer",
    "nameKo": "착즙기",
    "nameEn": "Juicer",
-   "categoryId": "appliances",
+   "categoryId": "kitchen",
    "subcategoryId": "small-appliance",
    "tags": [
     "착즙기",
@@ -44295,7 +44382,7 @@
    "assetId": "kitchenaid-mixer",
    "nameKo": "Kitchenaid 믹서",
    "nameEn": "Kitchenaid Mixer",
-   "categoryId": "appliances",
+   "categoryId": "kitchen",
    "subcategoryId": "small-appliance",
    "tags": [
     "믹서",
@@ -44537,7 +44624,8 @@
    },
    "viewBox": "0 0 520.3 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/ladderback-wooden-chair.png"
+   "thumb": "assets/thumbs/ladderback-wooden-chair.png",
+   "tab": "seating"
   },
   {
    "assetId": "lantern-wall-sconce",
@@ -45372,7 +45460,8 @@
    },
    "viewBox": "0 0 709.68 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/mercer-high-back-chair.png"
+   "thumb": "assets/thumbs/mercer-high-back-chair.png",
+   "tab": "seating"
   },
   {
    "assetId": "minimalist-dressing-table",
@@ -45504,7 +45593,8 @@
    },
    "viewBox": "0 0 1000 984.84",
    "status": "review",
-   "thumb": "assets/thumbs/minimalist-dressing-table.png"
+   "thumb": "assets/thumbs/minimalist-dressing-table.png",
+   "tab": "storage"
   },
   {
    "assetId": "mobile-computer-cart",
@@ -45885,7 +45975,8 @@
    },
    "viewBox": "0 0 1000 809.74",
    "status": "ok",
-   "thumb": "assets/thumbs/modern-bunk-bed.png"
+   "thumb": "assets/thumbs/modern-bunk-bed.png",
+   "tab": "bed"
   },
   {
    "assetId": "modern-desk",
@@ -46010,7 +46101,8 @@
    },
    "viewBox": "0 0 1000 720.87",
    "status": "ok",
-   "thumb": "assets/thumbs/modern-desk.png"
+   "thumb": "assets/thumbs/modern-desk.png",
+   "tab": "table"
   },
   {
    "assetId": "modern-top-load-washer",
@@ -47438,7 +47530,8 @@
    },
    "viewBox": "0 0 753.41 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/outdoor-armchair.png"
+   "thumb": "assets/thumbs/outdoor-armchair.png",
+   "tab": "seating"
   },
   {
    "assetId": "outdoor-kitchens-1",
@@ -48215,7 +48308,8 @@
    },
    "viewBox": "0 0 1000 462.58",
    "status": "ok",
-   "thumb": "assets/thumbs/puff-chair.png"
+   "thumb": "assets/thumbs/puff-chair.png",
+   "tab": "seating"
   },
   {
    "assetId": "pull-out-basket",
@@ -48710,7 +48804,8 @@
    },
    "viewBox": "0 0 732.12 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/rattan-chairs-1.png"
+   "thumb": "assets/thumbs/rattan-chairs-1.png",
+   "tab": "seating"
   },
   {
    "assetId": "rattan-chairs-2",
@@ -48833,7 +48928,8 @@
    },
    "viewBox": "0 0 1000 862.64",
    "status": "ok",
-   "thumb": "assets/thumbs/rattan-chairs-2.png"
+   "thumb": "assets/thumbs/rattan-chairs-2.png",
+   "tab": "seating"
   },
   {
    "assetId": "rattan-lamp",
@@ -49049,7 +49145,8 @@
    },
    "viewBox": "0 0 1000 328.98",
    "status": "ok",
-   "thumb": "assets/thumbs/rattan-sofa-1.png"
+   "thumb": "assets/thumbs/rattan-sofa-1.png",
+   "tab": "seating"
   },
   {
    "assetId": "rattan-sofa-2",
@@ -49177,7 +49274,8 @@
    },
    "viewBox": "0 0 1000 361.04",
    "status": "ok",
-   "thumb": "assets/thumbs/rattan-sofa-2.png"
+   "thumb": "assets/thumbs/rattan-sofa-2.png",
+   "tab": "seating"
   },
   {
    "assetId": "reading-chair-with-table",
@@ -49267,7 +49365,8 @@
    },
    "viewBox": "0 0 1000 658.39",
    "status": "ok-with-notes",
-   "thumb": "assets/thumbs/reading-chair-with-table.png"
+   "thumb": "assets/thumbs/reading-chair-with-table.png",
+   "tab": "seating"
   },
   {
    "assetId": "rice-plant",
@@ -50186,7 +50285,8 @@
    },
    "viewBox": "0 0 1000 467.02",
    "status": "ok",
-   "thumb": "assets/thumbs/skirted-sofa.png"
+   "thumb": "assets/thumbs/skirted-sofa.png",
+   "tab": "seating"
   },
   {
    "assetId": "sleeping-cat",
@@ -52044,7 +52144,8 @@
    },
    "viewBox": "0 0 656.41 1000",
    "status": "ok",
-   "thumb": "assets/thumbs/traditional-dresser.png"
+   "thumb": "assets/thumbs/traditional-dresser.png",
+   "tab": "storage"
   },
   {
    "assetId": "traditional-kettle",
@@ -52295,7 +52396,8 @@
    },
    "viewBox": "0 0 1000 584.82",
    "status": "ok",
-   "thumb": "assets/thumbs/trolley-table-1.png"
+   "thumb": "assets/thumbs/trolley-table-1.png",
+   "tab": "table"
   },
   {
    "assetId": "trouser-hanger",
@@ -53079,7 +53181,8 @@
    },
    "viewBox": "0 0 1000 585.64",
    "status": "ok",
-   "thumb": "assets/thumbs/victorian-style-sofa.png"
+   "thumb": "assets/thumbs/victorian-style-sofa.png",
+   "tab": "seating"
   },
   {
    "assetId": "viking-stove",
@@ -53329,7 +53432,8 @@
    },
    "viewBox": "0 0 1000 289.24",
    "status": "ok",
-   "thumb": "assets/thumbs/vintage-armchair-sofa.png"
+   "thumb": "assets/thumbs/vintage-armchair-sofa.png",
+   "tab": "seating"
   },
   {
    "assetId": "vintage-double-sconce",
@@ -53578,13 +53682,14 @@
    },
    "viewBox": "0 0 1000 496.06",
    "status": "ok",
-   "thumb": "assets/thumbs/vintage-french-sideboard.png"
+   "thumb": "assets/thumbs/vintage-french-sideboard.png",
+   "tab": "storage"
   },
   {
    "assetId": "waffle-iron",
    "nameKo": "와플 메이커",
    "nameEn": "Waffle Iron",
-   "categoryId": "appliances",
+   "categoryId": "kitchen",
    "subcategoryId": "small-appliance",
    "tags": [
     "와플",
@@ -54664,7 +54769,8 @@
    },
    "viewBox": "0 0 1000 630",
    "status": "ok",
-   "thumb": "assets/thumbs/wine-cabinet.png"
+   "thumb": "assets/thumbs/wine-cabinet.png",
+   "tab": "storage"
   },
   {
    "assetId": "wine-glass-and-bottle",
@@ -55231,7 +55337,8 @@
    },
    "viewBox": "0 0 1000 833.33",
    "status": "review",
-   "thumb": "assets/thumbs/5-bedside-tables-1.png"
+   "thumb": "assets/thumbs/5-bedside-tables-1.png",
+   "tab": "storage"
   },
   {
    "assetId": "5-bedside-tables-2",
@@ -55359,7 +55466,8 @@
    },
    "viewBox": "0 0 510.38 1000",
    "status": "review",
-   "thumb": "assets/thumbs/5-bedside-tables-2.png"
+   "thumb": "assets/thumbs/5-bedside-tables-2.png",
+   "tab": "storage"
   },
   {
    "assetId": "5-bedside-tables-3",
@@ -55487,7 +55595,8 @@
    },
    "viewBox": "0 0 462.83 1000",
    "status": "review",
-   "thumb": "assets/thumbs/5-bedside-tables-3.png"
+   "thumb": "assets/thumbs/5-bedside-tables-3.png",
+   "tab": "storage"
   },
   {
    "assetId": "5-bedside-tables-4",
@@ -55615,7 +55724,8 @@
    },
    "viewBox": "0 0 849.07 1000",
    "status": "review",
-   "thumb": "assets/thumbs/5-bedside-tables-4.png"
+   "thumb": "assets/thumbs/5-bedside-tables-4.png",
+   "tab": "storage"
   },
   {
    "assetId": "5-bedside-tables-5",
@@ -55743,7 +55853,8 @@
    },
    "viewBox": "0 0 1000 886.83",
    "status": "review",
-   "thumb": "assets/thumbs/5-bedside-tables-5.png"
+   "thumb": "assets/thumbs/5-bedside-tables-5.png",
+   "tab": "storage"
   },
   {
    "assetId": "apple",
@@ -56888,7 +56999,7 @@
    "assetId": "kitchen-shelf-1",
    "nameKo": "주방 선반 1",
    "nameEn": "Kitchen Shelf 1",
-   "categoryId": "storage-lifestyle",
+   "categoryId": "kitchen",
    "subcategoryId": "shelf",
    "tags": [
     "주방 선반 1",
@@ -56979,7 +57090,7 @@
    "assetId": "kitchen-shelf-2",
    "nameKo": "주방 선반 2",
    "nameEn": "Kitchen Shelf 2",
-   "categoryId": "storage-lifestyle",
+   "categoryId": "kitchen",
    "subcategoryId": "shelf",
    "tags": [
     "주방 선반 2",
@@ -57070,7 +57181,7 @@
    "assetId": "kitchen-shelf-3",
    "nameKo": "주방 선반 3",
    "nameEn": "Kitchen Shelf 3",
-   "categoryId": "storage-lifestyle",
+   "categoryId": "kitchen",
    "subcategoryId": "shelf",
    "tags": [
     "주방 선반 3",
@@ -57161,7 +57272,7 @@
    "assetId": "kitchen-shelf-4",
    "nameKo": "주방 선반 4",
    "nameEn": "Kitchen Shelf 4",
-   "categoryId": "storage-lifestyle",
+   "categoryId": "kitchen",
    "subcategoryId": "shelf",
    "tags": [
     "주방 선반 4",
@@ -60591,13 +60702,14 @@
    },
    "viewBox": "0 0 1000 690.29",
    "status": "review",
-   "thumb": "assets/thumbs/writing-desk.png"
+   "thumb": "assets/thumbs/writing-desk.png",
+   "tab": "table"
   },
   {
    "assetId": "air-fryer",
    "nameKo": "에어프라이어",
    "nameEn": "Air Fryer",
-   "categoryId": "appliances",
+   "categoryId": "kitchen",
    "subcategoryId": "small-appliance",
    "tags": [
     "에어프라이어",
@@ -60987,7 +61099,8 @@
     "height": 230.0,
     "depth": null
    },
-   "thumb": "assets/thumbs/cadgrid-classic-fireplace-with-mantel-elevation-in.png"
+   "thumb": "assets/thumbs/cadgrid-classic-fireplace-with-mantel-elevation-in.png",
+   "tab": "fireplace"
   },
   {
    "assetId": "cadgrid-layered-canopy-tree-elevation-in",
@@ -61136,7 +61249,8 @@
     "height": 250.0,
     "depth": null
    },
-   "thumb": "assets/thumbs/cadgrid-stone-clad-double-sided-fireplace-elevation-in.png"
+   "thumb": "assets/thumbs/cadgrid-stone-clad-double-sided-fireplace-elevation-in.png",
+   "tab": "fireplace"
   },
   {
    "assetId": "cadgrid-traditional-fireplace-with-chimney-breast-01-elevation-in",
@@ -61215,7 +61329,8 @@
     "height": 260.0,
     "depth": null
    },
-   "thumb": "assets/thumbs/cadgrid-traditional-fireplace-with-chimney-breast-01-elevation-in.png"
+   "thumb": "assets/thumbs/cadgrid-traditional-fireplace-with-chimney-breast-01-elevation-in.png",
+   "tab": "fireplace"
   },
   {
    "assetId": "cocktail-table-and-chairs",
@@ -61304,7 +61419,8 @@
    },
    "viewBox": "0 0 1000 399.49",
    "status": "ok-with-notes",
-   "thumb": "assets/thumbs/cocktail-table-and-chairs.png"
+   "thumb": "assets/thumbs/cocktail-table-and-chairs.png",
+   "tab": "table"
   },
   {
    "assetId": "david-statue",
@@ -64692,7 +64808,8 @@
     "toCm": 0.1
    },
    "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/filing-cabinet-type-1.png"
+   "thumb": "assets/thumbs/filing-cabinet-type-1.png",
+   "tab": "storage"
   },
   {
    "assetId": "kitchen-sink-cabinet",
@@ -64764,7 +64881,7 @@
    "assetId": "ikea-microwave-lagan",
    "nameKo": "IKEA 전자레인지 (LAGAN)",
    "nameEn": "ikea-microwave-lagan",
-   "categoryId": "appliances",
+   "categoryId": "kitchen",
    "subcategoryId": "small-appliance",
    "tags": [
     "IKEA 전자레인지 (LAGAN)"
@@ -65082,7 +65199,8 @@
     "toCm": 0.1
    },
    "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/whiskey-cabinet-front.png"
+   "thumb": "assets/thumbs/whiskey-cabinet-front.png",
+   "tab": "storage"
   },
   {
    "assetId": "classic-table-lamp",
@@ -69436,138 +69554,6 @@
    "thumb": "assets/thumbs/ornament-column-1.png"
   },
   {
-   "assetId": "ornament-capital-2",
-   "nameKo": "기둥머리 장식 2",
-   "nameEn": "ornament-capital-2",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 2"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-2/front.svg",
-     "viewBox": "0 0 1000 705.2",
-     "aspect": 1.418,
-     "widthUnits": 99.068,
-     "heightUnits": 69.863,
-     "segments": 177,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-2",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-2/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 705.2",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 99.1,
-    "height": 69.9,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-2.png"
-  },
-  {
-   "assetId": "ornament-capital-3",
-   "nameKo": "기둥머리 장식 3",
-   "nameEn": "ornament-capital-3",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 3"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-3/front.svg",
-     "viewBox": "0 0 1000 431.68",
-     "aspect": 2.3166,
-     "widthUnits": 112.955,
-     "heightUnits": 48.76,
-     "segments": 210,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-3",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-3/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 431.68",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 113.0,
-    "height": 48.8,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-3.png"
-  },
-  {
    "assetId": "ornament-column-4",
    "nameKo": "기둥 4",
    "nameEn": "ornament-column-4",
@@ -69634,72 +69620,6 @@
    "thumb": "assets/thumbs/ornament-column-4.png"
   },
   {
-   "assetId": "ornament-capital-5",
-   "nameKo": "기둥머리 장식 5",
-   "nameEn": "ornament-capital-5",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 5"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-5/front.svg",
-     "viewBox": "0 0 1000 410.16",
-     "aspect": 2.4381,
-     "widthUnits": 115.275,
-     "heightUnits": 47.281,
-     "segments": 72,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-5",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-5/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 410.16",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 115.3,
-    "height": 47.3,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-5.png"
-  },
-  {
    "assetId": "ornament-column-6",
    "nameKo": "기둥 6",
    "nameEn": "ornament-column-6",
@@ -69764,1722 +69684,6 @@
    },
    "sizeSource": "user-real-world-estimate",
    "thumb": "assets/thumbs/ornament-column-6.png"
-  },
-  {
-   "assetId": "ornament-capital-7",
-   "nameKo": "기둥머리 장식 7",
-   "nameEn": "ornament-capital-7",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 7"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-7/front.svg",
-     "viewBox": "0 0 1000 861.86",
-     "aspect": 1.1603,
-     "widthUnits": 86.217,
-     "heightUnits": 74.307,
-     "segments": 397,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-7",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-7/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 861.86",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 86.2,
-    "height": 74.3,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-7.png"
-  },
-  {
-   "assetId": "ornament-capital-8",
-   "nameKo": "기둥머리 장식 8",
-   "nameEn": "ornament-capital-8",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 8"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-8/front.svg",
-     "viewBox": "0 0 1000 463.68",
-     "aspect": 2.1567,
-     "widthUnits": 99.162,
-     "heightUnits": 45.979,
-     "segments": 39,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-8",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-8/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 463.68",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 99.2,
-    "height": 46.0,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-8.png"
-  },
-  {
-   "assetId": "ornament-capital-9",
-   "nameKo": "기둥머리 장식 9",
-   "nameEn": "ornament-capital-9",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 9"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-9/front.svg",
-     "viewBox": "0 0 1000 582.26",
-     "aspect": 1.7174,
-     "widthUnits": 100.611,
-     "heightUnits": 58.582,
-     "segments": 606,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-9",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-9/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 582.26",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 100.6,
-    "height": 58.6,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-9.png"
-  },
-  {
-   "assetId": "ornament-capital-10",
-   "nameKo": "기둥머리 장식 10",
-   "nameEn": "ornament-capital-10",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 10"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-10/front.svg",
-     "viewBox": "0 0 1000 517.73",
-     "aspect": 1.9315,
-     "widthUnits": 107.539,
-     "heightUnits": 55.677,
-     "segments": 180,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-10",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-10/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 517.73",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 107.5,
-    "height": 55.7,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-10.png"
-  },
-  {
-   "assetId": "ornament-capital-11",
-   "nameKo": "기둥머리 장식 11",
-   "nameEn": "ornament-capital-11",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 11"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-11/front.svg",
-     "viewBox": "0 0 1000 425.65",
-     "aspect": 2.3494,
-     "widthUnits": 105.49,
-     "heightUnits": 44.901,
-     "segments": 222,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-11",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-11/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 425.65",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 105.5,
-    "height": 44.9,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-11.png"
-  },
-  {
-   "assetId": "ornament-capital-12",
-   "nameKo": "기둥머리 장식 12",
-   "nameEn": "ornament-capital-12",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 12"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-12/front.svg",
-     "viewBox": "0 0 1000 515.38",
-     "aspect": 1.9403,
-     "widthUnits": 111.511,
-     "heightUnits": 57.471,
-     "segments": 197,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-12",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-12/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 515.38",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 111.5,
-    "height": 57.5,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-12.png"
-  },
-  {
-   "assetId": "ornament-capital-13",
-   "nameKo": "기둥머리 장식 13",
-   "nameEn": "ornament-capital-13",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 13"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-13/front.svg",
-     "viewBox": "0 0 1000 648.78",
-     "aspect": 1.5413,
-     "widthUnits": 104.47,
-     "heightUnits": 67.779,
-     "segments": 108,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-13",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-13/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 648.78",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 104.5,
-    "height": 67.8,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-13.png"
-  },
-  {
-   "assetId": "ornament-capital-14",
-   "nameKo": "기둥머리 장식 14",
-   "nameEn": "ornament-capital-14",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 14"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-14/front.svg",
-     "viewBox": "0 0 1000 705.2",
-     "aspect": 1.418,
-     "widthUnits": 99.068,
-     "heightUnits": 69.863,
-     "segments": 177,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-14",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-14/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 705.2",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 99.1,
-    "height": 69.9,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-14.png"
-  },
-  {
-   "assetId": "ornament-capital-15",
-   "nameKo": "기둥머리 장식 15",
-   "nameEn": "ornament-capital-15",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 15"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-15/front.svg",
-     "viewBox": "0 0 1000 431.68",
-     "aspect": 2.3166,
-     "widthUnits": 112.955,
-     "heightUnits": 48.76,
-     "segments": 210,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-15",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-15/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 431.68",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 113.0,
-    "height": 48.8,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-15.png"
-  },
-  {
-   "assetId": "ornament-capital-16",
-   "nameKo": "기둥머리 장식 16",
-   "nameEn": "ornament-capital-16",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 16"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-16/front.svg",
-     "viewBox": "0 0 1000 713.23",
-     "aspect": 1.4021,
-     "widthUnits": 96.693,
-     "heightUnits": 68.964,
-     "segments": 276,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-16",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-16/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 713.23",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 96.7,
-    "height": 69.0,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-16.png"
-  },
-  {
-   "assetId": "ornament-capital-17",
-   "nameKo": "기둥머리 장식 17",
-   "nameEn": "ornament-capital-17",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 17"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-17/front.svg",
-     "viewBox": "0 0 1000 596.07",
-     "aspect": 1.6776,
-     "widthUnits": 103.599,
-     "heightUnits": 61.753,
-     "segments": 75,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-17",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-17/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 596.07",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 103.6,
-    "height": 61.8,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-17.png"
-  },
-  {
-   "assetId": "ornament-capital-18",
-   "nameKo": "기둥머리 장식 18",
-   "nameEn": "ornament-capital-18",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 18"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-18/front.svg",
-     "viewBox": "0 0 1000 524.66",
-     "aspect": 1.906,
-     "widthUnits": 105.915,
-     "heightUnits": 55.57,
-     "segments": 185,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-18",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-18/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 524.66",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 105.9,
-    "height": 55.6,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-18.png"
-  },
-  {
-   "assetId": "ornament-capital-19",
-   "nameKo": "기둥머리 장식 19",
-   "nameEn": "ornament-capital-19",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 19"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-19/front.svg",
-     "viewBox": "0 0 1000 729.26",
-     "aspect": 1.3713,
-     "widthUnits": 105.27,
-     "heightUnits": 76.769,
-     "segments": 160,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-19",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-19/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 729.26",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 105.3,
-    "height": 76.8,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-19.png"
-  },
-  {
-   "assetId": "ornament-capital-20",
-   "nameKo": "기둥머리 장식 20",
-   "nameEn": "ornament-capital-20",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 20"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-20/front.svg",
-     "viewBox": "0 0 1000 553.05",
-     "aspect": 1.8082,
-     "widthUnits": 109.978,
-     "heightUnits": 60.823,
-     "segments": 636,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-20",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-20/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 553.05",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 110.0,
-    "height": 60.8,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-20.png"
-  },
-  {
-   "assetId": "ornament-capital-21",
-   "nameKo": "기둥머리 장식 21",
-   "nameEn": "ornament-capital-21",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 21"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-21/front.svg",
-     "viewBox": "0 0 1000 860.56",
-     "aspect": 1.162,
-     "widthUnits": 83.848,
-     "heightUnits": 72.156,
-     "segments": 227,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-21",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-21/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 860.56",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 83.8,
-    "height": 72.2,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-21.png"
-  },
-  {
-   "assetId": "ornament-capital-22",
-   "nameKo": "기둥머리 장식 22",
-   "nameEn": "ornament-capital-22",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 22"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-22/front.svg",
-     "viewBox": "0 0 1000 372.53",
-     "aspect": 2.6844,
-     "widthUnits": 111.852,
-     "heightUnits": 41.668,
-     "segments": 30,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-22",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-22/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 372.53",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 111.9,
-    "height": 41.7,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-22.png"
-  },
-  {
-   "assetId": "ornament-capital-23",
-   "nameKo": "기둥머리 장식 23",
-   "nameEn": "ornament-capital-23",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 23"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-23/front.svg",
-     "viewBox": "0 0 1000 474.45",
-     "aspect": 2.1077,
-     "widthUnits": 114.255,
-     "heightUnits": 54.208,
-     "segments": 46,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-23",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-23/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 474.45",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 114.3,
-    "height": 54.2,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-23.png"
-  },
-  {
-   "assetId": "ornament-capital-24",
-   "nameKo": "기둥머리 장식 24",
-   "nameEn": "ornament-capital-24",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 24"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-24/front.svg",
-     "viewBox": "0 0 1000 425.65",
-     "aspect": 2.3494,
-     "widthUnits": 105.49,
-     "heightUnits": 44.901,
-     "segments": 222,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-24",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-24/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 425.65",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 105.5,
-    "height": 44.9,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-24.png"
-  },
-  {
-   "assetId": "ornament-capital-25",
-   "nameKo": "기둥머리 장식 25",
-   "nameEn": "ornament-capital-25",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 25"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-25/front.svg",
-     "viewBox": "0 0 1000 410.16",
-     "aspect": 2.4381,
-     "widthUnits": 115.275,
-     "heightUnits": 47.281,
-     "segments": 72,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-25",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-25/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 410.16",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 115.3,
-    "height": 47.3,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-25.png"
-  },
-  {
-   "assetId": "ornament-capital-26",
-   "nameKo": "기둥머리 장식 26",
-   "nameEn": "ornament-capital-26",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 26"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-26/front.svg",
-     "viewBox": "0 0 1000 789.18",
-     "aspect": 1.2671,
-     "widthUnits": 87.665,
-     "heightUnits": 69.183,
-     "segments": 334,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-26",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-26/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 789.18",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 87.7,
-    "height": 69.2,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-26.png"
-  },
-  {
-   "assetId": "ornament-capital-27",
-   "nameKo": "기둥머리 장식 27",
-   "nameEn": "ornament-capital-27",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 27"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-27/front.svg",
-     "viewBox": "0 0 1000 563.27",
-     "aspect": 1.7753,
-     "widthUnits": 114.313,
-     "heightUnits": 64.389,
-     "segments": 576,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-27",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-27/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 563.27",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 114.3,
-    "height": 64.4,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-27.png"
-  },
-  {
-   "assetId": "ornament-capital-28",
-   "nameKo": "기둥머리 장식 28",
-   "nameEn": "ornament-capital-28",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 28"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-28/front.svg",
-     "viewBox": "0 0 1000 846.45",
-     "aspect": 1.1814,
-     "widthUnits": 88.475,
-     "heightUnits": 74.89,
-     "segments": 358,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-28",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-28/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 846.45",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 88.5,
-    "height": 74.9,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-28.png"
-  },
-  {
-   "assetId": "ornament-capital-29",
-   "nameKo": "기둥머리 장식 29",
-   "nameEn": "ornament-capital-29",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 29"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-29/front.svg",
-     "viewBox": "0 0 1000 655.61",
-     "aspect": 1.5253,
-     "widthUnits": 101.388,
-     "heightUnits": 66.471,
-     "segments": 416,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-29",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-29/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 655.61",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 101.4,
-    "height": 66.5,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-29.png"
-  },
-  {
-   "assetId": "ornament-capital-30",
-   "nameKo": "기둥머리 장식 30",
-   "nameEn": "ornament-capital-30",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 30"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-30/front.svg",
-     "viewBox": "0 0 1000 861.86",
-     "aspect": 1.1603,
-     "widthUnits": 86.217,
-     "heightUnits": 74.307,
-     "segments": 397,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-30",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-30/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 861.86",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 86.2,
-    "height": 74.3,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-30.png"
-  },
-  {
-   "assetId": "ornament-capital-31",
-   "nameKo": "기둥머리 장식 31",
-   "nameEn": "ornament-capital-31",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 31"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-31/front.svg",
-     "viewBox": "0 0 1000 410.48",
-     "aspect": 2.4362,
-     "widthUnits": 105.375,
-     "heightUnits": 43.254,
-     "segments": 100,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-31",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-31/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 410.48",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 105.4,
-    "height": 43.3,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-31.png"
-  },
-  {
-   "assetId": "ornament-capital-32",
-   "nameKo": "기둥머리 장식 32",
-   "nameEn": "ornament-capital-32",
-   "categoryId": "decor",
-   "subcategoryId": "ornament",
-   "tags": [
-    "기둥머리 장식 32"
-   ],
-   "source": {
-    "file": "Ornaments Set.dwg",
-    "path": "dwg-extract/#Uac00#Uad6c dwg/Ornaments Set.dwg",
-    "dwgVersion": null,
-    "insunits": 4,
-    "labels": [],
-    "batch": "8차 추가 가구 dwg"
-   },
-   "classification": {
-    "basis": "8차 수동 분류(이미지 확인)",
-    "confidence": "high"
-   },
-   "views": {
-    "front": {
-     "svg": "assets/svg/ornament-capital-32/front.svg",
-     "viewBox": "0 0 1000 463.68",
-     "aspect": 2.1567,
-     "widthUnits": 99.162,
-     "heightUnits": 45.979,
-     "segments": 39,
-     "anchor": {
-      "x": 0.5,
-      "y": 1.0,
-      "note": "바닥 접지점=하단 중앙"
-     },
-     "flags": [],
-     "sourceBlock": "ornaments-set/unknown-32",
-     "excludedEntities": {},
-     "fill": "assets/svg/ornament-capital-32/front.fill.svg"
-    },
-    "leftSide": null,
-    "rightSide": null
-   },
-   "extraViews": {},
-   "reviewReasons": [
-    "front-only"
-   ],
-   "errors": [],
-   "placement": {
-    "origin": "bottom-center",
-    "note": "정면/측면 SVG의 하단 중앙이 바닥 접지점"
-   },
-   "viewBox": "0 0 1000 463.68",
-   "status": "ok-with-notes",
-   "defaultSizeCm": {
-    "width": 99.2,
-    "height": 46.0,
-    "depth": null
-   },
-   "unit": {
-    "insunits": 4,
-    "name": "cm(추정)",
-    "toCm": 1.0
-   },
-   "sizeSource": "user-real-world-estimate",
-   "thumb": "assets/thumbs/ornament-capital-32.png"
   },
   {
    "assetId": "picture-frame",
@@ -71764,7 +69968,8 @@
    },
    "viewBox": "0 0 1000 827.94",
    "status": "ok-with-notes",
-   "thumb": "assets/thumbs/classic-armchair.png"
+   "thumb": "assets/thumbs/classic-armchair.png",
+   "tab": "seating"
   },
   {
    "assetId": "classic-sofa-3seat",
@@ -71832,7 +70037,8 @@
    },
    "viewBox": "0 0 1000 436.71",
    "status": "ok-with-notes",
-   "thumb": "assets/thumbs/classic-sofa-3seat.png"
+   "thumb": "assets/thumbs/classic-sofa-3seat.png",
+   "tab": "seating"
   }
  ]
 }

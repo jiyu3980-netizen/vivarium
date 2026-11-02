@@ -37,6 +37,36 @@
     {
      "id": "fireplace",
      "nameKo": "벽난로·난로"
+    },
+    {
+     "id": "shelf",
+     "nameKo": "책장"
+    }
+   ],
+   "tabs": [
+    {
+     "id": "seating",
+     "nameKo": "의자·소파"
+    },
+    {
+     "id": "table",
+     "nameKo": "테이블·책상"
+    },
+    {
+     "id": "bed",
+     "nameKo": "침대"
+    },
+    {
+     "id": "storage",
+     "nameKo": "수납장·협탁"
+    },
+    {
+     "id": "bookshelf",
+     "nameKo": "책장"
+    },
+    {
+     "id": "fireplace",
+     "nameKo": "벽난로"
     }
    ]
   },
@@ -91,6 +121,14 @@
     {
      "id": "cookware-food",
      "nameKo": "조리도구"
+    },
+    {
+     "id": "small-appliance",
+     "nameKo": "조리 가전"
+    },
+    {
+     "id": "shelf",
+     "nameKo": "주방 선반"
     }
    ]
   },

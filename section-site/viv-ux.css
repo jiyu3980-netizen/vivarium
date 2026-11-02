@@ -96,3 +96,7 @@ body.mode-viv #msg{display:none}
 .vv-chkrow{display:flex;gap:8px;align-items:center;font-size:.9em}
 .vv-codeshow{font:700 1.15em/1 ui-monospace,monospace;letter-spacing:.12em;padding:8px 12px;border:1px solid #1c1c1c;border-radius:999px}
 .vv-mycode{margin:6px 0 10px}
+
+/* 관찰일지 버튼: 입장하기·이웃하기와 다른 모양(정사각 아이콘 버튼, 포인트 색) */
+.vnav .vjoin.vjico,body.mode-viv .vnav .vjoin.vjico,body:not(.mode-viv) .vnav .vjoin.vjico{width:34px;height:34px;padding:0;justify-content:center;border-radius:10px;border:1.5px solid #8a6d3b;background:#fbf3e2;color:#6b4f1d;box-shadow:0 1px 0 #d9c7a0}
+.vnav .vjoin.vjico:hover{background:#f3e5c4}
