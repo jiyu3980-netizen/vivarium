@@ -127,9 +127,10 @@ function profileRel(env,a,b){
   out=scan(ca.profile,cb.name,true)||scan(cb.profile,ca.name,false);return out}
 function initRel(s,a,b,env){
   const t0=profileRel(env,a,b),A=env.A(a),shy=tvOf(A,'shy')+.6*tvOf(A,'solitary');
-  let type=t0||(shy>.5?'awkward':'roommate');
+  const gu=!t0&&env.guest&&(env.guest(a)||env.guest(b));   // 이웃집에 놀러 온 손님과의 첫 만남은 '룸메이트'가 아니라 '아는 사이'
+  let type=t0||(gu?'acquaint':(shy>.5?'awkward':'roommate'));
   let aff=REL_TYPES[type].aff+Math.round(((hash(a+'~'+b)%9)-4))+(tvOf(A,'social')>0?3:0)-(shy>.5?3:0);
-  const r={aff:clamp(aff,-100,100),type,lock:t0?'profile':null,last:0,why:t0?'프로필에 적힌 관계':'같은 집에서 지내며 알게 됨',whyAt:env.now,origin:t0?'프로필에 서로의 관계가 적혀 있어요':'같은 집에서 함께 지내게 되면서',cnt:0,rec:{},dayKey:'',dayPos:0,dayNeg:0};
+  const r={aff:clamp(aff,-100,100),type,lock:t0?'profile':null,last:0,why:t0?'프로필에 적힌 관계':(gu?'이웃집에 놀러 가서 알게 됨':'같은 집에서 지내며 알게 됨'),whyAt:env.now,origin:t0?'프로필에 서로의 관계가 적혀 있어요':(gu?'이웃집에 놀러 가서 만나게 되면서':'같은 집에서 함께 지내게 되면서'),cnt:0,rec:{},dayKey:'',dayPos:0,dayNeg:0};
   s.rel[pk(a,b)]=r;return r}
 const rel=(s,a,b,env)=>s.rel[pk(a,b)]||initRel(s,a,b,env);
 
@@ -297,7 +298,8 @@ function applyEvent(s,ev,env){
    ===================================================================== */
 const PAIR_VERB={bg_pair:'play',bg_floor:'play',pillow:'affection',love_aff:'affection',love_crush:'talk'};
 function makeEnv(s,inp){const byId={};inp.chars.forEach(c=>byId[c.id]=c);
-  return {now:inp.now,hour:inp.hour,day:inp.day,all:inp.chars.map(c=>c.id),char:id=>byId[id]||null,name:id=>(byId[id]||{}).name||'상대',A:id=>inp.A(byId[id]||{id,name:'',profile:''}),unc:id=>(inp.unc?inp.unc(id):null)}}
+  const gset=new Set(inp.guestIds||[]);
+  return {now:inp.now,hour:inp.hour,day:inp.day,all:inp.chars.map(c=>c.id),guest:id=>gset.has(id),char:id=>byId[id]||null,name:id=>(byId[id]||{}).name||'상대',A:id=>inp.A(byId[id]||{id,name:'',profile:''}),unc:id=>(inp.unc?inp.unc(id):null)}}
 function update(s,inp){
   s=migrate(s);const env=makeEnv(s,inp),now=inp.now,log=[],ids=inp.chars.map(c=>c.id);
   if(SOC()&&SOC().setPlace)SOC().setPlace(inp);

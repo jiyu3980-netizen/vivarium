@@ -260,7 +260,7 @@ function hitPlan(A0,F0){if(F0.hp)return F0.hp;let hp={sub:null};
  return F0.hp=hp}
 function renderItem(it,gp,WT,pseudo){const gg=mk('g',{...(pseudo?{'data-id':it.uid}:{class:'itm','data-uid':it.uid}),transform:`translate(${it.x-it.w/2} ${-it.e-it.h})`+(it.flip?` translate(${it.w} 0) scale(-1 1)`:'')},gp);
  const a=AM[it.assetId];const v=a&&a.views[it.view]||(a&&Object.values(a.views).find(Boolean));
- if(!v){mk('rect',{width:it.w,height:it.h,fill:'rgba(200,0,0,.1)',stroke:'#c00'},gg);return}
+ if(!v){gg.remove();return}   /* 삭제·누락된 에셋은 빨간 사각형 대신 아무것도 그리지 않음 */
  const A0=art(v.svg),F0=(OPT.fill&&v.fill)?art(v.fill):null;
  if(!A0||(OPT.fill&&v.fill&&!F0)){mk('rect',{width:it.w,height:it.h,fill:'rgba(0,0,0,.04)',stroke:'#999','stroke-dasharray':'4 4','stroke-width':1},gg);return}
  const sx=it.w/A0.w,sy=it.h/A0.h,k=(sx+sy)/2,w=WT[it.uid]||(()=>{const wo=Math.min(S.lw.out,.04*Math.max(it.w,it.h));return {wo,wi:Math.min(S.lw.inn,wo/2)}})();const col=it.cs==='behind'?'#555':'#1c1c1c';const dsh=(it.cs==='behind'&&S.lw.bDash)?{'stroke-dasharray':`${(9/k).toFixed(2)} ${(6/k).toFixed(2)}`}:{};

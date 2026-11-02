@@ -5,7 +5,7 @@ T=$(cd "$(dirname "$0")" && pwd); S=$T/../../section-server/tests; FAIL=0
 fresh(){ /tmp/eng/restart.sh >/dev/null; }
 curl -s localhost:8765 >/dev/null || (cd /mnt/user-data/outputs && setsid nohup python3 -m http.server 8765 >/dev/null 2>&1 &); sleep 1
 run(){ n=$1; shift; fresh; out=$(timeout 400 "$@" 2>&1); rc=$?; f=$(echo "$out" | grep -c '^FAIL'); echo "[$n] rc=$rc FAIL=$f ok=$(echo "$out" | grep -c '^ok')"; echo "$out" | grep '^FAIL' | head -5; [ $rc -ne 0 -o $f -gt 0 ] && FAIL=1; }
-cd $S; for t in api relation-lock scenario4 journal-diary; do run server-$t node $t.test.js; done
-cd $T; for t in engine-determinism-test joint-test ko-test love-join-test romfx-test exit-door-test brace-test profile-behavior-test; do run site-$t node $t.js; done
-for t in ui-integration-test ui-neighbor-rel-test ui-romance-test ui-visit-full-test ui-visit-latency-test ui-visit-nogeo-test ui-charlist-test ui-libtabs-test; do run $t node $t.js; done
+cd $S; for t in api relation-lock scenario4 journal-diary visit-interact; do run server-$t node $t.test.js; done
+cd $T; for t in engine-determinism-test joint-test ko-test love-join-test romfx-test exit-door-test brace-test profile-behavior-test guest-interact-test; do run site-$t node $t.js; done
+for t in ui-integration-test ui-neighbor-rel-test ui-romance-test ui-visit-full-test ui-visit-latency-test ui-visit-nogeo-test ui-charlist-test ui-libtabs-test missing-asset-test; do run $t node $t.js; done
 [ $FAIL -eq 0 ] && echo "GATE PASS" || echo "GATE FAIL"; exit $FAIL

@@ -51,7 +51,7 @@ function mindStep(h,t,prev,out){
   gsts.forEach(g=>row(g.id,g.realId));
   chars.forEach(c=>{if(gsts.some(g=>g.realId===c.id))return;row(c.id,c.id)});
   const sp=Sim.seoul(t),A=c=>Sim.analyze(c.profile,c.name,chars);
-  Mind.update(h.mind,{now:t,hour:sp.hour+sp.minute/60,day:`${sp.year}-${sp.month}-${sp.day}`,chars,A,cur,prev:prev||{},__cu:1,
+  Mind.update(h.mind,{guestIds:gsts.map(g=>g.realId),now:t,hour:sp.hour+sp.minute/60,day:`${sp.year}-${sp.month}-${sp.day}`,chars,A,cur,prev:prev||{},__cu:1,
     unc:cid=>h.unc&&Unc.mood?Unc.mood(h.unc,cid,t):null,
     stay:cid=>{if(!h.unc||!Unc.dayNum)return 0;try{const u=(h.unc.u||{})[cid];return u&&u.since!=null?Math.max(0,Unc.dayNum(t)-Unc.dayNum(u.since)):0}catch(e){return 0}}});
   /* 고백·프로포즈 결과: 화면 알림 후보(알림 표시 여부는 화면 쪽 상태라서 여기서는 표시하지 않음) */

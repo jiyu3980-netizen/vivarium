@@ -1,0 +1,12 @@
+const {chromium}=require('playwright');const fs=require('fs');
+const ok=(n,c,x)=>{console.log((c?'ok   ':'FAIL ')+n+(x?'  '+x:''));if(!c)process.exitCode=1};
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1400,height:900}})).newPage();
+await p.goto('http://localhost:8765/section-site/index.html',{waitUntil:'networkidle'});await p.click('.vnav button[data-m=edit]');await p.waitForTimeout(1000);
+const doc=await p.evaluate(()=>JSON.parse(JSON.stringify(SectionBridge.S)));
+doc.items=[{uid:'x1',assetId:'deleted-asset-xyz',view:'front',x:300,e:0,w:120,h:200,flip:false,cs:'proj',z:1}];
+await p.evaluate(d=>SectionBridge.loadDoc(d),doc);await p.waitForTimeout(800);
+const red=await p.evaluate(()=>[...document.querySelectorAll('svg rect')].filter(r=>(r.getAttribute('stroke')||'')==='#c00').length);
+ok('삭제된 에셋이 있는 도면에 빨간 사각형이 없음',red===0,'빨간 사각형 '+red);
+const ex=await p.evaluate(()=>{try{return (SectionBridge.exportSvg().text||'').includes('#c00')}catch(e){return 'err '+e.message}});
+ok('내보낸 SVG 에도 없음',ex===false,String(ex));
+await b.close()})();

@@ -349,6 +349,7 @@ function analyze(profile,name,others){
   const res={taste:tasteOf(profile,cl,facts,_nat,bits),nation:_nat,nhNames,bits,traits,ev,facts,job,status,hobbyWords,clauseList,likes:likes.slice(0,4),factList:fl,traitList:Object.keys(traits).filter(t=>TRAIT_RULES.some(x=>x[0]===t)).map(t=>{const r=TRAIT_RULES.find(x=>x[0]===t);return {k:t,label:traits[t]<0?'싫어함: '+r[1].replace(/을 좋아함|를 좋아함|을 즐김|를 즐김/,''):r[1],v:traits[t],words:ev[t]}})};
   if(_acache.size>200)_acache.clear();_acache.set(key,res);return res}
 const tv=(A,t)=>(A&&A.traits[t])||0;
+const K_FALLBACK={act:['{L}에 푹 빠져 시간을 보내는 중','{L}을(를) 즐기는 중','{L}에 몰두하는 중','{L}을(를) 하며 여유를 즐기는 중'],want:['{L}에 마음이 끌리는 중'],feel:['{L} 생각에 기분이 좋아진 중'],habit:['{L}을(를) 틈틈이 챙기는 중']};   // Ko 가 뜻을 못 푼 취미·좋아하는 것도 같은 문장으로 고정되지 않게
 const hobbyPool=A=>[...new Set([...(A.likes||[]),...(A.hobbyWords||[])])].filter(w=>w&&w!=='취미'&&!notHobby(w,A.nhNames)).slice(0,6);
 
 /* =====================================================================
@@ -618,7 +619,7 @@ V('bg_floor','hobby',null,'stand',[25,70],['{r}에서 {p}와(과) 바닥에 둘�
 V('f_dance','hobby',null,'stand',[5,20],['{r}에서 음악에 맞춰 신나게 춤추는 중','{r}에서 K-pop 안무를 따라 추는 중','{r}에서 혼자 댄스 연습을 하는 중','{r}에서 어깨를 들썩이며 가볍게 춤추는 중'],{dance:1.8,music:.6,hobby:.3},{rare:.4,hr:[9,24]});
 V('f_sing','hobby',null,'stand',[5,20],['{r}에서 좋아하는 노래를 따라 부르는 중','{r}에서 노래를 흥얼거리며 가사를 외우는 중','{r}에서 마이크가 있는 것처럼 열창하는 중','{r}에서 신나게 노래를 부르는 중'],{sing:1.8,music:.6,hobby:.3},{rare:.4,hr:[9,24]});
 V('f_listen','hobby',null,'sit',[15,45],['{r}에서 이어폰을 끼고 노래를 듣는 중','{r}에서 플레이리스트를 틀어 놓고 노래를 듣는 중','{r}에서 좋아하는 앨범을 처음부터 듣는 중'],{music:1.6,hobby:.3},{rare:.5,hr:[8,27]});
-V('f_game','hobby',null,'sit',[30,90],['{r}에서 {GM}'],{gamer:2,hobby:.3},{trait:'gamer',hr:[11,27]});
+V('f_game','hobby',null,'sit',[30,90],['{r}에서 {GM}','{r}에서 {GM}','{r}에서 화면에서 눈을 떼지 못한 채 {GM}'],{gamer:2,hobby:.3},{trait:'gamer',hr:[11,27]});
 V('f_boardsolo','hobby',null,'sit',[15,40],['{r}에서 {B} 규칙집을 읽어 보는 중','{r}에서 {B} 전략을 곰곰이 생각하는 중'],{boardgame:1.6,hobby:.3},{trait:'boardgame',hr:[10,27]});
 V('game','hobby','console','stand',[25,90],['{r}에서 {GM}','{r}에서 게임기에 푹 빠져 {GM}'],{hobby:1.8,tv:.8},{hr:[11,27]});
 V('music','hobby','audio','stand',[10,40],['{r}에서 음악을 틀어 놓고 듣는 중','{r}에서 음악을 들으며 흥얼거리는 중','{r}에서 {MU}','{r}에서 {MU}'],{hobby:1.5,solitary:.3});
@@ -662,8 +663,8 @@ V('arrange','chore',['basket'],'stand',[3,8],['{r}에서 바구니를 정리하�
 /* 반려동물 */
 V('pet_dog','pet','dog','stand',[8,25],['{r}에서 강아지를 쓰다듬어 주는 중','{r}에서 강아지와 놀아 주는 중'],{pet:1.5});
 V('pet_cat','pet','cat','stand',[8,25],['{r}에서 고양이를 쓰다듬는 중','{r}에서 고양이와 장난감으로 놀아 주는 중'],{pet:1.5});
-V('pet_chicken','pet','chicken','stand',[4,10],['{r}에서 닭에게 모이를 주는 중'],{pet:1.2});
-V('pet_other','pet','animal','stand',[5,15],['{r}에서 동물을 살펴보는 중'],{pet:1});
+V('pet_chicken','pet','chicken','stand',[4,10],['{r}에서 닭에게 모이를 주는 중','{r}에서 닭들이 모이를 쪼아 먹는 모습을 지켜보는 중','{r}에서 닭장 주변을 둘러보며 닭을 살피는 중'],{pet:1.2});
+V('pet_other','pet','animal','stand',[5,15],['{r}에서 동물을 살펴보는 중','{r}에서 동물이 편안한지 가만히 지켜보는 중','{r}에서 동물 곁에 쪼그려 앉아 쓰다듬어 주는 중'],{pet:1});
 /* 집 안 이동·기타 */
 V('wander','wander',null,'stand',[1,3],[],{outdoor:.2},{special:'wander'});
 V('idle','wander',null,'stand',[2,6],['{r}에서 서성이며 생각에 잠긴 중','{r}에서 가만히 서서 쉬는 중','{r}에서 창밖을 한 번 내다보고 다시 방을 둘러보는 중','{r}에서 별 이유 없이 방 안을 천천히 걸어 다니는 중','{r}에서 무엇을 할지 고민하며 손가락을 만지작거리는 중'],{});
@@ -684,7 +685,7 @@ V('f_social','chat',null,'stand',[5,15],['{r}에서 휴대폰으로 친구들 �
 V('f_video','tv',null,'stand',[10,30],['{r}에서 휴대폰으로 영상을 보는 중'],{tv:1},{trait:'tv'});
 V('f_style','wake',null,'stand',[5,12],['{r}에서 휴대폰으로 옷 구경을 하는 중','{r}에서 오늘의 코디를 상상해 보는 중'],{fashion:1},{trait:'fashion',hr:[8,22]});
 V('f_plantinfo','chore',null,'stand',[5,12],['{r}에서 식물 키우는 법을 찾아보는 중'],{plant:1},{trait:'plant'});
-V('f_petinfo','pet',null,'stand',[5,12],['{r}에서 동물 영상을 구경하는 중'],{pet:1},{trait:'pet'});
+V('f_petinfo','pet',null,'stand',[5,12],['{r}에서 동물 영상을 구경하는 중','{r}에서 귀여운 동물 영상을 보며 웃는 중','{r}에서 동물 사진을 넘겨 보며 흐뭇해하는 중'],{pet:1},{trait:'pet'});
 V('f_insomnia','rest',null,'stand',[10,25],['{r}에서 잠이 오지 않아 뒤척이는 중','{r}에서 불을 낮추고 밤 시간을 보내는 중'],{nightowl:1},{trait:'nightowl',hr:[23,27]});
 V('f_likes','rest',null,'stand',[6,20],['{r}에서 {K:feel}','{r}에서 {K:want}','{r}에서 {K:habit}'],{},{likes:true,rare:.8});
 V('prep_out','wake',null,'stand',[4,10],['{r}에서 외출 준비를 하는 중','{r}에서 가방을 챙기며 나갈 채비를 하는 중'],{},{special:'prep',internal:true});
@@ -699,8 +700,8 @@ V('pillow','chat','bed','lie',[10,35],['{r}에서 침대에 누워 {p}와(과) �
    ev:true = 고백·프로포즈 같은 특별 이벤트(끝날 때까지 다른 캐릭터가 끼어들지 못하고, 쿨다운은 viv-mind.js 가 관리) */
 V('love_crush','chat',null,'stand',[8,25],['{r}에서 {p}의 곁을 맴도는 중'],{social:.5},{pair:true,rom:'crush',rare:.9,hr:[8,27]});
 V('love_aff','chat',null,'stand',[10,30],['{r}에서 {p}와(과) 다정하게 시간을 보내는 중'],{social:.6},{pair:true,rom:'aff',rare:.9,hr:[8,27]});
-V('love_confess','chat',null,'stand',[20,40],['{r}에서 {p}에게 진지하게 할 말이 있다며 이야기하는 중'],{},{pair:true,rom:'confess',ev:true,rare:4,hr:[10,26]});
-V('love_propose','chat',null,'stand',[25,45],['{r}에서 {p}에게 진지하게 할 말이 있다며 이야기하는 중'],{},{pair:true,rom:'propose',ev:true,rare:4,hr:[10,26]});
+V('love_confess','chat',null,'stand',[20,40],['{r}에서 {p}에게 진지하게 할 말이 있다며 이야기하는 중','{r}에서 {p}에게 오래 숨겨 온 마음을 조심스럽게 털어놓는 중','{r}에서 {p}의 눈을 바라보며 좋아한다고 고백하는 중'],{},{pair:true,rom:'confess',ev:true,rare:4,hr:[10,26]});
+V('love_propose','chat',null,'stand',[25,45],['{r}에서 {p}에게 진지하게 할 말이 있다며 이야기하는 중','{r}에서 {p}에게 함께 살자며 조심스럽게 마음을 전하는 중','{r}에서 {p}에게 평생을 함께하고 싶다고 말을 꺼내는 중'],{},{pair:true,rom:'propose',ev:true,rare:4,hr:[10,26]});
 /* =====================================================================
    4-b) v17 반려동물 — 종(species)마다 행동 구성이 다르고, 사람보다 훨씬 단순함
    · 반려동물은 프로필 맨 앞의 표식 [반려:종|반려인id] 로 알아본다(parsePet). 화면에서는 표식을 떼어 낸다.
@@ -1361,7 +1362,7 @@ function startVerb(ctx,c,A,p,st,pos,from,moves,ch,rng,stUp,hm,recent,extra,keepW
   say=fillExtra(say,rng,A,H,c.profile,brng);
   const uv=ch.uncRep||(v.unc?v:null);
   if(uv&&ctx.unc){const ut=ctx.unc.say(c.id,uv.id,A,rng,{nb:(ctx.neighbors||[]).length});if(ut)say=fillSay(ut,room,ch.near?ch.near.name:'')}
-  if(/\{K:/.test(say)){const kl=ch.like&&Ko?Ko.like(ch.like):null;say=say.replace(/\{K:(act|want|feel|habit)\}/g,(m,k)=>kl&&kl[k].length?pick(rng,kl[k]):'지내는 중')}   // 취미·좋아하는 것은 Ko 가 뜻을 해석해 만든 문장으로
+  if(/\{K:/.test(say)){const kl=ch.like&&Ko?Ko.like(ch.like):null;say=say.replace(/\{K:(act|want|feel|habit)\}/g,(m,k)=>kl&&kl[k].length?pick(rng,kl[k]):(ch.like?pick(rng,K_FALLBACK[k]||K_FALLBACK.act):'지내는 중'))}   // 취미·좋아하는 것은 Ko 가 뜻을 해석해 만든 문장으로
   if(ch.like)say=say.replace(/\{L\}을\(를\)/g,eul(ch.like)).replace(/\{L\}/g,ch.like);
   if(!uv&&!partner&&!c.pet&&v.g==='wander'&&ctx.mind&&ctx.mind.alt){try{const al=ctx.mind.alt(mR(c.id),v,A,room,id=>{const o=ctx.chars.find(x=>x.id===id);return o?o.name:''});if(al)say=al}catch(e){}}   // v33: 서성임은 상태별 문장으로
   if(!uv&&!partner&&!c.pet&&ctx.mind&&ctx.mind.tone){try{const tn=ctx.mind.tone(mR(c.id),v,A,id=>{const o=ctx.chars.find(x=>x.id===id);return o?o.name:''});if(tn)say=say+', '+tn}catch(e){}}   // v31: 지금 마음 상태가 혼자 하는 행동의 지문에 드러남
